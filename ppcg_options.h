@@ -48,6 +48,9 @@ struct ppcg_options {
 	/* The target we generate code for. */
 	int target;
 
+  /* Generate systolic array using PolySA */
+  int polysa;
+
 	/* Generate OpenMP macros (C target only). */
 	int openmp;
 
@@ -91,9 +94,13 @@ ISL_ARG_DECL(ppcg_debug_options, struct ppcg_debug_options,
 	ppcg_debug_options_args)
 ISL_ARG_DECL(ppcg_options, struct ppcg_options, ppcg_options_args)
 
-#define		PPCG_TARGET_C		0
-#define		PPCG_TARGET_CUDA	1
-#define		PPCG_TARGET_OPENCL      2
+#define		PPCG_TARGET_C		              0
+#define		PPCG_TARGET_CUDA	            1
+#define		PPCG_TARGET_OPENCL            2
+#define   POLYSA_TARGET_C               3
+#define   POLYSA_TARGET_XILINX_HLS      4
+#define   POLYSA_TARGET_INTEL_OPENCL    5
+#define   POLYSA_TARGET_T2S             6
 
 void ppcg_options_set_target_defaults(struct ppcg_options *options);
 

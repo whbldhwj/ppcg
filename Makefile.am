@@ -60,7 +60,15 @@ ppcg_SOURCES = \
 	print.h \
 	util.c \
 	util.h \
-	version.c
+	version.c \
+	polysa_cpu.c \
+	polysa_cpu.h \
+	polysa_hls.c \
+	polysa_hls.h \
+	polysa_opencl.c \
+	polysa_opencl.h \
+	polysa_t2s.c \
+	polysa_t2s.h
 
 TESTS = @extra_tests@
 EXTRA_TESTS = opencl_test.sh polybench_test.sh

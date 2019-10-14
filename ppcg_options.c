@@ -11,9 +11,13 @@
 #include "ppcg_options.h"
 
 static struct isl_arg_choice target[] = {
-	{"c",		PPCG_TARGET_C},
-	{"cuda",	PPCG_TARGET_CUDA},
+	{"c",		        PPCG_TARGET_C},
+	{"cuda",	      PPCG_TARGET_CUDA},
 	{"opencl",      PPCG_TARGET_OPENCL},
+  {"polysa_c",    POLYSA_TARGET_C},
+  {"polysa_hls",  POLYSA_TARGET_XILINX_HLS},
+  {"polysa_opencl", POLYSA_TARGET_INTEL_OPENCL},
+  {"polysa_t2s",    POLYSA_TARGET_T2S},
 	{0}
 };
 
@@ -105,6 +109,8 @@ ISL_ARG_STR(struct ppcg_options, sizes, 0, "sizes", "sizes", NULL,
 	"Per kernel tile, grid and block sizes")
 ISL_ARG_INT(struct ppcg_options, max_shared_memory, 0,
 	"max-shared-memory", "size", 8192, "maximal amount of shared memory")
+ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
+  "Generate systolic arrays using PolySA")
 ISL_ARG_BOOL(struct ppcg_options, openmp, 0, "openmp", 0,
 	"Generate OpenMP macros (only for C target)")
 ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, target, 0, "target", target,

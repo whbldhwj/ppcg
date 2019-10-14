@@ -19,6 +19,7 @@
 #include <isl/id.h>
 #include <isl/val.h>
 #include <isl/set.h>
+#include <isl/constraint.h>
 #include <isl/union_set.h>
 #include <isl/union_map.h>
 #include <isl/aff.h>
@@ -35,6 +36,7 @@
 #include "cuda.h"
 #include "opencl.h"
 #include "cpu.h"
+#include "polysa_cpu.h"
 
 struct options {
 	struct pet_options *pet;
@@ -453,6 +455,316 @@ static void compute_tagged_flow_dep_only(struct ppcg_scop *ps)
 	isl_union_flow_free(flow);
 }
 
+static isl_bool is_external_access(__isl_keep isl_map *map, void *user) 
+{
+  isl_map *read_access = (isl_map *)(user);
+  /* The read access is in the format of
+   * {[S1[] -> pet_ref1] -> A[]}
+   */
+  isl_space *read_access_space = isl_map_get_space(read_access);
+  /* Factor the read access to
+   * {pet_ref[] -> A[]}
+   */
+  read_access_space = isl_space_domain_factor_range(read_access_space);
+  char *read_access_name = isl_space_get_tuple_name(read_access_space, isl_dim_in);
+
+  /* The flow dpendence is in the format of
+   * {[S1[] -> pet_ref1] -> [S1[] -> pet_ref2]}
+   * We factor it to
+   * {pet_ref1[] -> pet_ref2[]}
+   */
+  isl_map *dep = isl_map_factor_range(isl_map_copy(map));
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(map), stdout);
+//  isl_printer_print_map(printer, map);
+//  assert(isl_map_n_basic_map(map) == 1);
+//  isl_basic_map_list *bmap_list = isl_map_get_basic_map_list(map);
+//  isl_basic_map *bmap = isl_basic_map_list_get_basic_map(bmap_list, 0);
+//
+//  isl_mat *eq_mat = isl_basic_map_equalities_matrix(bmap, isl_dim_out, isl_dim_in, isl_dim_div, isl_dim_param, isl_dim_cst);
+//  isl_mat *ieq_mat = isl_basic_map_inequalities_matrix(bmap, isl_dim_out, isl_dim_in, isl_dim_div, isl_dim_param, isl_dim_cst);
+//
+//  for (int row = 0; row < isl_mat_rows(eq_mat); row++) {
+//    for (int col = 0; col < isl_mat_cols(eq_mat); col++) {
+//      isl_printer_print_val(printer, isl_mat_get_element_val(eq_mat, row, col));      
+//      printf(" ");
+//    }
+//    printf("\n");
+//  }
+//  printf("\n");
+//  for (int row = 0; row < isl_mat_rows(eq_mat); row++) {
+//    for (int col = 0; col < isl_mat_cols(eq_mat); col++) {
+//      isl_printer_print_val(printer, isl_mat_get_element_val(ieq_mat, row, col));      
+//      printf(" ");
+//    }
+//    printf("\n");
+//  }
+//
+//  isl_space *space = isl_basic_map_get_space(bmap);
+//  isl_printer_print_space(printer, space);
+//  printf("\n");
+//  // debug
+  isl_space *dep_space = isl_map_get_space(dep);
+  char *dep_src_name = isl_space_get_tuple_name(dep_space, isl_dim_in);
+  char *dep_sink_name = isl_space_get_tuple_name(dep_space, isl_dim_out);
+  isl_map_free(dep);
+
+  /* Compare if the read access name equals either source or sink access name
+   * in the flow dependence.
+   */
+  if (!strcmp(read_access_name, dep_src_name) || !strcmp(read_access_name, dep_sink_name)) {
+    isl_space_free(read_access_space);
+    isl_space_free(dep_space);
+    return isl_bool_false;
+  } else {
+    isl_space_free(read_access_space);
+    isl_space_free(dep_space);   
+    return isl_bool_true;
+  }
+}
+
+/* This function takes the tagged access relation in the format of
+ * {[S1[] -> pet_ref..] -> A[i,j]}
+ * and returns the access matrix.
+ */
+static __isl_give isl_mat *get_acc_mat_from_tagged_acc(__isl_keep isl_map *map) 
+{
+  isl_map *acc = isl_map_domain_factor_domain(isl_map_copy(map));
+  /* The parameters and constants are truncated. */
+  isl_mat *acc_mat = isl_mat_alloc(isl_map_get_ctx(acc), isl_map_dim(acc, isl_dim_out), isl_map_dim(acc, isl_dim_in));
+  /* Fill in the matrix. */
+  assert(isl_map_n_basic_map(acc) == 1);
+  isl_basic_map_list *bmap_list = isl_map_get_basic_map_list(acc);
+  isl_basic_map *bmap = isl_basic_map_list_get_basic_map(bmap_list, 0);
+
+  isl_mat *eq_mat = isl_basic_map_equalities_matrix(bmap, isl_dim_out, isl_dim_in, isl_dim_div, isl_dim_param, isl_dim_cst);
+  isl_mat *ieq_mat = isl_basic_map_inequalities_matrix(bmap, isl_dim_out, isl_dim_in, isl_dim_div, isl_dim_param, isl_dim_cst);
+
+  for (int row = 0; row < isl_mat_rows(eq_mat); row++) {
+    isl_val *sum = isl_val_zero(isl_mat_get_ctx(bmap));
+    int index;
+    for (int col = 0; col < isl_basic_map_dim(bmap, isl_dim_out); col++) {
+      sum = isl_val_add(sum, isl_val_abs(isl_mat_get_element_val(eq_mat, row, col)));
+      isl_val *mat_val = isl_mat_get_element_val(eq_mat, row, col);
+      if (isl_val_is_one(mat_val)) {
+        index = col;
+      }
+      isl_val_free(mat_val);
+    }
+    if (!isl_val_is_one(sum))
+      continue;
+    for (int col = 0; col < isl_basic_map_dim(bmap, isl_dim_in); col++) {
+      isl_mat_set_element_val(acc_mat, index, col, isl_val_neg(isl_mat_get_element_val(eq_mat, row, col + isl_basic_map_dim(bmap, isl_dim_out))));
+    }
+    isl_val_free(sum);
+  }
+
+  isl_mat_free(eq_mat);
+  isl_mat_free(ieq_mat);
+  isl_map_free(acc);
+
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(acc), stdout);
+//  for (int i = 0; i < isl_mat_rows(acc_mat); i++) {
+//    for (int j = 0; j < isl_mat_cols(acc_mat); j++) {
+//      isl_printer_print_val(printer, isl_mat_get_element_val(acc_mat, i, j));
+//      printf("\n");
+//    }
+//    printf("\n");
+//  }    
+//  // debug
+
+  isl_basic_map_list_free(bmap_list);
+  isl_basic_map_free(bmap);
+
+  return acc_mat;
+
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(acc), stdout);
+//  isl_printer_print_basic_map(printer, bmap);
+//  printf("\n");
+//  for (int i = 0; i < isl_mat_rows(eq_mat); i++) {
+//    for (int j = 0; j < isl_mat_cols(eq_mat); j++) {
+//      isl_printer_print_val(printer, isl_mat_get_element_val(eq_mat, i, j));
+//      printf("\n");
+//    }
+//    printf("\n");
+//  }
+//  for (int i = 0; i < isl_mat_rows(ieq_mat); i++) {
+//    for (int j = 0; j < isl_mat_cols(ieq_mat); j++) {
+//      isl_printer_print_val(printer, isl_mat_get_element_val(ieq_mat, i, j));
+//      printf("\n");
+//    }
+//    printf("\n");
+//  }
+//  // debug
+}
+
+/* Construct the rar dependence based on the dependence vector in sol and the 
+ * access relation map.
+ */
+static __isl_give isl_map *construct_dep_rar(__isl_keep isl_vec *sol, __isl_keep isl_map *map) {
+  /* Build the space. */
+  isl_space *space = isl_map_get_space(map);
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(map), stdout);
+//  isl_printer_print_space(printer, space);
+//  printf("\n");
+//  // debug
+
+  space = isl_space_domain(space);
+  isl_space *space_d = isl_space_factor_domain(isl_space_copy(space));
+  isl_space *space_r = isl_space_factor_range(isl_space_copy(space));
+
+  isl_space *space_d_d = isl_space_map_from_domain_and_range(space_d, isl_space_copy(space_d));
+  isl_space *space_r_r = isl_space_map_from_domain_and_range(space_r, isl_space_copy(space_r));
+
+  isl_space_free(space);
+  space = isl_space_product(space_d_d, space_r_r);
+//  // debug
+//  isl_printer_print_space(printer, space);
+//  printf("\n");
+//  // debug
+
+  isl_map *dep_map = isl_map_universe(isl_space_copy(space));
+  /* Add the dep vector constraint. */
+//  // debug
+//  isl_printer_print_map(printer, dep_map);
+//  printf("\n");
+//  // debug
+  isl_local_space *ls = isl_local_space_from_space(space);
+  for (int i = 0; i < isl_vec_size(sol); i++) {
+    isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_copy(ls));
+    isl_constraint_set_coefficient_si(cst, isl_dim_in, i, 1);
+    isl_constraint_set_coefficient_si(cst, isl_dim_out, i, -1);
+    isl_constraint_set_constant_val(cst, isl_vec_get_element_val(sol, i));
+    dep_map = isl_map_add_constraint(dep_map, cst);
+  }
+//  // debug
+//  isl_printer_print_map(printer, dep_map);
+//  printf("\n");
+//  // debug
+
+  /* Add the iteration domain constraints. */  
+  isl_set *domain = isl_map_domain(isl_map_copy(map));
+  isl_map *new_map = isl_map_from_domain_and_range(domain, isl_set_copy(domain));
+//  // debug
+//  isl_printer_print_map(printer, new_map);
+//  printf("\n");
+//  // debug
+
+  dep_map = isl_map_intersect(dep_map, new_map);
+//  // debug
+//  isl_printer_print_map(printer, dep_map);
+//  printf("\n");
+//  // debug
+
+  isl_local_space_free(ls);
+
+  return dep_map;
+}
+
+static isl_stat build_rar_dep(__isl_take isl_map *map, void *user) {
+  struct ppcg_scop *ps = (struct ppcg_scop *)(user);
+  /* Examine if the read access is an external access. */
+  isl_union_map *tagged_dep_flow = ps->tagged_dep_flow;
+  isl_bool is_external = isl_union_map_every_map(tagged_dep_flow, &is_external_access, map);
+  if (!is_external) {
+    isl_map_free(map);
+    return isl_stat_ok;
+  }
+
+  /* Take the access function and compute the null space */
+  isl_mat *acc_mat = get_acc_mat_from_tagged_acc(map); 
+  isl_mat *acc_null_mat = isl_mat_right_kernel(acc_mat);
+  int nsol = isl_mat_cols(acc_null_mat);
+  assert(nsol > 0);
+
+  /* Build the rar dependence.
+   * TODO: temporary solutiuon, we will construnct the rar dep
+   * using the first independent solution.
+   */
+  isl_vec *sol = isl_vec_alloc(isl_map_get_ctx(map), isl_mat_rows(acc_null_mat));
+  for (int row = 0; row < isl_mat_rows(acc_null_mat); row++) {
+    sol = isl_vec_set_element_val(sol, row, isl_mat_get_element_val(acc_null_mat, row, 0));
+  }
+  isl_map *tagged_dep_rar = construct_dep_rar(sol, map);
+  isl_vec_free(sol);
+  isl_mat_free(acc_null_mat);
+
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(tagged_dep_rar), stdout);
+//  isl_printer_print_map(printer, tagged_dep_rar);
+//  printf("\n");
+//
+//  isl_printer_print_union_map(printer, ps->tagged_dep_rar);
+//  printf("\n");
+//  // debug
+
+  ps->tagged_dep_rar = isl_union_map_union(ps->tagged_dep_rar, isl_union_map_from_map(tagged_dep_rar));
+//  // debug
+//  isl_printer_print_union_map(printer, ps->tagged_dep_rar);
+//  printf("\n");
+//  // debug
+
+//  // debug
+//  isl_space *space = isl_map_get_space(map);
+//  isl_ctx *ctx = isl_space_get_ctx(space);
+//  isl_printer *printer = isl_printer_to_file(ctx, stdout);
+//  isl_printer_print_space(printer, space);
+//  printf("\n");
+//  printf("%s\n", isl_space_get_tuple_name(space, isl_dim_in));
+//  printf("%s\n", isl_space_get_tuple_name(space, isl_dim_out));
+////  isl_printer_free(printer);
+//
+//  // how to get the reference tag
+//  isl_size dim = isl_space_dim(space, isl_dim_in);
+////  isl_printer_print_size(printer, dim);
+//  printf("%d", dim);
+//  printf("\n");
+//  printf("%d\n", isl_space_is_wrapping(space));
+//  printf("%d\n", isl_space_domain_is_wrapping(space));
+//  printf("%d\n", isl_space_range_is_wrapping(space));
+//  printf("%d\n", isl_space_dim(space, isl_dim_out));
+//
+//  space = isl_space_domain_factor_range(space);
+//  isl_printer_print_space(printer, space);
+//  printf("\n");
+//
+//  printf("%s\n", isl_space_get_tuple_name(space, isl_dim_in));
+//
+////  space = isl_space_domain(space);
+////  isl_printer_print_space(printer, space);
+////
+//////  printf("%d\n", isl_space_dim(space, isl_dim_in));
+////  printf("%d\n", isl_space_dim(space, isl_dim_set));
+////
+////  char *name = isl_space_get_tuple_name(space, isl_dim_set);
+////  printf("%s\n", name);
+////  printf("%d\n", isl_space_is_map(space));
+////  printf("%d\n", isl_space_is_set(space));
+//////  isl_id *id = isl_space_get_tuple_id(space, isl_dim_out);
+//////  isl_printer_print_id(printer, id);
+////  printf("\n");
+//  // debug
+
+  isl_map_free(map);
+  return isl_stat_ok;
+}
+
+/* Computed the tagged rar dependence and store the results in
+ * ps->tagged_rar_flow.
+ */
+static void compute_tagged_rar_dep_only(struct ppcg_scop *ps)
+{
+  /* For each read access, if the read is an external read access,
+   * compute the null space of the access function, and 
+   * construct the rar deps based on the independent solution in the null space
+   */
+  isl_union_map *tagged_reads = ps->tagged_reads;
+  isl_union_map_foreach_map(tagged_reads, &build_rar_dep, ps);
+}
+
 /* Compute ps->dep_flow from ps->tagged_dep_flow
  * by projecting out the reference tags.
  */
@@ -460,6 +772,15 @@ static void derive_flow_dep_from_tagged_flow_dep(struct ppcg_scop *ps)
 {
 	ps->dep_flow = isl_union_map_copy(ps->tagged_dep_flow);
 	ps->dep_flow = isl_union_map_factor_domain(ps->dep_flow);
+}
+
+/* Compute ps->dep_rar from ps->tagged_dep_rar
+ * by projecting out the reference tags.
+ */
+static void derive_rar_dep_from_tagged_rar_dep(struct ppcg_scop *ps)
+{
+  ps->dep_rar = isl_union_map_copy(ps->tagged_dep_rar);
+  ps->dep_rar = isl_union_map_factor_domain(ps->dep_rar);
 }
 
 /* Compute the flow dependences and the live_in accesses and store
@@ -474,6 +795,29 @@ static void compute_tagged_flow_dep(struct ppcg_scop *ps)
 {
 	compute_tagged_flow_dep_only(ps);
 	derive_flow_dep_from_tagged_flow_dep(ps);
+}
+
+/* Compute the rar dependence for each externel read access.
+ * The results are stored in ps->dep_rar.
+ * A copy of the rar dependneces, tagged with the reference tags 
+ * is stored in ps->tagged_dep_rar.
+ *
+ * We first compute ps->tagged_dep_rar, i.e., the tagged rar dependences
+ * and then project out the tags.
+ */
+static void compute_tagged_rar_dep(struct ppcg_scop *ps)
+{
+  isl_space *space = isl_union_map_get_space(ps->tagged_dep_flow);
+  ps->tagged_dep_rar = isl_union_map_empty(isl_space_set_alloc(isl_union_map_get_ctx(ps->tagged_dep_flow),
+        isl_space_dim(space, isl_dim_param), 0));
+  isl_space_free(space);
+  compute_tagged_rar_dep_only(ps);
+  // debug
+//  isl_printer *printer = isl_printer_to_file(isl_union_map_get_ctx(ps->tagged_dep_rar), stdout);
+//  isl_printer_print_union_map(printer, ps->tagged_dep_rar);
+//  printf("\n");
+  // debug
+  derive_rar_dep_from_tagged_rar_dep(ps);
 }
 
 /* Compute the order dependences that prevent the potential live ranges
@@ -747,6 +1091,24 @@ static void compute_dependences(struct ppcg_scop *scop)
 	scop->dep_false = isl_union_flow_get_may_dependence(flow);
 	scop->dep_false = isl_union_map_coalesce(scop->dep_false);
 	isl_union_flow_free(flow);
+
+  // debug
+//  isl_printer *printer = isl_printer_to_file(isl_union_map_get_ctx(scop->tagged_dep_flow), stdout);
+//  isl_printer_print_union_map(printer, scop->tagged_dep_flow);
+//  printf("\n");
+
+  // debug
+
+  /* Add analysis for RAR dependence */
+  if (scop->options->polysa)
+    compute_tagged_rar_dep(scop);
+
+  // debug
+//  isl_printer_print_union_map(printer, scop->tagged_dep_rar);
+//  printf("\n");
+//  isl_printer_print_union_map(printer, scop->dep_rar);
+//  printf("\n");
+  // debug
 }
 
 /* Eliminate dead code from ps->domain.
@@ -854,6 +1216,8 @@ static void *ppcg_scop_free(struct ppcg_scop *ps)
 	isl_union_map_free(ps->must_kills);
 	isl_union_map_free(ps->tagged_dep_flow);
 	isl_union_map_free(ps->dep_flow);
+  isl_union_map_free(ps->tagged_dep_rar);
+  isl_union_map_free(ps->dep_rar);
 	isl_union_map_free(ps->dep_false);
 	isl_union_map_free(ps->dep_forced);
 	isl_union_map_free(ps->tagged_dep_order);
@@ -919,6 +1283,19 @@ static struct ppcg_scop *ppcg_scop_from_pet_scop(struct pet_scop *scop,
 
 	compute_tagger(ps);
 	compute_dependences(ps);
+
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(ctx, stdout);
+//  isl_printer_print_union_map(printer, ps->dep_flow);
+//  fprintf(stdout, "\n");
+//  isl_printer_print_union_map(printer, ps->dep_false);
+//  fprintf(stdout, "\n");
+//  isl_printer_print_union_map(printer, ps->tagged_dep_flow);
+//  fprintf(stdout, "\n");
+//  isl_printer_print_union_map(printer, ps->tagged_reads);
+//  fprintf(stdout, "\n");
+//  // debug
+
 	eliminate_dead_code(ps);
 
 	if (!ps->context || !ps->domain || !ps->call || !ps->reads ||
@@ -1056,9 +1433,21 @@ int main(int argc, char **argv)
 	else if (options->ppcg->target == PPCG_TARGET_OPENCL)
 		r = generate_opencl(ctx, options->ppcg, options->input,
 				options->output);
-	else
+	else if (options->ppcg->target == PPCG_TARGET_C)
 		r = generate_cpu(ctx, options->ppcg, options->input,
 				options->output);
+  else if (options->ppcg->target == POLYSA_TARGET_C)
+    r = generate_polysa_cpu(ctx, options->ppcg, options->input,
+        options->output);
+//  else if (options->ppcg->target == POLYSA_TARGET_XILINX_HLS)
+//    r = generate_polysa_xilinx_hls(ctx, options->ppcg, options->input,
+//        options->output);
+//  else if (options->ppcg->target == POLYSA_TARGET_INTEL_OPENCL)
+//    r = generate_polysa_intel_opencl(ctx, options->ppcg, options->input,
+//        options->output);
+//  else if (options->ppcg->target == POLYSA_TARGET_T2S)
+//    r = generate_polysa_t2s(ctx, options->ppcg, options->input,
+//        options->output);
 
 	isl_ctx_free(ctx);
 
