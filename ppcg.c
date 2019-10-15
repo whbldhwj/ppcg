@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <isl/ctx.h>
+#include <isl/space.h>
 #include <isl/id.h>
 #include <isl/val.h>
 #include <isl/set.h>
@@ -466,7 +467,7 @@ static isl_bool is_external_access(__isl_keep isl_map *map, void *user)
    * {pet_ref[] -> A[]}
    */
   read_access_space = isl_space_domain_factor_range(read_access_space);
-  char *read_access_name = isl_space_get_tuple_name(read_access_space, isl_dim_in);
+  const char *read_access_name = isl_space_get_tuple_name(read_access_space, isl_dim_in);
 
   /* The flow dpendence is in the format of
    * {[S1[] -> pet_ref1] -> [S1[] -> pet_ref2]}
@@ -505,8 +506,8 @@ static isl_bool is_external_access(__isl_keep isl_map *map, void *user)
 //  printf("\n");
 //  // debug
   isl_space *dep_space = isl_map_get_space(dep);
-  char *dep_src_name = isl_space_get_tuple_name(dep_space, isl_dim_in);
-  char *dep_sink_name = isl_space_get_tuple_name(dep_space, isl_dim_out);
+  const char *dep_src_name = isl_space_get_tuple_name(dep_space, isl_dim_in);
+  const char *dep_sink_name = isl_space_get_tuple_name(dep_space, isl_dim_out);
   isl_map_free(dep);
 
   /* Compare if the read access name equals either source or sink access name
@@ -541,7 +542,7 @@ static __isl_give isl_mat *get_acc_mat_from_tagged_acc(__isl_keep isl_map *map)
   isl_mat *ieq_mat = isl_basic_map_inequalities_matrix(bmap, isl_dim_out, isl_dim_in, isl_dim_div, isl_dim_param, isl_dim_cst);
 
   for (int row = 0; row < isl_mat_rows(eq_mat); row++) {
-    isl_val *sum = isl_val_zero(isl_mat_get_ctx(bmap));
+    isl_val *sum = isl_val_zero(isl_basic_map_get_ctx(bmap));
     int index;
     for (int col = 0; col < isl_basic_map_dim(bmap, isl_dim_out); col++) {
       sum = isl_val_add(sum, isl_val_abs(isl_mat_get_element_val(eq_mat, row, col)));

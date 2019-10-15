@@ -1,0 +1,5 @@
+domain: "{ S_0[i, j, k = 1] : 0 < i <= 8 and 0 < j <= 8; S_1[i, j, k] : 0 < i <= 8 and 0 < j <= 8 and 0 < k <= 8 }"
+child:
+  schedule: "[{ S_1[i, j, k] -> [(i)]; S_0[i, j, k] -> [(i)] }, { S_1[i, j, k] -> [(j)]; S_0[i, j, k] -> [(j)] }, { S_1[i, j, k] -> [(k)]; S_0[i, j, k] -> [(0)] }]"
+  permutable: 1
+  coincident: [ 1, 1, 1 ]

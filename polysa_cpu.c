@@ -750,6 +750,12 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 
 	schedule = get_schedule(scop, options);
 
+  /*  Check if the program is legal to be mapped to systolic array. */
+  isl_bool is_legal = sa_legality_check(schedule, scop);
+  if (is_legal != isl_bool_true) {
+    printf("[PSA] Not legal to be transformed to systolic array.\n");
+  }
+
 	return print_cpu_with_schedule(p, scop, schedule, options);
 }
 
@@ -762,7 +768,6 @@ static __isl_give isl_printer *print_polysa_cpu_wrap(__isl_take isl_printer *p,
 
 	return generate(p, scop, options);
 }
-
 
 ///* Derive the output file name from the input file name.
 // * 'input' is the entire path of the input file. The output

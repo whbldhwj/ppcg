@@ -4,6 +4,7 @@
 #include <isl/ctx.h>
 
 #include "ppcg.h"
+#include "polysa_common.h"
 
 struct ppcg_options;
 
