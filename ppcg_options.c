@@ -21,6 +21,12 @@ static struct isl_arg_choice target[] = {
 	{0}
 };
 
+static struct isl_arg_choice sa_type[] = {
+  {"sync",        POLYSA_SA_TYPE_SYNC},
+  {"async",       POLYSA_SA_TYPE_ASYNC},
+  {0}
+};
+
 /* Set defaults that depend on the target.
  * In particular, set --schedule-outer-coincidence iff target is a GPU.
  */
@@ -111,11 +117,16 @@ ISL_ARG_INT(struct ppcg_options, max_shared_memory, 0,
 	"max-shared-memory", "size", 8192, "maximal amount of shared memory")
 ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
   "Generate systolic arrays using PolySA")
+ISL_ARG_INT(struct ppcg_options, max_sa_dim, 0,
+  "max-sa-dim", "dim", 2, "maximal systolic array dimension")
 ISL_ARG_BOOL(struct ppcg_options, openmp, 0, "openmp", 0,
 	"Generate OpenMP macros (only for C target)")
 ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, target, 0, "target", target,
 	&set_target, PPCG_TARGET_CUDA, PPCG_TARGET_CUDA,
 	"the target to generate code for")
+ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, sa_type, 0, "sa-type", sa_type,
+  NULL, POLYSA_SA_TYPE_ASYNC, POLYSA_SA_TYPE_ASYNC,
+  "systolic array type")
 ISL_ARG_BOOL(struct ppcg_options, linearize_device_arrays, 0,
 	"linearize-device-arrays", 1,
 	"linearize all device arrays, even those of fixed size")

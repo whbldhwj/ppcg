@@ -48,8 +48,14 @@ struct ppcg_options {
 	/* The target we generate code for. */
 	int target;
 
-  /* Generate systolic array using PolySA */
+  /* Generate systolic array using PolySA. */
   int polysa;
+
+  /* Maximal systolic array dimension. */
+  int max_sa_dim;
+
+  /* Systolic array type. */
+  int sa_type;
 
 	/* Generate OpenMP macros (C target only). */
 	int openmp;
@@ -101,6 +107,9 @@ ISL_ARG_DECL(ppcg_options, struct ppcg_options, ppcg_options_args)
 #define   POLYSA_TARGET_XILINX_HLS      4
 #define   POLYSA_TARGET_INTEL_OPENCL    5
 #define   POLYSA_TARGET_T2S             6
+
+#define   POLYSA_SA_TYPE_SYNC           0
+#define   POLYSA_SA_TYPE_ASYNC          1
 
 void ppcg_options_set_target_defaults(struct ppcg_options *options);
 

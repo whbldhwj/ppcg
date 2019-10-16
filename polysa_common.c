@@ -1,25 +1,10 @@
 #include "polysa_common.h"
 
-/* Examines if the node is a permutable band node. If so, 
- * increase the number of permutable node.
- */
-isl_bool is_permutable_node(__isl_keep isl_schedule_node *node, void *user) {
-  isl_val *n_permutable_node = (isl_val *)(user);
+/* Examines if the node is a permutable band node. */
+static isl_bool is_permutable_node(__isl_keep isl_schedule_node *node) 
+{
   if (!node)
     return isl_bool_error;
-
-  /* Skip the domain and leaf node. */
-  if (isl_schedule_node_get_type(node) == isl_schedule_node_domain)
-    return isl_bool_true;
-  if (isl_schedule_node_get_type(node) == isl_schedule_node_leaf)
-    return isl_bool_true;
-
-//  // debug
-//  printf("%d\n", isl_schedule_node_get_type(node));
-//  isl_printer *printer = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//  isl_printer_print_schedule_node(printer, node);
-//  printf("\n");
-//  // debug
 
   if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
     return isl_bool_false;
@@ -28,7 +13,47 @@ isl_bool is_permutable_node(__isl_keep isl_schedule_node *node, void *user) {
   if (isl_schedule_node_band_n_member(node) < 1)
     return isl_bool_false;
 
-  n_permutable_node = isl_val_add_ui(n_permutable_node, 1);
+  return isl_bool_true;
+}
+
+/* Examines if the node is a permutable band node. If so,
+ * compare and update the outermost node.
+ */
+isl_bool is_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)
+{
+  isl_schedule_node **t_node = (isl_schedule_node **)(user);
+  if (!node)
+    return isl_bool_error;
+
+  if (is_permutable_node(node) == isl_bool_true) {
+    if (*t_node == NULL)
+      *t_node = isl_schedule_node_copy(node);
+    else {
+      if (isl_schedule_node_get_tree_depth(node) < isl_schedule_node_get_tree_depth(*t_node)) {
+        isl_schedule_node_free(*t_node);
+        *t_node = isl_schedule_node_copy(node);
+      } else if (isl_schedule_node_get_tree_depth(node) == isl_schedule_node_get_tree_depth(*t_node)) {
+        if (isl_schedule_node_get_child_position(node) < isl_schedule_node_get_child_position(*t_node)) {
+          isl_schedule_node_free(*t_node);
+          *t_node = isl_schedule_node_copy(node);
+        }
+      }
+    }
+  }
+
+  return isl_bool_true;
+}
+
+/* Examines if the node is a permutable band node. If so, 
+ * increase the number of permutable node.
+ */
+isl_bool is_permutable_node_cnt(__isl_keep isl_schedule_node *node, void *user) {
+  isl_val *n_permutable_node = (isl_val *)(user);
+  if (!node)
+    return isl_bool_error;
+
+  if (is_permutable_node(node) == isl_bool_true)
+    n_permutable_node = isl_val_add_ui(n_permutable_node, 1);
 
   return isl_bool_true;
 }
@@ -48,7 +73,7 @@ isl_bool has_single_permutable_node(__isl_keep isl_schedule *schedule)
 //  // debug
   isl_val *n_permutable_node = isl_val_zero(isl_schedule_get_ctx(schedule));
   isl_bool all_permutable_node = isl_schedule_node_every_descendant(root,
-      &is_permutable_node, n_permutable_node);
+      &is_permutable_node_cnt, n_permutable_node);
   isl_schedule_node_free(root);
   if (all_permutable_node && isl_val_is_one(n_permutable_node)) {
     isl_val_free(n_permutable_node);
@@ -197,12 +222,12 @@ isl_bool is_dep_uniform(__isl_take isl_basic_map *bmap, void *user)
   isl_schedule *schedule = (isl_schedule *)(user);
   isl_schedule_node *root = isl_schedule_get_root(schedule);
   /* Search for the first permutable node and analyze the dep. */
-  isl_stat is_uniform = isl_schedule_node_foreach_descendant_top_down(root,
+  isl_bool is_uniform = isl_schedule_node_every_descendant(root,
       &is_dep_uniform_at_node, bmap);
   isl_schedule_node_free(root);
 
   isl_basic_map_free(bmap);
-  return (is_uniform == isl_stat_ok ? isl_bool_true : isl_bool_false);
+  return is_uniform;
 
 //  isl_schedule_node_band_get_partial_schedule_union_map
 //  isl_multi_union_pw_aff_get_union_pw_aff
@@ -276,4 +301,131 @@ isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
   }
 
   return isl_bool_true;
+}
+
+/* Generate asynchronized systolic arrays with the given dimension. 
+ * For async arrays, space loops are placed outside the time loops.
+ */
+__isl_give isl_schedule **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
+    isl_size dim, isl_size *num_sa) 
+{
+  return NULL;
+}
+
+/* Generate syncrhonized systolic arrays with the given dimension.
+ * For sync arrays, time loops are placed outside the space loops.
+ */
+__isl_give isl_schedule **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
+    isl_size dim, isl_size *num_sa)
+{
+  return NULL;
+}
+
+__isl_give isl_schedule **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, 
+    isl_size dim, isl_size *num_sa)
+{
+  if (scop->options->sa_type == POLYSA_SA_TYPE_ASYNC) {
+    return sa_space_time_transform_at_dim_async(schedule, scop, dim, num_sa);
+  } else if (scop->options->sa_type == POLYSA_SA_TYPE_SYNC) {
+    return sa_space_time_transform_at_dim_sync(schedule, scop, dim, num_sa);
+  }
+}
+
+/* Extracts the outermost permutable band node from the schedule tree.
+ * When there are multiple nodes at the same level, extract the first one.
+ */
+__isl_give isl_schedule_node *get_outermost_permutable_node(__isl_keep isl_schedule *schedule)
+{
+  isl_schedule_node *root = isl_schedule_get_root(schedule);
+  isl_schedule_node *t_node = NULL;
+  isl_schedule_node_every_descendant(root,
+      &is_permutable_node_update, &t_node);
+
+  isl_schedule_node_free(root);
+  return t_node;
+}
+
+/* Apply space-time transformation to generate different systolic array candidates. */
+__isl_give isl_schedule **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop,
+    isl_size *num_sa) 
+{
+  isl_schedule **sa_list = NULL;
+  isl_size n_sa = 0;
+
+  isl_schedule_node *band = get_outermost_permutable_node(schedule);
+  isl_size band_w = isl_schedule_node_band_n_member(band); 
+  /* Explore 1D systolic array */
+  if (scop->options->max_sa_dim >= 1 && band_w >= 1) {
+    printf("[PSA] Explore 1D systolic array.\n");
+    isl_size n_sa_dim = 0;
+    isl_schedule **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 1, &n_sa_dim);
+    printf("[PSA] %d candidates generated.\n", n_sa_dim);
+    sa_list = (isl_schedule **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(isl_schedule *));
+    for (int i = 0; i < n_sa_dim; i++) {
+      sa_list[n_sa + i] = sa_dim_list[i];
+    }
+    free(sa_dim_list);
+    n_sa += n_sa_dim;
+  }
+  /* Explore 2D systolic array */
+  if (scop->options->max_sa_dim >= 2 && band_w >= 2) {
+    printf("[PSA] Explore 2D systolic array.\n");
+    isl_size n_sa_dim = 0;
+    isl_schedule **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 2, &n_sa_dim);
+    printf("[PSA] %d candidates generated.\n", n_sa_dim);
+    sa_list = (isl_schedule **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(isl_schedule *));
+    for (int i = 0; i < n_sa_dim; i++) {
+      sa_list[n_sa + i] = sa_dim_list[i];
+    }
+    free(sa_dim_list);
+    n_sa += n_sa_dim;
+  }
+  /* Explore 3D systolic array */
+  if (scop->options->max_sa_dim >= 3 && band_w >= 3) {
+    printf("[PSA] Explore 3D systolic array.\n");
+    isl_size n_sa_dim = 0;
+    isl_schedule **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 3, &n_sa_dim);
+    printf("[PSA] %d candidates generated.\n", n_sa_dim);
+    sa_list = (isl_schedule **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(isl_schedule *));
+    for (int i = 0; i < n_sa_dim; i++) {
+      sa_list[n_sa + i] = sa_dim_list[i];
+    }
+    free(sa_dim_list);
+    n_sa += n_sa_dim;
+  }
+
+  // temp
+  sa_list = (isl_schedule **)realloc(sa_list, 1 * sizeof(isl_schedule *))  ;
+  sa_list[0] = isl_schedule_copy(schedule);
+  n_sa = 1;
+  // temp
+
+  isl_schedule_free(schedule);
+  isl_schedule_node_free(band);
+  *num_sa = n_sa;
+  return sa_list;
+}
+
+/* Select one systolic array design based on heuristics. */
+__isl_give isl_schedule *sa_candidates_smart_pick(__isl_take isl_schedule **sa_list, struct ppcg_scop *scop,
+    __isl_keep isl_size num_sa)
+{
+  assert(num_sa > 0);
+  isl_schedule *sa_opt = isl_schedule_copy(sa_list[0]);
+    
+  for (int i = 0; i < num_sa; i++)
+    isl_schedule_free(sa_list[i]);
+  free(sa_list);
+
+  return sa_opt;
+}
+
+/* Apply PE optimization including:
+ * - latency hiding
+ * - SIMD vectorization
+ * - array partitioning
+ */
+isl_stat sa_pe_optimize(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop)
+{
+
 }

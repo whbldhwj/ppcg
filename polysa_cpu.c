@@ -753,8 +753,21 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
   /*  Check if the program is legal to be mapped to systolic array. */
   isl_bool is_legal = sa_legality_check(schedule, scop);
   if (is_legal != isl_bool_true) {
-    printf("[PSA] Not legal to be transformed to systolic array.\n");
+    printf("[PSA] Illegal to be transformed to systolic array.\n");
   }
+
+  /* Generate systolic arrays using space-time mapping. */
+  isl_size num_sa = 0;
+  isl_schedule **sa_candidates = sa_space_time_transform(schedule, scop, &num_sa);
+  if (num_sa > 0) {
+    printf("[PSA] %d systolic arrays generated.\n", num_sa);
+  }
+
+  /* Pick up one systolic array to proceed based on heuristics. */
+  schedule = sa_candidates_smart_pick(sa_candidates, scop, num_sa);
+
+  /* Apply PE optimization. */
+  sa_pe_optimize(schedule, scop);
 
 	return print_cpu_with_schedule(p, scop, schedule, options);
 }
