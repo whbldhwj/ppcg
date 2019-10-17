@@ -303,12 +303,194 @@ isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
   return isl_bool_true;
 }
 
+/* Compute the dependence distance vector of the dependence under the partial schedule of the band node. */
+__isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_keep isl_schedule_node *band)
+{
+  isl_multi_union_pw_aff *p_sc = isl_schedule_node_band_get_partial_schedule(band);
+  int band_w = isl_schedule_node_band_n_member(band);
+  isl_vec *dep_dis = isl_vec_zero(isl_basic_map_get_ctx(dep), band_w);
+  for (int i = 0; i < band_w; i++) {
+    isl_union_pw_aff *p_sc_hyp = isl_multi_union_pw_aff_get_union_pw_aff(p_sc, i);
+    /* Obtain the schedule for the src statement. */
+    isl_space *space = isl_basic_map_get_space(dep);
+    isl_space *src_space = isl_space_domain(isl_space_copy(space));
+    isl_space *dest_space = isl_space_range(space);
+
+    isl_pw_aff *src_sc;
+    isl_pw_aff_list *p_sc_hyp_list = isl_union_pw_aff_get_pw_aff_list(p_sc_hyp);
+    for (int j = 0; j < isl_union_pw_aff_n_pw_aff(p_sc_hyp); j++) {
+      isl_pw_aff *single_sc = isl_pw_aff_list_get_pw_aff(p_sc_hyp_list, j);
+      isl_space *single_sc_stmt = isl_space_domain(isl_pw_aff_get_space(single_sc));
+      if (isl_space_is_equal(src_space, single_sc_stmt)) {
+        isl_space_free(single_sc_stmt);
+        src_sc = single_sc;
+        break;
+      }
+      isl_pw_aff_free(single_sc);
+      isl_space_free(single_sc_stmt);
+    }
+    isl_pw_aff_list_free(p_sc_hyp_list);
+    isl_space_free(src_space);
+
+    /* Obtain the schedule for the dest statement. */
+    isl_pw_aff *dest_sc;
+    p_sc_hyp_list = isl_union_pw_aff_get_pw_aff_list(p_sc_hyp);
+    for (int j = 0; j < isl_union_pw_aff_n_pw_aff(p_sc_hyp); j++) {
+      isl_pw_aff *single_sc = isl_pw_aff_list_get_pw_aff(p_sc_hyp_list, j);
+      isl_space *single_sc_stmt = isl_space_domain(isl_pw_aff_get_space(single_sc));
+      if (isl_space_is_equal(dest_space, single_sc_stmt)) {
+        isl_space_free(single_sc_stmt);
+        dest_sc = single_sc;
+        break;
+      }
+      isl_pw_aff_free(single_sc);
+      isl_space_free(single_sc_stmt);
+    }
+    isl_pw_aff_list_free(p_sc_hyp_list);
+    isl_space_free(dest_space);
+
+    /* Compute the dependence distance at the current hyperplane. */
+    /* Step 1: Extend the scheduling function. */
+    isl_size src_sc_dim = isl_pw_aff_dim(src_sc, isl_dim_in);
+    isl_size dest_sc_dim = isl_pw_aff_dim(dest_sc, isl_dim_in);
+    src_sc = isl_pw_aff_insert_dims(src_sc, isl_dim_in, src_sc_dim, dest_sc_dim);
+    dest_sc = isl_pw_aff_insert_dims(dest_sc, isl_dim_in, 0, src_sc_dim);
+    for (int j = 0; j < dest_sc_dim; j++) {
+      isl_pw_aff_set_dim_id(src_sc, isl_dim_in, src_sc_dim + j, isl_pw_aff_get_dim_id(dest_sc, isl_dim_in, src_sc_dim + j));
+    }
+    for (int j = 0; j < src_sc_dim; j++) {
+      isl_pw_aff_set_dim_id(dest_sc, isl_dim_in, j, isl_pw_aff_get_dim_id(src_sc, isl_dim_in, j));
+    }    
+
+    isl_pw_aff *dis_sc = isl_pw_aff_sub(dest_sc, src_sc);
+
+    /* Step 2: Convert the basic_map into basic_set. */
+    isl_mat *eq_mat = isl_basic_map_equalities_matrix(dep,
+        isl_dim_in, isl_dim_out, isl_dim_div, isl_dim_param, isl_dim_cst);
+    isl_mat *ieq_mat = isl_basic_map_inequalities_matrix(dep,
+        isl_dim_in, isl_dim_out, isl_dim_div, isl_dim_param, isl_dim_cst);
+
+    isl_basic_set *dep_set = isl_basic_set_from_constraint_matrices(
+      isl_space_domain(isl_pw_aff_get_space(dis_sc)),
+      eq_mat, ieq_mat,
+      isl_dim_set, isl_dim_div, isl_dim_param, isl_dim_cst);
+
+    /* Step 3: Intersect the scheduling function with the domain. */
+    isl_pw_aff *dis = isl_pw_aff_intersect_domain(dis_sc, isl_set_from_basic_set(isl_basic_set_copy(dep_set)));
+    isl_val *val = isl_pw_aff_eval(dis, isl_basic_set_sample_point(dep_set));
+    dep_dis = isl_vec_set_element_val(dep_dis, i, val);
+
+    isl_union_pw_aff_free(p_sc_hyp);
+  }
+  
+  isl_multi_union_pw_aff_free(p_sc);
+  return dep_dis;
+}
+
+static isl_stat concat_basic_map(__isl_take isl_map *el, void *user) 
+{
+  isl_basic_map_list **bmap_list = (isl_basic_map_list **)(user);
+  isl_basic_map_list *bmap_list_sub = isl_map_get_basic_map_list(el);
+  if (!(*bmap_list)) {
+    *bmap_list = bmap_list_sub;
+  } else {
+    *bmap_list = isl_basic_map_list_concat(*bmap_list, bmap_list_sub);
+  }
+
+  isl_map_free(el);
+  return isl_stat_ok;
+}
+
+__isl_give isl_basic_map_list *isl_union_map_get_basic_map_list(__isl_keep isl_union_map *umap)
+{
+  isl_map_list *map_list = isl_union_map_get_map_list(umap);
+  isl_basic_map_list *bmap_list = NULL;
+  isl_map_list_foreach(map_list, &concat_basic_map, &bmap_list);
+
+  isl_map_list_free(map_list);
+  return bmap_list;
+}
+
+static isl_stat acc_n_basic_map(__isl_take isl_map *el, void *user)
+{
+  isl_size *n = (isl_size *)(user);
+  isl_basic_map_list *bmap_list = isl_map_get_basic_map_list(el);
+  *n = *n + isl_basic_map_list_n_basic_map(bmap_list);
+
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(el), stdout);
+//  isl_printer_print_map(printer, el);
+//  printf("\n");  
+//  printf("%d\n", *n);
+//  // debug
+
+  isl_map_free(el);
+  isl_basic_map_list_free(bmap_list);
+  return isl_stat_ok;
+}
+
+isl_size isl_union_map_n_basic_map(__isl_keep isl_union_map *umap)
+{
+  isl_size n = 0;
+  isl_map_list *map_list = isl_union_map_get_map_list(umap);
+  isl_map_list_foreach(map_list, &acc_n_basic_map, &n);
+
+  isl_map_list_free(map_list);
+
+  return n;
+}
+
 /* Generate asynchronized systolic arrays with the given dimension. 
  * For async arrays, space loops are placed outside the time loops.
  */
 __isl_give isl_schedule **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
     isl_size dim, isl_size *num_sa) 
 {
+  /* Select space loop candidates.
+   * Space loops carry dependences with distance less or equal to 1.
+   */
+  isl_schedule_node *band = get_outermost_permutable_node(schedule);
+  isl_size band_w = isl_schedule_node_band_n_member(band);
+  isl_size *is_space_loop = (isl_size *)malloc(band_w * sizeof(isl_size));
+  isl_union_map *dep_flow = scop->dep_flow;
+  isl_union_map *dep_rar = scop->dep_rar;
+  isl_union_map *dep_total = isl_union_map_union(isl_union_map_copy(dep_flow), isl_union_map_copy(dep_rar));
+
+  isl_basic_map_list *deps = isl_union_map_get_basic_map_list(dep_total);
+  isl_size ndeps = isl_union_map_n_basic_map(dep_total);
+
+  for (int h = 0; h < band_w; h++) {
+    int n;
+    for (n = 0; n < ndeps; n++) {
+      isl_basic_map *dep = isl_basic_map_list_get_basic_map(deps, n);
+      isl_vec *dep_dis = get_dep_dis_at_node(dep, band);
+      isl_val *val = isl_vec_get_element_val(dep_dis, h);
+      if (!(isl_val_is_one(val) || isl_val_is_zero(val))) {
+        isl_vec_free(dep_dis);
+        isl_val_free(val);
+        isl_basic_map_free(dep);
+        break;         
+      }
+
+      isl_val_free(val);
+      isl_vec_free(dep_dis);
+      isl_basic_map_free(dep);
+    }
+    is_space_loop[h] = (n == ndeps);
+  }
+
+  /* Perform loop permutation to generate all candidates. */
+  // debug
+  for (int i = 0; i < band_w; i++)
+    printf("%d ", is_space_loop[i]);
+  printf("\n");
+  // debug
+
+  isl_basic_map_list_free(deps);
+  isl_union_map_free(dep_total);
+  isl_schedule_node_free(band);
+  free(is_space_loop);
+
   return NULL;
 }
 
