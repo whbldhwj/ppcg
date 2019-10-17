@@ -758,16 +758,19 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 
   /* Generate systolic arrays using space-time mapping. */
   isl_size num_sa = 0;
-  isl_schedule **sa_candidates = sa_space_time_transform(schedule, scop, &num_sa);
+  struct polysa_sa **sa_candidates = sa_space_time_transform(schedule, scop, &num_sa);
   if (num_sa > 0) {
     printf("[PSA] %d systolic arrays generated.\n", num_sa);
   }
 
   /* Pick up one systolic array to proceed based on heuristics. */
-  schedule = sa_candidates_smart_pick(sa_candidates, scop, num_sa);
+  struct polysa_sa *sa_opt = sa_candidates_smart_pick(sa_candidates, scop, num_sa);
 
   /* Apply PE optimization. */
-  sa_pe_optimize(schedule, scop);
+  sa_pe_optimize(sa_opt, scop);
+
+  schedule = isl_schedule_copy(sa_opt->schedule);
+  polysa_sa_free(sa_opt);
 
 	return print_cpu_with_schedule(p, scop, schedule, options);
 }

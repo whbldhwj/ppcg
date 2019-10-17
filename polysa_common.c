@@ -443,9 +443,11 @@ isl_size isl_union_map_n_basic_map(__isl_keep isl_union_map *umap)
 /* Generate asynchronized systolic arrays with the given dimension. 
  * For async arrays, space loops are placed outside the time loops.
  */
-__isl_give isl_schedule **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
+struct polysa_sa **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
     isl_size dim, isl_size *num_sa) 
 {
+  struct polysa_sa **sas = NULL;  
+
   /* Select space loop candidates.
    * Space loops carry dependences with distance less or equal to 1.
    */
@@ -480,30 +482,178 @@ __isl_give isl_schedule **sa_space_time_transform_at_dim_async(__isl_keep isl_sc
   }
 
   /* Perform loop permutation to generate all candidates. */
-  // debug
-  for (int i = 0; i < band_w; i++)
-    printf("%d ", is_space_loop[i]);
-  printf("\n");
-  // debug
+//  // debug
+//  for (int i = 0; i < band_w; i++)
+//    printf("%d ", is_space_loop[i]);
+//  printf("\n");
+//  // debug
+  if (dim == 1) {
+    for (int i = 0; i < band_w; i++) {
+      if (is_space_loop[i]) {
+        isl_schedule *new_schedule = isl_schedule_copy(schedule);       
+        /* Make the loop i the outermost loop. */
+        for (int d = i; d > 0; d--) {
+//          // debug
+//          isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(new_schedule), stdout);
+//          isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//          isl_printer_print_schedule(printer, new_schedule);
+//          printf("\n");
+//          // debug
+          isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
+          isl_schedule_free(new_schedule);
+          new_schedule = loop_interchange_at_node(band, d, d - 1);
+//          // debug
+//          isl_printer_print_schedule(printer, new_schedule);
+//          printf("\n");
+//          // debug
+        }
+
+        /* Update the hyperplane types. */
+        struct polysa_sa *sa = polysa_sa_from_schedule(new_schedule);
+
+        /* Update the array dimension. */
+        sa->array_dim = dim;
+        sa->array_part_w = 0;
+
+        /* Add the new variant into the list. */
+        sas = (struct polysa_sa **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_sa *));
+        sas[*num_sa] = sa;
+        *num_sa = *num_sa + 1;
+      } 
+    }
+  } else if (dim == 2) {
+    for (int i = 0; i < band_w; i++) {
+      if (is_space_loop[i]) {
+        for (int j = i + 1; j < band_w; j++) {
+          if (is_space_loop[j]) {
+            isl_schedule *new_schedule = isl_schedule_copy(schedule);
+            /* Make the loop i, j the outermost loops. */
+            for (int d = j; d > 0; d--) {
+              isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
+              isl_schedule_free(new_schedule);
+              new_schedule = loop_interchange_at_node(band, d, d - 1);
+            }
+            for (int d = i + 1; d > 0; d--) {
+              isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
+              isl_schedule_free(new_schedule);
+              new_schedule = loop_interchange_at_node(band, d, d - 1);
+            }
+
+            /* Update the hyperplane types. */
+            struct polysa_sa *sa = polysa_sa_from_schedule(new_schedule);
+
+            /* Update the array dimension. */
+            sa->array_dim = dim;
+            sa->array_part_w = 0;
+
+            /* Add the new variant into the list. */
+            sas = (struct polysa_sa **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_sa *));
+            sas[*num_sa] = sa;
+            *num_sa = *num_sa + 1;
+          }
+        }
+      }
+    }
+  } else if (dim == 3) {
+     for (int i = 0; i < band_w; i++) {
+      if (is_space_loop[i]) {
+        for (int j = i + 1; j < band_w; j++) {
+          if (is_space_loop[j]) {
+            for (int k = j + 1; k < band_w; k++) {
+              if (is_space_loop[k]) {
+                isl_schedule *new_schedule = isl_schedule_copy(schedule);
+                /* Make the loop i, j, k the outermost loops. */
+                for (int d = k; d > 0; d--) {
+                  isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
+                  isl_schedule_free(new_schedule);
+                  new_schedule = loop_interchange_at_node(band, d, d - 1);             
+                }
+                for (int d = j + 1; d > 0; d--) {
+                  isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
+                  isl_schedule_free(new_schedule);
+                  new_schedule = loop_interchange_at_node(band, d, d - 1);
+                }
+                for (int d = i + 2; d > 0; d--) {
+                  isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
+                  isl_schedule_free(new_schedule);
+                  new_schedule = loop_interchange_at_node(band, d, d - 1);
+                }
+    
+                /* Update the hyperplane types. */
+                struct polysa_sa *sa = polysa_sa_from_schedule(new_schedule);
+    
+                /* Update the array dimension. */
+                sa->array_dim = dim;
+                sa->array_part_w = 0;
+    
+                /* Add the new variant into the list. */
+                sas = (struct polysa_sa **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_sa *));
+                sas[*num_sa] = sa;
+                *num_sa = *num_sa + 1;
+              }
+            }
+          }
+        }
+      }
+    }   
+  }
 
   isl_basic_map_list_free(deps);
   isl_union_map_free(dep_total);
   isl_schedule_node_free(band);
   free(is_space_loop);
 
-  return NULL;
+  return sas;
+}
+
+/* Interchange the loop at level1 and level2 in the schedule node and returns the new schedule. */
+__isl_give isl_schedule *loop_interchange_at_node(__isl_take isl_schedule_node *node, isl_size level1, isl_size level2)
+{
+  /* Obtain the partial schedule of the node. */
+  isl_multi_union_pw_aff *sc = isl_schedule_node_band_get_partial_schedule(node);
+  
+  /* Exchange the schedule at level1 and level2. */
+  isl_multi_union_pw_aff *new_sc = isl_multi_union_pw_aff_copy(sc);
+  new_sc = isl_multi_union_pw_aff_set_union_pw_aff(new_sc, level1, isl_multi_union_pw_aff_get_union_pw_aff(sc, level2));
+  new_sc = isl_multi_union_pw_aff_set_union_pw_aff(new_sc, level2, isl_multi_union_pw_aff_get_union_pw_aff(sc, level1));
+
+  /* Insert a new schedule node with the new schedule. */
+  isl_bool *coincident = (isl_bool *)malloc(isl_schedule_node_band_n_member(node) * sizeof(isl_bool));
+  for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+    coincident[i] = isl_schedule_node_band_member_get_coincident(node, i);
+  }
+  node = isl_schedule_node_insert_partial_schedule(node, new_sc);
+ 
+  /* Update the properties of the new node. */
+  node = isl_schedule_node_band_set_permutable(node, 1);
+  for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+    node = isl_schedule_node_band_member_set_coincident(node, i, coincident[i]);
+  }
+  free(coincident);
+
+  /* Delete the old node after the current node */
+  node = isl_schedule_node_child(node, 0);
+  node = isl_schedule_node_delete(node);
+
+  /* Obtain the schedule from the schedule node. */
+  isl_schedule *schedule = isl_schedule_node_get_schedule(node);
+
+  isl_schedule_node_free(node); 
+  isl_multi_union_pw_aff_free(sc);
+
+  return schedule;
 }
 
 /* Generate syncrhonized systolic arrays with the given dimension.
  * For sync arrays, time loops are placed outside the space loops.
  */
-__isl_give isl_schedule **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
+struct polysa_sa **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
     isl_size dim, isl_size *num_sa)
 {
   return NULL;
 }
 
-__isl_give isl_schedule **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, 
+struct polysa_sa **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, 
     isl_size dim, isl_size *num_sa)
 {
   if (scop->options->sa_type == POLYSA_SA_TYPE_ASYNC) {
@@ -528,10 +678,10 @@ __isl_give isl_schedule_node *get_outermost_permutable_node(__isl_keep isl_sched
 }
 
 /* Apply space-time transformation to generate different systolic array candidates. */
-__isl_give isl_schedule **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop,
+struct polysa_sa **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop,
     isl_size *num_sa) 
 {
-  isl_schedule **sa_list = NULL;
+  struct polysa_sa **sa_list = NULL;
   isl_size n_sa = 0;
 
   isl_schedule_node *band = get_outermost_permutable_node(schedule);
@@ -540,9 +690,9 @@ __isl_give isl_schedule **sa_space_time_transform(__isl_take isl_schedule *sched
   if (scop->options->max_sa_dim >= 1 && band_w >= 1) {
     printf("[PSA] Explore 1D systolic array.\n");
     isl_size n_sa_dim = 0;
-    isl_schedule **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 1, &n_sa_dim);
+    struct polysa_sa **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 1, &n_sa_dim);
     printf("[PSA] %d candidates generated.\n", n_sa_dim);
-    sa_list = (isl_schedule **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(isl_schedule *));
+    sa_list = (struct polysa_sa **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_sa *));
     for (int i = 0; i < n_sa_dim; i++) {
       sa_list[n_sa + i] = sa_dim_list[i];
     }
@@ -553,9 +703,9 @@ __isl_give isl_schedule **sa_space_time_transform(__isl_take isl_schedule *sched
   if (scop->options->max_sa_dim >= 2 && band_w >= 2) {
     printf("[PSA] Explore 2D systolic array.\n");
     isl_size n_sa_dim = 0;
-    isl_schedule **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 2, &n_sa_dim);
+    struct polysa_sa **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 2, &n_sa_dim);
     printf("[PSA] %d candidates generated.\n", n_sa_dim);
-    sa_list = (isl_schedule **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(isl_schedule *));
+    sa_list = (struct polysa_sa **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_sa *));
     for (int i = 0; i < n_sa_dim; i++) {
       sa_list[n_sa + i] = sa_dim_list[i];
     }
@@ -566,9 +716,9 @@ __isl_give isl_schedule **sa_space_time_transform(__isl_take isl_schedule *sched
   if (scop->options->max_sa_dim >= 3 && band_w >= 3) {
     printf("[PSA] Explore 3D systolic array.\n");
     isl_size n_sa_dim = 0;
-    isl_schedule **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 3, &n_sa_dim);
+    struct polysa_sa **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 3, &n_sa_dim);
     printf("[PSA] %d candidates generated.\n", n_sa_dim);
-    sa_list = (isl_schedule **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(isl_schedule *));
+    sa_list = (struct polysa_sa **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_sa *));
     for (int i = 0; i < n_sa_dim; i++) {
       sa_list[n_sa + i] = sa_dim_list[i];
     }
@@ -576,11 +726,11 @@ __isl_give isl_schedule **sa_space_time_transform(__isl_take isl_schedule *sched
     n_sa += n_sa_dim;
   }
 
-  // temp
-  sa_list = (isl_schedule **)realloc(sa_list, 1 * sizeof(isl_schedule *))  ;
-  sa_list[0] = isl_schedule_copy(schedule);
-  n_sa = 1;
-  // temp
+//  // temp
+//  sa_list = (struct polysa_sa **)realloc(sa_list, 1 * sizeof(struct polysa_sa *))  ;
+//  sa_list[0] = isl_schedule_copy(schedule);
+//  n_sa = 1;
+//  // temp
 
   isl_schedule_free(schedule);
   isl_schedule_node_free(band);
@@ -589,14 +739,14 @@ __isl_give isl_schedule **sa_space_time_transform(__isl_take isl_schedule *sched
 }
 
 /* Select one systolic array design based on heuristics. */
-__isl_give isl_schedule *sa_candidates_smart_pick(__isl_take isl_schedule **sa_list, struct ppcg_scop *scop,
+struct polysa_sa *sa_candidates_smart_pick(struct polysa_sa **sa_list, struct ppcg_scop *scop,
     __isl_keep isl_size num_sa)
 {
   assert(num_sa > 0);
-  isl_schedule *sa_opt = isl_schedule_copy(sa_list[0]);
+  struct polysa_sa *sa_opt = polysa_sa_copy(sa_list[0]);
     
   for (int i = 0; i < num_sa; i++)
-    isl_schedule_free(sa_list[i]);
+    polysa_sa_free(sa_list[i]);
   free(sa_list);
 
   return sa_opt;
@@ -607,7 +757,37 @@ __isl_give isl_schedule *sa_candidates_smart_pick(__isl_take isl_schedule **sa_l
  * - SIMD vectorization
  * - array partitioning
  */
-isl_stat sa_pe_optimize(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop)
+isl_stat sa_pe_optimize(struct polysa_sa *sa, struct ppcg_scop *scop)
 {
 
+}
+
+/* Free the polysa_sa struct. */
+void polysa_sa_free(struct polysa_sa *sa) 
+{
+  isl_schedule_free(sa->schedule);  
+}
+
+/* Copy a new polysa_sa struct. */
+struct polysa_sa *polysa_sa_copy(struct polysa_sa *sa) {
+  struct polysa_sa *sa_dup = (struct polysa_sa *)malloc(sizeof(struct polysa_sa));
+
+  sa_dup->schedule = isl_schedule_copy(sa->schedule);
+  sa_dup->array_dim = sa->array_dim;
+  sa_dup->array_part_w = sa->array_part_w;
+  sa_dup->space_w = sa->space_w;
+  sa_dup->time_w = sa->time_w;
+}
+
+/* Allocate a new polysa_sa struct with the given schedule. */
+struct polysa_sa *polysa_sa_from_schedule(__isl_take isl_schedule *schedule)
+{
+  struct polysa_sa *sa = (struct polysa_sa *)malloc(sizeof(struct polysa_sa));
+  sa->schedule = schedule;
+  sa->array_dim = 0;
+  sa->array_part_w = 0;
+  sa->space_w = 0;
+  sa->time_w = 0;
+
+  return sa;
 }

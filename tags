@@ -3384,9 +3384,11 @@ array_anonymize	pet/scop.c	/^static struct pet_array *array_anonymize(struct pet
 array_collect_params	pet/scop.c	/^static __isl_give isl_space *array_collect_params(struct pet_array *array,$/;"	f	file:
 array_desc_less	pet/scop_plus.h	/^struct array_desc_less {$/;"	s
 array_desc_set	pet/scop_plus.h	/^struct array_desc_set : public std::set<isl_id_list *, array_desc_less>$/;"	s
+array_dim	polysa_common.h	/^  isl_size array_dim;$/;"	m	struct:polysa_sa
 array_extent	gpu.c	/^static __isl_give isl_set *array_extent(struct gpu_array_info *array)$/;"	f	file:
 array_gist	pet/scop.c	/^static struct pet_array *array_gist(struct pet_array *array,$/;"	f	file:
 array_order	gpu.h	/^	isl_union_map *array_order;$/;"	m	struct:gpu_prog
+array_part_w	polysa_common.h	/^  isl_size array_part_w;$/;"	m	struct:polysa_sa
 array_propagate_params	pet/scop.c	/^static struct pet_array *array_propagate_params(struct pet_array *array,$/;"	f	file:
 arrays	gpu.h	/^	isl_union_set *arrays;$/;"	m	struct:ppcg_kernel
 arrays	pet/include/pet.h	/^	struct pet_array **arrays;$/;"	m	struct:pet_scop	typeref:struct:pet_scop::pet_array
@@ -13067,6 +13069,7 @@ localstatedir	isl/interface/Makefile	/^localstatedir = ${prefix}\/var$/;"	m
 localstatedir	pet/Makefile	/^localstatedir = ${prefix}\/var$/;"	m
 location_after_semi	pet/scan.cc	/^static SourceLocation location_after_semi(SourceLocation loc, SourceManager &SM,$/;"	f	file:
 long_name	isl/include/isl/arg.h	/^	const char		*long_name;$/;"	m	struct:isl_arg
+loop_interchange_at_node	polysa_common.c	/^__isl_give isl_schedule *loop_interchange_at_node(__isl_take isl_schedule_node *node, isl_size level1, isl_size level2)$/;"	f
 loop_type	isl/isl_ast_build_private.h	/^	enum isl_ast_loop_type *loop_type;$/;"	m	struct:isl_ast_build	typeref:enum:isl_ast_build::isl_ast_loop_type
 loop_type	isl/isl_schedule_band.h	/^	enum isl_ast_loop_type *loop_type;$/;"	m	struct:isl_schedule_band	typeref:enum:isl_schedule_band::isl_ast_loop_type
 loop_type_space	isl/isl_schedule_band.c	/^static __isl_give isl_space *loop_type_space(__isl_take isl_space *space,$/;"	f	file:
@@ -15481,6 +15484,10 @@ polyhedral_hull	isl/include/isl/cpp.h	/^isl::union_map union_map::polyhedral_hul
 polyhedral_hull	isl/include/isl/cpp.h	/^isl::union_set union_set::polyhedral_hull() const$/;"	f	class:isl::union_set
 polylib_pos_to_isl_pos	isl/isl_input.c	/^static isl_size polylib_pos_to_isl_pos(__isl_keep isl_basic_map *bmap, int pos)$/;"	f	file:
 polysa	ppcg_options.h	/^  int polysa;$/;"	m	struct:ppcg_options
+polysa_sa	polysa_common.h	/^struct polysa_sa {$/;"	s
+polysa_sa_copy	polysa_common.c	/^struct polysa_sa *polysa_sa_copy(struct polysa_sa *sa) {$/;"	f
+polysa_sa_free	polysa_common.c	/^void polysa_sa_free(struct polysa_sa *sa) $/;"	f
+polysa_sa_from_schedule	polysa_common.c	/^struct polysa_sa *polysa_sa_from_schedule(__isl_take isl_schedule *schedule)$/;"	f
 pop_state	isl/isl_printer.c	/^static __isl_give isl_printer *pop_state(__isl_take isl_printer *p)$/;"	f	file:
 pop_state	isl/isl_stream.c	/^static int pop_state(__isl_keep isl_stream *s)$/;"	f	file:
 populate_array_references	gpu_group.c	/^static int populate_array_references(struct gpu_local_array_info *local,$/;"	f	file:
@@ -16864,6 +16871,7 @@ schedule	isl/isl_schedule_node_private.h	/^	isl_schedule *schedule;$/;"	m	struct
 schedule	isl/isl_test.c	/^	const char *schedule;$/;"	m	struct:__anon68	file:
 schedule	pet/include/pet.h	/^	isl_schedule *schedule;$/;"	m	struct:pet_scop
 schedule	pet/pet_check_code.c	/^	char *schedule;$/;"	m	struct:options	file:
+schedule	polysa_common.h	/^  isl_schedule *schedule;$/;"	m	struct:polysa_sa
 schedule	ppcg.h	/^	isl_schedule *schedule;$/;"	m	struct:ppcg_scop
 schedule1	isl/schedule_cmp.c	/^	char *schedule1;$/;"	m	struct:options	file:
 schedule2	isl/schedule_cmp.c	/^	char *schedule2;$/;"	m	struct:options	file:
@@ -17466,6 +17474,7 @@ space_set_dim_name	isl/isl_input.c	/^static __isl_give isl_space *space_set_dim_
 space_shift	hybrid.c	/^	isl_multi_aff *space_shift;$/;"	m	struct:ppcg_ht_phase	file:
 space_sizes	hybrid.c	/^	isl_multi_val *space_sizes;$/;"	m	struct:ppcg_ht_tiling	file:
 space_tile	hybrid.c	/^	isl_multi_aff *space_tile;$/;"	m	struct:ppcg_ht_phase	file:
+space_w	polysa_common.h	/^  isl_size space_w;$/;"	m	struct:polysa_sa
 specializer	isl/isl_scheduler.c	/^static __isl_give isl_map *specializer(struct isl_sched_node *src,$/;"	f	file:
 splice_sum	pet/expr_arg.c	/^static __isl_give pet_expr *splice_sum(__isl_take pet_expr *expr, int dim,$/;"	f	file:
 split	isl/include/isl/cpp-checked.h	/^schedule_node_band schedule_node_band::split(int pos) const$/;"	f	class:isl::checked::schedule_node_band
@@ -18072,6 +18081,7 @@ tiling	hybrid.c	/^	ppcg_ht_tiling *tiling;$/;"	m	struct:ppcg_ht_phase	file:
 time	isl/imath/findthreshold.py	/^import math, os, random, sys, time$/;"	i
 time_tile	hybrid.c	/^	isl_aff *time_tile;$/;"	m	struct:ppcg_ht_phase	file:
 time_tile	hybrid.c	/^	isl_aff *time_tile;$/;"	m	struct:ppcg_ht_tiling	file:
+time_w	polysa_common.h	/^  isl_size time_w;$/;"	m	struct:polysa_sa
 tmp	isl/basis_reduction_tab.c	/^	isl_int		 tmp;$/;"	m	struct:tab_lp	file:
 tmp2	isl/basis_reduction_tab.c	/^	isl_int		 tmp2;$/;"	m	struct:tab_lp	file:
 to_C_str	isl/include/isl/cpp-checked.h	/^std::string ast_expr::to_C_str() const$/;"	f	class:isl::checked::ast_expr
