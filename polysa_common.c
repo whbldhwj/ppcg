@@ -289,14 +289,14 @@ isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
   /* Check if there is only one single permutable band in the schedule tree. */
   isl_bool single_p_band = has_single_permutable_node(schedule);
   if (single_p_band < 1) {
-    printf("[PSA] Single permutable band not found.\n");
+    printf("[PolySA] Single permutable band not found.\n");
     return isl_bool_false;
   }
 
   /* Check if all flow and rar dependences are uniform. */
   isl_bool all_uniform_dep = uniform_dep_check(schedule, scop);
   if (all_uniform_dep < 1) {
-    printf("[PSA] Non-uniform dependence detected.\n");
+    printf("[PolySA] Non-uniform dependence detected.\n");
     return isl_bool_false;
   }
 
@@ -443,10 +443,10 @@ isl_size isl_union_map_n_basic_map(__isl_keep isl_union_map *umap)
 /* Generate asynchronized systolic arrays with the given dimension. 
  * For async arrays, space loops are placed outside the time loops.
  */
-struct polysa_sa **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
+struct polysa_prog **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
     isl_size dim, isl_size *num_sa) 
 {
-  struct polysa_sa **sas = NULL;  
+  struct polysa_prog **sas = NULL;  
 
   /* Select space loop candidates.
    * Space loops carry dependences with distance less or equal to 1.
@@ -509,14 +509,15 @@ struct polysa_sa **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule 
         }
 
         /* Update the hyperplane types. */
-        struct polysa_sa *sa = polysa_sa_from_schedule(new_schedule);
+        struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
+        sa->scop = scop;
 
         /* Update the array dimension. */
         sa->array_dim = dim;
         sa->array_part_w = 0;
 
         /* Add the new variant into the list. */
-        sas = (struct polysa_sa **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_sa *));
+        sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
         sas[*num_sa] = sa;
         *num_sa = *num_sa + 1;
       } 
@@ -540,14 +541,15 @@ struct polysa_sa **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule 
             }
 
             /* Update the hyperplane types. */
-            struct polysa_sa *sa = polysa_sa_from_schedule(new_schedule);
+            struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
+            sa->scop = scop;
 
             /* Update the array dimension. */
             sa->array_dim = dim;
             sa->array_part_w = 0;
 
             /* Add the new variant into the list. */
-            sas = (struct polysa_sa **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_sa *));
+            sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
             sas[*num_sa] = sa;
             *num_sa = *num_sa + 1;
           }
@@ -580,14 +582,15 @@ struct polysa_sa **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule 
                 }
     
                 /* Update the hyperplane types. */
-                struct polysa_sa *sa = polysa_sa_from_schedule(new_schedule);
-    
+                struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
+                sa->scop = scop;
+
                 /* Update the array dimension. */
                 sa->array_dim = dim;
                 sa->array_part_w = 0;
     
                 /* Add the new variant into the list. */
-                sas = (struct polysa_sa **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_sa *));
+                sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
                 sas[*num_sa] = sa;
                 *num_sa = *num_sa + 1;
               }
@@ -647,13 +650,13 @@ __isl_give isl_schedule *loop_interchange_at_node(__isl_take isl_schedule_node *
 /* Generate syncrhonized systolic arrays with the given dimension.
  * For sync arrays, time loops are placed outside the space loops.
  */
-struct polysa_sa **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
+struct polysa_prog **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
     isl_size dim, isl_size *num_sa)
 {
   return NULL;
 }
 
-struct polysa_sa **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, 
+struct polysa_prog **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, 
     isl_size dim, isl_size *num_sa)
 {
   if (scop->options->sa_type == POLYSA_SA_TYPE_ASYNC) {
@@ -678,21 +681,21 @@ __isl_give isl_schedule_node *get_outermost_permutable_node(__isl_keep isl_sched
 }
 
 /* Apply space-time transformation to generate different systolic array candidates. */
-struct polysa_sa **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop,
+struct polysa_prog **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop,
     isl_size *num_sa) 
 {
-  struct polysa_sa **sa_list = NULL;
+  struct polysa_prog **sa_list = NULL;
   isl_size n_sa = 0;
 
   isl_schedule_node *band = get_outermost_permutable_node(schedule);
   isl_size band_w = isl_schedule_node_band_n_member(band); 
   /* Explore 1D systolic array */
   if (scop->options->max_sa_dim >= 1 && band_w >= 1) {
-    printf("[PSA] Explore 1D systolic array.\n");
+    printf("[PolySA] Explore 1D systolic array.\n");
     isl_size n_sa_dim = 0;
-    struct polysa_sa **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 1, &n_sa_dim);
-    printf("[PSA] %d candidates generated.\n", n_sa_dim);
-    sa_list = (struct polysa_sa **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_sa *));
+    struct polysa_prog **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 1, &n_sa_dim);
+    printf("[PolySA] %d candidates generated.\n", n_sa_dim);
+    sa_list = (struct polysa_prog **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_prog *));
     for (int i = 0; i < n_sa_dim; i++) {
       sa_list[n_sa + i] = sa_dim_list[i];
     }
@@ -701,11 +704,11 @@ struct polysa_sa **sa_space_time_transform(__isl_take isl_schedule *schedule, st
   }
   /* Explore 2D systolic array */
   if (scop->options->max_sa_dim >= 2 && band_w >= 2) {
-    printf("[PSA] Explore 2D systolic array.\n");
+    printf("[PolySA] Explore 2D systolic array.\n");
     isl_size n_sa_dim = 0;
-    struct polysa_sa **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 2, &n_sa_dim);
-    printf("[PSA] %d candidates generated.\n", n_sa_dim);
-    sa_list = (struct polysa_sa **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_sa *));
+    struct polysa_prog **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 2, &n_sa_dim);
+    printf("[PolySA] %d candidates generated.\n", n_sa_dim);
+    sa_list = (struct polysa_prog **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_prog *));
     for (int i = 0; i < n_sa_dim; i++) {
       sa_list[n_sa + i] = sa_dim_list[i];
     }
@@ -714,11 +717,11 @@ struct polysa_sa **sa_space_time_transform(__isl_take isl_schedule *schedule, st
   }
   /* Explore 3D systolic array */
   if (scop->options->max_sa_dim >= 3 && band_w >= 3) {
-    printf("[PSA] Explore 3D systolic array.\n");
+    printf("[PolySA] Explore 3D systolic array.\n");
     isl_size n_sa_dim = 0;
-    struct polysa_sa **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 3, &n_sa_dim);
-    printf("[PSA] %d candidates generated.\n", n_sa_dim);
-    sa_list = (struct polysa_sa **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_sa *));
+    struct polysa_prog **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 3, &n_sa_dim);
+    printf("[PolySA] %d candidates generated.\n", n_sa_dim);
+    sa_list = (struct polysa_prog **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_prog *));
     for (int i = 0; i < n_sa_dim; i++) {
       sa_list[n_sa + i] = sa_dim_list[i];
     }
@@ -739,14 +742,13 @@ struct polysa_sa **sa_space_time_transform(__isl_take isl_schedule *schedule, st
 }
 
 /* Select one systolic array design based on heuristics. */
-struct polysa_sa *sa_candidates_smart_pick(struct polysa_sa **sa_list, struct ppcg_scop *scop,
-    __isl_keep isl_size num_sa)
+struct polysa_prog *sa_candidates_smart_pick(struct polysa_prog **sa_list, __isl_keep isl_size num_sa)
 {
   assert(num_sa > 0);
-  struct polysa_sa *sa_opt = polysa_sa_copy(sa_list[0]);
+  struct polysa_prog *sa_opt = polysa_prog_copy(sa_list[0]);
     
   for (int i = 0; i < num_sa; i++)
-    polysa_sa_free(sa_list[i]);
+    polysa_prog_free(sa_list[i]);
   free(sa_list);
 
   return sa_opt;
@@ -757,22 +759,98 @@ struct polysa_sa *sa_candidates_smart_pick(struct polysa_sa **sa_list, struct pp
  * - SIMD vectorization
  * - array partitioning
  */
-isl_stat sa_pe_optimize(struct polysa_sa *sa, struct ppcg_scop *scop)
+isl_stat sa_pe_optimize(struct polysa_prog *sa)
 {
+  sa_latency_hiding_optimize(sa);
+  sa_SIMD_vectorization_optimize(sa);
+  sa_array_partitioning_optimize(sa);
+}
 
+/* Apply latency hiding. */
+isl_stat sa_latency_hiding_optimize(struct polysa_prog *sa)
+{
+  printf("[PolySA] Apply latency hiding.\n");
+
+  return isl_stat_ok;
+}
+
+/* Apply SIMD vectorization. */
+isl_stat sa_SIMD_vectorization_optimize(struct polysa_prog *sa)
+{
+  printf("[PolySA] Apply SIMD vectorization.\n");
+
+  return isl_stat_ok;
+}
+
+/* Apply array partitioning. 
+ * Apply loop tiling on the outermost permutable loops (ignore point loops for 
+ * latency hiding and SIMD vectorization). 
+ * Reorganize the array partitioning loops and place them following the
+ * ascending order of the dependence distances. 
+ */
+isl_stat sa_array_partitioning_optimize(struct polysa_prog *sa)
+{
+//  int tile_len;
+//  int tile_size;
+//
+  printf("[PolySA] Apply array partitioning.\n");
+//  isl_schedule_node *band = get_outermost_permutable_node(sa->schedule);
+//
+//  tile_size = read_tile_sizes(, &tile_len);
+//  if (!tile_size) {
+//    isl_schedule_node_free(band);
+//    return isl_stat_ok;
+//  }
+// 
+//  isl_schedule_node_band_tile(node, sizes);
+//  tile_ban
+//
+//  isl_schedule_free(sa->schedule);
+//  sa->schedule = loop_tiling_at_node(band, );
+
+  return isl_stat_ok;
+}
+
+/* Tile "band" with tile size specified by "sizes".
+ * The tile loop scaling is turned off, and the point loop 
+ * shifting is turned on.
+ */
+static __isl_give isl_schedule_node *tile_band(
+	__isl_take isl_schedule_node *node, __isl_take isl_multi_val *sizes)
+{
+	isl_ctx *ctx = isl_schedule_node_get_ctx(node);
+	int scale_tile;
+	int shift_point;
+
+	scale_tile = isl_options_get_tile_scale_tile_loops(ctx);
+	isl_options_set_tile_scale_tile_loops(ctx, 0);
+	shift_point = isl_options_get_tile_shift_point_loops(ctx);
+	isl_options_set_tile_shift_point_loops(ctx, 1);
+
+	node = isl_schedule_node_band_tile(node, sizes);
+
+	isl_options_set_tile_scale_tile_loops(ctx, scale_tile);
+	isl_options_set_tile_shift_point_loops(ctx, shift_point);
+
+	return node;
 }
 
 /* Free the polysa_sa struct. */
-void polysa_sa_free(struct polysa_sa *sa) 
+void *polysa_prog_free(struct polysa_prog *sa) 
 {
+  if (!sa)
+    return NULL;
   isl_schedule_free(sa->schedule);  
+  free(sa);
+  return NULL;
 }
 
 /* Copy a new polysa_sa struct. */
-struct polysa_sa *polysa_sa_copy(struct polysa_sa *sa) {
-  struct polysa_sa *sa_dup = (struct polysa_sa *)malloc(sizeof(struct polysa_sa));
+struct polysa_prog *polysa_prog_copy(struct polysa_prog *sa) {
+  struct polysa_prog *sa_dup = (struct polysa_prog *)malloc(sizeof(struct polysa_prog));
 
   sa_dup->schedule = isl_schedule_copy(sa->schedule);
+  sa_dup->scop = sa->scop;
   sa_dup->array_dim = sa->array_dim;
   sa_dup->array_part_w = sa->array_part_w;
   sa_dup->space_w = sa->space_w;
@@ -780,9 +858,10 @@ struct polysa_sa *polysa_sa_copy(struct polysa_sa *sa) {
 }
 
 /* Allocate a new polysa_sa struct with the given schedule. */
-struct polysa_sa *polysa_sa_from_schedule(__isl_take isl_schedule *schedule)
+struct polysa_prog *polysa_prog_from_schedule(__isl_take isl_schedule *schedule)
 {
-  struct polysa_sa *sa = (struct polysa_sa *)malloc(sizeof(struct polysa_sa));
+  struct polysa_prog *sa = (struct polysa_prog *)malloc(sizeof(struct polysa_prog));
+  sa->ctx = isl_schedule_get_ctx(schedule);
   sa->schedule = schedule;
   sa->array_dim = 0;
   sa->array_part_w = 0;
@@ -790,4 +869,80 @@ struct polysa_sa *polysa_sa_from_schedule(__isl_take isl_schedule *schedule)
   sa->time_w = 0;
 
   return sa;
+}
+
+void vsa_band_width_extract(struct polysa_prog *sa, struct polysa_vsa *vsa) {
+
+}
+
+
+struct polysa_vsa *polysa_vsa_alloc()
+{
+  struct polysa_vsa *vsa = (struct polysa_vsa *)malloc(sizeof(struct polysa_vsa));
+  vsa->t2s_iters = NULL;
+
+  return vsa;
+}
+
+void *polysa_vsa_free(struct polysa_vsa *vsa)
+{
+  if (!vsa)
+    return NULL;
+  if (!vsa->t2s_iters) {
+    for (int i = 0; i < vsa->t2s_iter_num; i++) {
+      free(vsa->t2s_iters[i]);
+    }
+    free(vsa->t2s_iters);
+  }
+  free(vsa);
+  return NULL;
+}
+
+void *polysa_acc_free(struct polysa_acc *acc) {
+  if (!acc)
+    return NULL;
+
+  isl_map_free(acc->tagged_map);
+  isl_map_free(acc->map);
+  isl_space_free(acc->id);
+
+  free(acc);
+
+  return NULL;
+}
+
+/* Open the cpu .c file and the t2s .cpp file for writing.
+ * Add the necessary includes.
+ */
+void t2s_open_files(struct t2s_info *info, const char *input)
+{
+  char name[PATH_MAX];
+  int len;
+
+  len = ppcg_extract_base_name(name, input);
+
+  strcpy(name + len, "_cpu.c");
+  info->host_c = fopen(name, "w");
+
+  strcpy(name + len, "_t2s.cpp");
+  info->kernel_c = fopen(name, "w");
+
+  fprintf(info->kernel_c, "#include \"Halide.h\"\n");
+  fprintf(info->kernel_c, "#include <iostream>\n\n");
+  fprintf(info->kernel_c, "using namespace Halide;\n");
+  fprintf(info->kernel_c, "using namespace std;\n");
+
+//    fprintf(info->host_c, "#include <assert.h>\n");
+//    fprintf(info->host_c, "#include <stdio.h>\n");
+//    fprintf(info->host_c, "#include \"%s\"\n", name);
+//    fprintf(info->kernel_c, "#include \"%s\"\n", name);
+//    fprintf(info->kernel_h, "#include \"cuda.h\"\n\n");
+}
+
+/* Close all output files.
+ */
+void t2s_close_files(struct t2s_info *info)
+{
+  fclose(info->host_c);
+  fclose(info->kernel_c);
 }

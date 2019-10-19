@@ -3,8 +3,8 @@
 #include "math.h"
 
 typedef int data_t;
-#define I 8 
-#define J 8 
-#define K 8 
+#define I 512 
+#define J 512
+#define K 512
 
-void dsa_kernel(data_t A[I + 1][K + 1], data_t B[K + 1][J + 1], data_t C[I + 1][J + 1]);
+void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]);

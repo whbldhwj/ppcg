@@ -1054,11 +1054,30 @@ static __isl_give isl_multi_pw_aff *extract_grid_size(
 	isl_set *context;
 	isl_multi_pw_aff *size;
 
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(kernel->ctx, stdout);
+//  isl_printer_print_union_set(printer, domain);
+//  printf("\n") ;
+//  isl_printer_print_union_set(printer, kernel->block_filter);
+//  printf("\n") ;
+//  // debug
+
 	domain = isl_union_set_intersect(domain,
 				    isl_union_set_copy(kernel->block_filter));
+  
+//  // debug
+//  isl_printer_print_union_set(printer, domain);
+//  printf("\n") ;
+//  // debug
+
 	grid = isl_union_set_params(domain);
 	grid = isl_set_from_params(grid);
 	grid = isl_set_add_dims(grid, isl_dim_set, kernel->n_grid);
+//  // debug
+//  isl_printer_print_set(printer, grid);
+//  printf("\n");
+//  // debug
+
 	for (i = 0; i < kernel->n_grid; ++i) {
 		int pos;
 		isl_id *id;
@@ -3032,6 +3051,14 @@ static __isl_give isl_union_set *set_schedule_modulo(
 	mupa = isl_schedule_node_band_get_partial_schedule(node);
 	mv = construct_band_tiles_sizes(node, size + n_zero);
 	mupa = isl_multi_union_pw_aff_mod_multi_val(mupa, mv);
+//  // debug
+//  printf("%d %d\n", size[0], size[1]);
+//  isl_printer *printer = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//  isl_printer_print_multi_val(printer, mv);
+//  printf("\n");
+//  isl_printer_print_multi_union_pw_aff(printer, mupa);
+//  printf("\n");
+//  // debug
 
 	space = isl_multi_union_pw_aff_get_space(mupa);
 	space = isl_space_params(space);
@@ -3723,18 +3750,37 @@ static __isl_give isl_union_set *compute_sync_writes(
 	isl_union_pw_multi_aff *contraction;
 
 	kernel_prefix = isl_schedule_node_get_prefix_schedule_union_map(node);
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(kernel->ctx, stdout);
+//  isl_printer_print_union_map(printer, kernel_prefix);
+//  printf("\n");
+//  // debug
 	node = isl_schedule_node_copy(node);
 	node = gpu_tree_move_down_to_thread(node, kernel->core);
 	thread_prefix = isl_schedule_node_get_prefix_schedule_union_map(node);
 	isl_schedule_node_free(node);
+//  // debug
+//  isl_printer_print_union_map(printer, thread_prefix);
+//  printf("\n");
+//  // debug
 
 	contraction = kernel->contraction;
+//  // debug
+//  isl_printer_print_union_pw_multi_aff(printer, contraction);
+//  printf("\n");
+//  // debug
 	kernel_prefix = isl_union_map_preimage_domain_union_pw_multi_aff(
 		    kernel_prefix, isl_union_pw_multi_aff_copy(contraction));
 	thread_prefix = isl_union_map_preimage_domain_union_pw_multi_aff(
 		    thread_prefix, isl_union_pw_multi_aff_copy(contraction));
 	domain = isl_union_set_copy(kernel->expanded_domain);
 	domain = isl_union_set_universe(domain);
+//  // debug
+//  isl_printer_print_union_map(printer, kernel_prefix);
+//  printf("\n");
+//  isl_printer_print_union_map(printer, thread_prefix);
+//  printf("\n");
+//  // debug
 
 	may_writes = isl_union_map_copy(kernel->prog->scop->tagged_may_writes);
 	may_writes = isl_union_map_curry(may_writes);
@@ -3747,10 +3793,18 @@ static __isl_give isl_union_set *compute_sync_writes(
 	local = isl_union_map_copy(kernel->prog->scop->tagged_dep_flow);
 	local = isl_union_map_union(local, shared_access);
 	local = isl_union_map_zip(local);
+//  // debug
+//  isl_printer_print_union_map(printer, local);
+//  printf("\n");
+//  // debug
 
 	equal = isl_union_map_apply_range(kernel_prefix,
 		    isl_union_map_reverse(isl_union_map_copy(kernel_prefix)));
 	wrap = isl_union_map_wrap(equal);
+//  // debug
+//  isl_printer_print_union_set(printer, wrap);
+//  printf("\n");
+//  // debug
 	local = isl_union_map_intersect_domain(local, wrap);
 	equal = isl_union_map_apply_range(thread_prefix,
 		    isl_union_map_reverse(isl_union_map_copy(thread_prefix)));
@@ -3759,6 +3813,10 @@ static __isl_give isl_union_set *compute_sync_writes(
 
 	local = isl_union_map_zip(local);
 	local = isl_union_map_universe(local);
+//  // debug
+//  isl_printer_print_union_map(printer, local);
+//  printf("\n");
+//  // debug
 
 	return isl_union_map_domain(local);
 }
@@ -3858,6 +3916,13 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 	if (!node)
 		return NULL;
 
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
+//  // debug
+
 	kernel = isl_calloc_type(gen->ctx, struct ppcg_kernel);
 	kernel = ppcg_kernel_create_local_arrays(kernel, gen->prog);
 	if (!kernel)
@@ -3866,16 +3931,29 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 	domain = isl_schedule_node_get_domain(node);
 	single_statement = isl_union_set_n_set(domain) == 1;
 
+//  // debug
+//  isl_printer_print_union_set(printer, domain);
+//  printf("\n");
+//  // debug
+
 	kernel->ctx = gen->ctx;
 	kernel->prog = gen->prog;
 	kernel->options = gen->options;
 	kernel->context = extract_context(node, gen->prog);
 	kernel->core = isl_union_set_universe(isl_union_set_copy(domain));
 	contraction = isl_schedule_node_get_subtree_contraction(node);
+//  // debug
+//  isl_printer_print_union_pw_multi_aff(printer, contraction);
+//  printf("\n");
+//  // debug
 	kernel->contraction = isl_union_pw_multi_aff_copy(contraction);
 	expanded = isl_union_set_copy(domain);
 	expanded = isl_union_set_preimage_union_pw_multi_aff(expanded,
 						contraction);
+//  // debug
+//  isl_printer_print_union_set(printer, expanded);
+//  printf("\n");
+//  // debug
 	kernel->expanded_domain = isl_union_set_copy(expanded);
 	kernel->arrays = accessed_by_domain(expanded, gen->prog);
 	kernel->n_grid = n_outer_coincidence(node);
@@ -3907,8 +3985,12 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 	node = split_band(node, kernel->n_grid);
 	kernel->block_ids = ppcg_scop_generate_names(gen->prog->scop,
 						kernel->n_grid, "b");
-	kernel->block_filter = set_schedule_modulo(node, kernel->block_ids,
+	kernel->block_filter = set_schedule_modulo(node, kernel->block_ids,      
 						kernel->grid_dim);
+//  // debug
+//  isl_printer_print_union_set(printer, kernel->block_filter);
+//  printf("\n");
+//  // debug
 	kernel->grid_size = extract_grid_size(kernel,
 						isl_union_set_copy(domain));
 	if (!kernel->options->wrap)
@@ -3939,6 +4021,11 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 				    isl_union_set_copy(kernel->block_filter));
 
 	node = gpu_tree_move_up_to_kernel(node);
+
+//  // debug
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
+//  // debug
 
 	if (gpu_group_references(kernel, node) < 0)
 		node = isl_schedule_node_free(node);
@@ -4140,6 +4227,12 @@ static __isl_give isl_schedule_node *mark_outer_permutable(
 		node = isl_schedule_node_band_split(node, tile_len);
 	sizes = construct_band_tiles_sizes(node, tile_size);
 	node = tile_band(node, isl_multi_val_copy(sizes));
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
+//  // debug
 	node = isl_schedule_node_child(node, 0);
 	if (gen->options->unroll_gpu_tile)
 		node = ppcg_set_schedule_node_type(node, isl_ast_loop_unroll);
@@ -5301,9 +5394,21 @@ static __isl_give isl_schedule *map_to_device(struct gpu_gen *gen,
 	isl_union_pw_multi_aff *contraction;
 	struct gpu_prog *prog;
 
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+//  isl_printer_print_set(printer, gen->prog->context);
+//  printf("\n");
+//  // debug
+
 	context = isl_set_copy(gen->prog->context);
 	context = isl_set_from_params(context);
 	schedule = isl_schedule_insert_context(schedule, context);
+
+//  // debug
+//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//  isl_printer_print_schedule(printer, schedule);
+//  printf("\n");
+//  // debug
 
 	prog = gen->prog;
 	guard = isl_union_set_params(isl_union_set_copy(prog->scop->domain));
@@ -5315,13 +5420,32 @@ static __isl_give isl_schedule *map_to_device(struct gpu_gen *gen,
 	node = isl_schedule_node_child(node, 0);
 	node = isl_schedule_node_child(node, 0);
 	node = isolate_permutable_subtrees(node, gen->prog);
-	domain = isl_schedule_node_get_domain(node);
+//  // debug
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
+//  // debug
+	domain = isl_schedule_node_get_domain(node);  
 	contraction = isl_schedule_node_get_subtree_contraction(node);
+//  // debug
+//  isl_printer_print_union_set(printer, domain);
+//  printf("\n");
+//  isl_printer_print_union_pw_multi_aff(printer, contraction);
+//  printf("\n");
+//  // debug
 	domain = isl_union_set_preimage_union_pw_multi_aff(domain,
 				    isl_union_pw_multi_aff_copy(contraction));
+//  // debug
+//  isl_printer_print_union_set(printer, domain);
+//  printf("\n");
+//  // debug
 	prefix = isl_schedule_node_get_prefix_schedule_union_map(node);
 	prefix = isl_union_map_preimage_domain_union_pw_multi_aff(prefix,
 				    contraction);
+//  // debug
+//  isl_printer_print_union_map(printer, prefix);
+//  printf("\n");
+//  // debug
+
 	node = mark_kernels(gen, node);
 	node = add_to_from_device(node, domain, prefix, gen->prog);
 	node = isl_schedule_node_root(node);
@@ -5329,6 +5453,11 @@ static __isl_give isl_schedule *map_to_device(struct gpu_gen *gen,
 	node = isl_schedule_node_child(node, 0);
 	node = isl_schedule_node_insert_guard(node, guard);
 	node = isl_schedule_node_child(node, 0);
+
+//  // debug
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
+//  // debug
 	node = add_init_clear_device(node);
 	schedule = isl_schedule_node_get_schedule(node);
 	isl_schedule_node_free(node);
@@ -5690,7 +5819,18 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 			p = print_cpu(p, scop, options);
 		isl_schedule_free(schedule);
 	} else {
+//    // debug
+//    isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+//    isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//    isl_printer_print_schedule(printer, schedule);
+//    printf("\n");
+//    // debug
 		schedule = map_to_device(gen, schedule);
+//    // debug
+//    isl_printer_print_schedule(printer, schedule);
+//    printf("\n");
+//    isl_printer_free(printer);
+//    // debug
 		gen->tree = generate_code(gen, schedule);
 		p = ppcg_set_macro_names(p);
 		p = ppcg_print_exposed_declarations(p, prog->scop);

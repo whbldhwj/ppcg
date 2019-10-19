@@ -13,10 +13,10 @@
 
 #include "ppcg.h"
 #include "ppcg_options.h"
-#include "polysa_cpu.h"
 #include "print.h"
 #include "schedule.h"
 #include "util.h"
+#include "polysa_cpu.h"
 
 /* Representation of a statement inside a generated AST.
  *
@@ -48,13 +48,46 @@ static void ppcg_stmt_free(void *user)
  * is the file name plus the additional extension.
  *
  * We will basically replace everything after the last point
- * with '.ppcg.c'. This means file.c becomes file.ppcg.c
+ * with '.polysa.c'. This means file.c becomes file.polysa.c
  */
 static FILE *get_output_file(const char *input, const char *output)
 {
 	char name[PATH_MAX];
 	const char *ext;
-	const char ppcg_marker[] = ".ppcg";
+	const char ppcg_marker[] = ".polysa";
+	int len;
+	FILE *file;
+
+	len = ppcg_extract_base_name(name, input);
+
+	strcpy(name + len, ppcg_marker);
+	ext = strrchr(input, '.');
+	strcpy(name + len + sizeof(ppcg_marker) - 1, ext ? ext : ".c");
+
+	if (!output)
+		output = name;
+
+	file = fopen(output, "w");
+	if (!file) {
+		fprintf(stderr, "Unable to open '%s' for writing\n", output);
+		return NULL;
+	}
+
+	return file;
+}
+
+/* Derive the output file name from the input file name.
+ * 'input' is the entire path of the input file. The output
+ * is the file name plus the additional extension.
+ *
+ * We will basically replace everything after the last point
+ * with '.t2s.c'. This means file.c becomes file.t2s.c
+ */
+static FILE *get_t2s_output_file(const char *input, const char *output)
+{
+	char name[PATH_MAX];
+	const char *ext;
+	const char ppcg_marker[] = ".t2s";
 	int len;
 	FILE *file;
 
@@ -701,6 +734,102 @@ static __isl_give isl_schedule *get_schedule(struct ppcg_scop *ps,
 	return schedule;
 }
 
+/* Code generate the scop 'scop' using "schedule"
+ * and print the corresponding C code to 'p'.
+ */
+static __isl_give isl_printer *print_scop_t2s(struct ppcg_scop *scop,
+	__isl_take isl_schedule *schedule, __isl_take isl_printer *p,
+	struct ppcg_options *options)
+{
+	isl_ctx *ctx = isl_printer_get_ctx(p);
+	isl_ast_build *build;
+	isl_ast_print_options *print_options;
+	isl_ast_node *tree;
+	isl_id_list *iterators;
+	struct ast_build_userinfo build_info;
+	int depth;
+
+	depth = 0;
+	if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth,
+						&depth) < 0)
+		goto error;
+
+	build = isl_ast_build_alloc(ctx);
+	iterators = ppcg_scop_generate_names(scop, depth, "c");
+	build = isl_ast_build_set_iterators(build, iterators);
+	build = isl_ast_build_set_at_each_domain(build, &at_each_domain, scop);
+
+	if (options->openmp) {
+		build_info.scop = scop;
+		build_info.in_parallel_for = 0;
+
+		build = isl_ast_build_set_before_each_for(build,
+							&ast_build_before_for,
+							&build_info);
+		build = isl_ast_build_set_after_each_for(build,
+							&ast_build_after_for,
+							&build_info);
+	}
+
+	tree = isl_ast_build_node_from_schedule(build, schedule);
+	isl_ast_build_free(build);
+
+	print_options = isl_ast_print_options_alloc(ctx);
+	print_options = isl_ast_print_options_set_print_user(print_options,
+							&print_user, NULL);
+
+	print_options = isl_ast_print_options_set_print_for(print_options,
+							&print_for, NULL);
+
+	p = cpu_print_macros(p, tree);
+	p = isl_ast_node_print(tree, p, print_options);
+
+	isl_ast_node_free(tree);
+
+	return p;
+error:
+	isl_schedule_free(schedule);
+	isl_printer_free(p);
+	return NULL;
+}
+
+/* Generate T2S code for the scop "ps" using "schedule" and
+ * print the corresponding C code to "p", including variable declarations.
+ */
+static __isl_give isl_printer *print_t2s_with_schedule(
+	__isl_take isl_printer *p, struct ppcg_scop *ps,
+	__isl_take isl_schedule *schedule, struct ppcg_options *options)
+{
+	int hidden;
+	isl_set *context;
+
+	p = isl_printer_start_line(p);
+	p = isl_printer_print_str(p, "/* PolySA generated T2S code */");
+	p = isl_printer_end_line(p);
+
+	p = isl_printer_start_line(p);
+	p = isl_printer_end_line(p);
+
+	p = ppcg_set_macro_names(p);
+	p = ppcg_print_exposed_declarations(p, ps);
+	hidden = ppcg_scop_any_hidden_declarations(ps);
+	if (hidden) {
+		p = ppcg_start_block(p);
+		p = ppcg_print_hidden_declarations(p, ps);
+	}
+
+	context = isl_set_copy(ps->context);
+	context = isl_set_from_params(context);
+	schedule = isl_schedule_insert_context(schedule, context);
+	if (options->debug->dump_final_schedule)
+		isl_schedule_dump(schedule);
+	p = print_scop_t2s(ps, schedule, p, options);
+	if (hidden)
+		p = ppcg_end_block(p);
+
+	return p;
+}
+
 /* Generate CPU code for the scop "ps" using "schedule" and
  * print the corresponding C code to "p", including variable declarations.
  */
@@ -712,7 +841,7 @@ static __isl_give isl_printer *print_cpu_with_schedule(
 	isl_set *context;
 
 	p = isl_printer_start_line(p);
-	p = isl_printer_print_str(p, "/* ppcg generated CPU code */");
+	p = isl_printer_print_str(p, "/* PolySA generated CPU code */");
 	p = isl_printer_end_line(p);
 
 	p = isl_printer_start_line(p);
@@ -753,24 +882,36 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
   /*  Check if the program is legal to be mapped to systolic array. */
   isl_bool is_legal = sa_legality_check(schedule, scop);
   if (is_legal != isl_bool_true) {
-    printf("[PSA] Illegal to be transformed to systolic array.\n");
+    printf("[PolySA] Illegal to be transformed to systolic array.\n");
   }
 
   /* Generate systolic arrays using space-time mapping. */
   isl_size num_sa = 0;
-  struct polysa_sa **sa_candidates = sa_space_time_transform(schedule, scop, &num_sa);
+  struct polysa_prog **sa_candidates = sa_space_time_transform(schedule, scop, &num_sa);
   if (num_sa > 0) {
-    printf("[PSA] %d systolic arrays generated.\n", num_sa);
+    printf("[PolySA] %d systolic arrays generated.\n", num_sa);
   }
 
   /* Pick up one systolic array to proceed based on heuristics. */
-  struct polysa_sa *sa_opt = sa_candidates_smart_pick(sa_candidates, scop, num_sa);
+  struct polysa_prog *sa_opt = sa_candidates_smart_pick(sa_candidates, num_sa);
+
+  /* Extract common VSA features. */
+  struct polysa_vsa *vsa = polysa_vsa_alloc();
+  vsa_band_width_extract(sa_opt, vsa);
+
+  /* Extract T2S features. */
+  if (options->target == POLYSA_TARGET_T2S) {
+    vsa_t2s_iter_extract(sa_opt, vsa);
+    vsa_t2s_var_extract(sa_opt, vsa);
+  }
+
+  polysa_vsa_free(vsa);
 
   /* Apply PE optimization. */
-  sa_pe_optimize(sa_opt, scop);
+  sa_pe_optimize(sa_opt);
 
   schedule = isl_schedule_copy(sa_opt->schedule);
-  polysa_sa_free(sa_opt);
+  polysa_prog_free(sa_opt);
 
 	return print_cpu_with_schedule(p, scop, schedule, options);
 }
@@ -842,3 +983,4 @@ int generate_polysa_cpu(isl_ctx *ctx, struct ppcg_options *options,
 
   return r;
 }
+

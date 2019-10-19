@@ -1,6 +1,8 @@
 #ifndef PPCG_H
 #define PPCG_H
 
+#include <stdbool.h> 
+
 #include <isl/schedule.h>
 #include <isl/set.h>
 #include <isl/union_set.h>
