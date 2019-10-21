@@ -4,7 +4,7 @@
 // change parameters to constants
 // avoid using +=
 void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {
-  /* PolySA generated CPU code */
+  /* ppcg generated CPU code */
   
   for (int c0 = 0; c0 <= 511; c0 += 1)
     for (int c1 = 0; c1 <= 511; c1 += 1) {

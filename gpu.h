@@ -10,6 +10,8 @@
 #include "ppcg.h"
 #include "ppcg_options.h"
 
+#include "polysa_common.h"
+
 /* An access to an outer array element or an iterator.
  * Accesses to iterators have an access relation that maps to an unnamed space.
  * An access may be both read and write.
@@ -431,5 +433,21 @@ int generate_gpu(isl_ctx *ctx, const char *input, FILE *out,
 __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 	__isl_take isl_schedule_node *node, int scale,
 	__isl_keep isl_multi_val *sizes);
+
+/* PolySA */
+__isl_give isl_printer *polysa_generate(__isl_take isl_printer *p,
+	struct gpu_gen *gen, struct ppcg_scop *scop,
+	struct ppcg_options *options);
+int generate_sa(isl_ctx *ctx, const char *input, FILE *out,
+	struct ppcg_options *options,
+	__isl_give isl_printer *(*print)(__isl_take isl_printer *p,
+		struct gpu_prog *prog, __isl_keep isl_ast_node *tree,
+		struct gpu_types *types, void *user), void *user);
+__isl_give isl_schedule *polysa_map_to_device(struct gpu_gen *gen,
+    __isl_take isl_schedule *schedule);
+__isl_give isl_ast_node *polysa_generate_code(struct gpu_gen *gen,
+    __isl_take isl_schedule *schedule);
+isl_bool has_any_systolizable_node(__isl_keep isl_schedule *schedule, struct gpu_prog *prog);
+
 
 #endif

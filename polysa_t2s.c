@@ -17,121 +17,46 @@
 #include "schedule.h"
 #include "util.h"
 #include "polysa_t2s.h"
-#include "polysa_sa.h"
 
-/* This function extracts the iterators for T2S program. */
-void vsa_t2s_iter_extract(struct polysa_prog *sa, struct polysa_vsa *vsa) {
-  isl_schedule_node *band = get_outermost_permutable_node(sa->schedule);
-  isl_size band_w = isl_schedule_node_band_n_member(band);
-  
-  vsa->t2s_iter_num = band_w;
-  vsa->t2s_iters = (char **)malloc(sizeof(char *) * band_w);
-  char iter[10];
-  for (int i = 0; i < vsa->t2s_iter_num; i++) {
-    sprintf(iter, "t%d", i);
-    vsa->t2s_iters[i] = strdup(iter);
-  }
-    
-  isl_schedule_node_free(band);
+/* Open the cpu .c file and the t2s .cpp file for writing.
+ * Add the necessary includes.
+ */
+void t2s_open_files(struct t2s_info *info, const char *input)
+{
+  char name[PATH_MAX];
+  int len;
+
+  len = ppcg_extract_base_name(name, input);
+
+  strcpy(name + len, "_cpu.c");
+  info->host_c = fopen(name, "w");
+
+  strcpy(name + len, "_t2s.cpp");
+  info->kernel_c = fopen(name, "w");
+
+  fprintf(info->kernel_c, "#include \"Halide.h\"\n");
+  fprintf(info->kernel_c, "#include <iostream>\n\n");
+  fprintf(info->kernel_c, "using namespace Halide;\n");
+  fprintf(info->kernel_c, "using namespace std;\n");
+
+//    fprintf(info->host_c, "#include <assert.h>\n");
+//    fprintf(info->host_c, "#include <stdio.h>\n");
+//    fprintf(info->host_c, "#include \"%s\"\n", name);
+//    fprintf(info->kernel_c, "#include \"%s\"\n", name);
+//    fprintf(info->kernel_h, "#include \"cuda.h\"\n\n");
 }
 
-static struct polysa_acc **extract_racc_from_tagged_reads(__isl_keep isl_union_map *tagged_reads, int *n_racc) {
-  isl_size nreads = isl_union_map_n_basic_map(tagged_reads);
-  isl_basic_map_list *racc_list = isl_union_map_get_basic_map_list(tagged_reads);
-  struct polysa_acc **raccs = (struct polysa_acc **)malloc(nreads * sizeof(struct polysa_acc *));
-  for (int i = 0; i < nreads; i++) {
-    raccs[i] = (struct polysa_acc *)malloc(sizeof(struct polysa_acc));
-    raccs[i]->tagged_map = isl_map_from_basic_map(isl_basic_map_list_get_basic_map(racc_list, i));
-    raccs[i]->map = isl_map_domain_factor_domain(isl_map_copy(raccs[i]->tagged_map));
-    isl_space *space = isl_map_get_space(raccs[i]->tagged_map);
-    space = isl_space_domain(space);
-    space = isl_space_range(space);
-    raccs[i]->id = space;
-    raccs[i]->rw = 0;
-  }
-  
-  isl_basic_map_list_free(racc_list);
-  *n_racc = nreads;
-
-  return raccs;
-}
-
-static struct polysa_acc **extract_wacc_from_tagged_writes(__isl_keep isl_union_map *tagged_writes, int *n_wacc) {
-  isl_size nwrites = isl_union_map_n_basic_map(tagged_writes);
-  isl_basic_map_list *wacc_list = isl_union_map_get_basic_map_list(tagged_writes);
-  struct polysa_acc **waccs = (struct polysa_acc **)malloc(nwrites * sizeof(struct polysa_acc *));
-  for (int i = 0; i < nwrites; i++) {
-    waccs[i] = (struct polysa_acc *)malloc(sizeof(struct polysa_acc));
-    waccs[i]->tagged_map = isl_map_from_basic_map(isl_basic_map_list_get_basic_map(wacc_list, i));
-    waccs[i]->map = isl_map_domain_factor_domain(isl_map_copy(waccs[i]->tagged_map));
-    isl_space *space = isl_map_get_space(waccs[i]->tagged_map);
-    space = isl_space_domain(space);
-    space = isl_space_range(space);
-    waccs[i]->id = space;
-    waccs[i]->rw = 0;
-  }
-
-  isl_basic_map_list_free(wacc_list);
-  *n_wacc = nwrites;
-
-  return waccs;
-}
-
-void vsa_t2s_var_extract(struct polysa_prog *sa, struct polysa_vsa *vsa) {
-  isl_union_map *tagged_reads = sa->scop->tagged_reads;
-  isl_union_map *tagged_may_writes = sa->scop->tagged_may_writes;
-  isl_union_map *tagged_must_writes = sa->scop->tagged_must_writes;
-
-  int n_racc, n_wacc;
-  struct polysa_acc **raccs = extract_racc_from_tagged_reads(tagged_reads, &n_racc);
-  struct polysa_acc **waccs = extract_wacc_from_tagged_writes(tagged_must_writes, &n_wacc);
-
-  for (int i = 0; i < n_racc; i++) {
-    polysa_acc_free(raccs[i]);
-  }
-  for (int i = 0; i < n_wacc; i++) {
-    polysa_acc_free(waccs[i]);    
-  }
-  free(raccs);
-  free(waccs);
-
-//  // debug
-//  isl_printer *printer = isl_printer_to_file(sa->ctx, stdout);
-//  isl_printer_print_union_map(printer, tagged_reads);
-//  printf("\n");
-//  isl_printer_print_union_map(printer, tagged_may_writes);
-//  printf("\n");
-//  isl_printer_print_union_map(printer, tagged_must_writes);
-//  printf("\n");
-//  // debug
-
-//  // initialize the acc_var_map
-//  struct acc_var_pair **acc_var_map = NULL;
-//  isl_size n_accs = n_racc + n_wacc; 
-//
-//  acc_var_map = (struct acc_var_pair **)malloc(n_accs * sizeof(struct acc_var_pair *));
-//  vsa->acc_var_map = acc_var_map;
-//
-//  for (int i = 0; i < n_accs; i++) {
-//    acc_var_map[i] = (struct acc_var_pair *)malloc(sizeof(struct acc_var_pair));
-//    acc_var_map[i]->ei = -1;
-//    acc_var_map[i]->d = 0;
-//    acc_var_map[i]->var_name = NULL;
-//    acc_var_map[i]->var_ref = NULL;
-//    acc_var_map[i]->var_iters = (IterExp **)malloc(vsa->t2s_iter_num * sizeof(IterExp *));
-//    for (int iter_id = 0; iter_id < vsa->t2s_iter_num; iter_id++) {
-//      acc_var_map[i]->var_iters[iter_id] = (IterExp *)malloc(sizeof(IterExp));
-//      acc_var_map[i]->var_iters[iter_id]->iter_name = strdup(vsa->t2s_iters[iter_id]);
-//      acc_var_map[i]->var_iters[iter_id]->iter_offset = 0;
-//    }    
-//  }
-
-   
+/* Close all output files.
+ */
+void t2s_close_files(struct t2s_info *info)
+{
+  fclose(info->host_c);
+  fclose(info->kernel_c);
 }
 
 static __isl_give isl_printer *print_t2s(__isl_take isl_printer *p,
-		struct polysa_prog *prog, __isl_keep isl_ast_node *tree,
-		struct polysa_types *types, void *user) {
+		struct gpu_prog *prog, __isl_keep isl_ast_node *tree,
+		struct gpu_types *types, void *user) {
   return p;
 }
 

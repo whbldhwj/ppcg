@@ -5,6 +5,7 @@
 
 #include "ppcg.h"
 #include "polysa_common.h"
+#include "polysa_vsa.h"
 
 int generate_polysa_cpu(isl_ctx *ctx, struct ppcg_options *ppcg_options,
     const char *input, const char *output);

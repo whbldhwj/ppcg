@@ -4495,6 +4495,11 @@ static __isl_give isl_schedule_constraints *construct_schedule_constraints(
 			isl_union_map_copy(prog->scop->independence));
 		coincidence = isl_union_map_union(coincidence,
 				isl_union_map_copy(prog->array_order));
+    /* Add the RAR into the validity constraints for PolySA. */
+    if (prog->scop->options->polysa) {
+      validity = isl_union_map_union(validity,
+          isl_union_map_copy(prog->scop->dep_rar));
+    }
 	} else {
 		dep_raw = isl_union_map_copy(prog->scop->dep_flow);
 		dep = isl_union_map_copy(prog->scop->dep_false);
@@ -4503,6 +4508,11 @@ static __isl_give isl_schedule_constraints *construct_schedule_constraints(
 		proximity = isl_union_map_copy(dep);
 		coincidence = isl_union_map_copy(dep);
 		validity = dep;
+    /* Add the RAR into the validity constraints for PolySA. */
+    if (prog->scop->options->polysa) {
+      validity = isl_union_map_union(validity,
+          isl_union_map_copy(prog->scop->dep_rar));
+    }   
 	}
 	sc = isl_schedule_constraints_set_validity(sc, validity);
 	sc = isl_schedule_constraints_set_coincidence(sc, coincidence);
@@ -5994,3 +6004,277 @@ void *gpu_prog_free(struct gpu_prog *prog)
 	free(prog);
 	return NULL;
 }
+
+/* Gnerate systolic array code for "scop" and print it to "p".
+ * After generating an AST for the transformed scop as explained below,
+ * we call "gen->print" to print the AST in the desired output format
+ * to "p".
+ *
+ * If it turns out it does not make sense to generate systolic array code,
+ * then we generate CPU code instead.
+ *
+ * The declarations of the arrays that are visible outside of the scop
+ * are printed outside of the code generated from the schedule,
+ * because the generated code may involve a guard around the entire code.
+ *
+ * We first compute a schedule that respects the dependences
+ * of the original program and select the innermost bands that
+ * are suitable to be mapped to systolic array.
+ * If the --load-schedule is specified, then the loaded schedule
+ * is used instead of a computed schedule.
+ *
+ * Each of these bands B is then processed through stages including:
+ * Array Generation, PE Optimization, Data Transfer Optimization
+ * with a kernel marker on top.
+ *
+ *  K
+ *  |
+ *  SA
+ *
+ * The entire AST is then generated from the single resulting schedule tree.
+ * During the generation the subtrees at kernel nodes (K) are saved 
+ * aside and replaced by kernel calls. The result is printed as host code
+ * while the saved subtrees are printed as device code.
+ */
+__isl_give isl_printer *polysa_generate(__isl_take isl_printer *p,
+	struct gpu_gen *gen, struct ppcg_scop *scop,
+	struct ppcg_options *options)
+{
+	struct gpu_prog *prog;
+	isl_ctx *ctx;
+	isl_schedule *schedule;
+
+  if (!scop)
+    return isl_printer_free(p);
+
+  ctx = isl_printer_get_ctx(p);
+  prog = gpu_prog_alloc(ctx, scop);
+  if (!prog)
+    return isl_printer_free(p);
+
+  gen->prog = prog;
+  schedule = get_schedule(gen);
+
+  isl_bool any_systolizable;
+  /* Examine if the "schedule" contain any systolizable band. */
+  any_systolizable = has_any_systolizable_node(schedule, prog); 
+  if (any_systolizable < 0 || !any_systolizable) {
+    if (any_systolizable < 0)
+      p = isl_printer_free(p);
+    else
+      p = print_cpu(p, scop, options);
+    isl_schedule_free(schedule);
+  } else {
+    schedule = polysa_map_to_device(gen, schedule);
+//    gen->tree = polysa_generate_code(gen, schedule);
+//    p = ppcg_set_macro_names(p);
+//    p = ppcg_print_exposed_declarations(p, prog->scop);
+//    p = gen->print(p, gen->prog, gen->tree, &gen->types, 
+//          gen->print_user);
+//    isl_ast_node_free(gen->tree);
+    isl_schedule_free(schedule);
+  }
+    
+	gpu_prog_free(prog);
+
+	return p;
+}
+
+/* Wrapper around generate for use as a ppcg_transform callback.
+ */
+static __isl_give isl_printer *polysa_generate_wrap(__isl_take isl_printer *p,
+	struct ppcg_scop *scop, void *user)
+{
+	struct gpu_gen *gen = user;
+
+	return polysa_generate(p, gen, scop, gen->options);
+}
+
+/* Transform the code in the file called "input" by replacing
+ * all scops by corresponding systolic code and write the results to "out".
+ */
+int generate_sa(isl_ctx *ctx, const char *input, FILE *out,
+	struct ppcg_options *options,
+	__isl_give isl_printer *(*print)(__isl_take isl_printer *p,
+		struct gpu_prog *prog, __isl_keep isl_ast_node *tree,
+		struct gpu_types *types, void *user), void *user)
+{
+	struct gpu_gen gen;
+	int r;
+	int i;
+
+	gen.ctx = ctx;
+	gen.sizes = extract_sizes_from_str(ctx, options->sizes);
+	gen.options = options;
+	gen.kernel_id = 0;
+	gen.print = print;
+	gen.print_user = user;
+	gen.types.n = 0;
+	gen.types.name = NULL;
+
+	if (options->debug->dump_sizes) {
+		isl_space *space = isl_space_params_alloc(ctx, 0);
+		gen.used_sizes = isl_union_map_empty(space);
+	}
+
+	r = ppcg_transform(ctx, input, out, options, &polysa_generate_wrap, &gen);
+
+	if (options->debug->dump_sizes) {
+		isl_union_map_dump(gen.used_sizes);
+		isl_union_map_free(gen.used_sizes);
+	}
+
+	isl_union_map_free(gen.sizes);
+	for (i = 0; i < gen.types.n; ++i)
+		free(gen.types.name[i]);
+	free(gen.types.name);
+
+	return r;
+}
+
+/*
+ * Update "schedule" for mapping to systolic array.
+ */
+__isl_give isl_schedule *polysa_map_to_device(struct gpu_gen *gen,
+    __isl_take isl_schedule *schedule)
+{
+  return schedule;
+}
+
+__isl_give isl_ast_node *polysa_generate_code(struct gpu_gen *gen,
+    __isl_take isl_schedule *schedule)
+{
+  
+}
+
+/* Return the validity constrraints between pairs of instances 
+ * that are scheduled together by the ancestors of "node".
+ * That is, select those validity constraints that relate 
+ * pairs of instances that have the same value for the prefix schedule.
+ * If the schedule depth is zero, then the prefix schedule does not
+ * contain any information, so we intersect domain and range of the 
+ * schedule constraints with the reaching domain elements instead.
+ */
+static __isl_give isl_union_map *get_local_validity(
+  __isl_keep isl_schedule_node *node,
+  __isl_keep isl_schedule_constraints *sc)
+{
+  isl_union_map *validity;
+  validity = isl_schedule_constraints_get_validity(sc);
+  isl_union_pw_multi_aff *contraction;
+  contraction = isl_schedule_node_get_subtree_contraction(node);
+  if (isl_schedule_node_get_schedule_depth(node) == 0) {
+    isl_union_set *domain;
+
+    domain = isl_schedule_node_get_domain(node);
+    domain = isl_union_set_preimage_union_pw_multi_aff(domain,
+        contraction);
+    validity = isl_union_map_intersect_domain(validity,
+        isl_union_set_copy(domain));
+    validity = isl_union_map_intersect_range(validity,
+        domain);
+    return validity;
+  }
+
+  isl_multi_union_pw_aff *prefix = isl_schedule_node_get_prefix_schedule_multi_union_pw_aff(node);
+  prefix = isl_multi_union_pw_aff_pullback_union_pw_multi_aff(prefix, contraction);
+  return isl_union_map_eq_at_multi_union_pw_aff(validity, prefix);
+}
+
+/* Test for each pair of instances in the dep_flow and dep_rar that are 
+ * scheduled together by the outer nodes, the dependence distance on the 
+ * "node" is constant.
+ */
+static isl_bool is_band_dep_uniform(__isl_keep isl_schedule_node *node,
+    struct gpu_prog *prog)
+{
+  int n;
+  isl_schedule_constraints *sc = construct_schedule_constraints(prog);
+  isl_union_map *validity = get_local_validity(node, sc);
+  
+  //isl_multi_union_pw_aff *partial = isl_schedule_node_band_get_partial_schedule(node);
+  //isl_union_pw_multi_aff *contraction = isl_schedule_node_get_subtree_contraction(node);
+  //partial = isl_multi_union_pw_pullback_union_pw_multi_aff(partial, contraction);
+  //n = isl_schedule_node_band_n_member(node);
+
+  isl_basic_map_list *deps = isl_union_map_get_basic_map_list(validity);
+  isl_bool is_uniform = isl_bool_true;
+  for (int i = 0; i < isl_union_map_n_basic_map(validity); i++) {
+    isl_basic_map *dep = isl_basic_map_list_get_basic_map(deps, i);
+    if (!is_dep_uniform_at_node(node, dep)) {
+      is_uniform = isl_bool_false;
+      isl_basic_map_free(dep);
+      break;
+    }
+    isl_basic_map_free(dep);
+  }
+
+  isl_basic_map_list_free(deps);
+  isl_schedule_constraints_free(sc);
+  isl_union_map_free(validity);
+
+  return is_uniform;
+}
+
+/* The node should satisfy the following constraints to be systolizable:
+ * - innermost permutable band
+ * - dependneces are uniform in the band
+ */
+static isl_bool is_systolizable(__isl_keep isl_schedule_node *node, 
+    void *user)
+{
+  if (!node)
+    return isl_bool_error;
+
+  struct gpu_prog *prog = user;
+
+  if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
+    return isl_bool_false;
+  if (!isl_schedule_node_band_get_permutable(node))
+    return isl_bool_false;
+  if (!isl_schedule_node_band_n_member(node) < 1)
+    return isl_bool_false;
+  if (isl_schedule_node_has_children(node))
+    return isl_bool_false;
+  if (!is_band_dep_uniform(node, prog))
+    return isl_bool_false;
+
+  return isl_bool_true;
+}
+
+/* Is "node" not a suitably systolizable band?
+ */
+static isl_bool not_systolizable(__isl_keep isl_schedule_node *node, void *user)
+{
+  return isl_bool_not(is_systolizable(node, user)); 
+}
+
+/* Does the subtree rooted at "node" has any suitably systolizable band nodes?
+ * That is, does it have any nodes that are innermost and contains only uniform dependences.
+ */
+static isl_bool subtree_has_systolizable_bands(__isl_keep isl_schedule_node *node,
+    struct gpu_prog *prog)
+{
+  isl_bool all_non_systolizable;
+
+  all_non_systolizable = isl_schedule_node_every_descendant(node,
+      &not_systolizable, prog);
+
+  return isl_bool_not(all_non_systolizable);
+}
+
+/* Does "schedule" contain any permutable band which is systolizable? */
+isl_bool has_any_systolizable_node(__isl_keep isl_schedule *schedule, struct gpu_prog *prog)
+{
+  isl_schedule_node *root;
+  isl_bool any_systolizable;
+
+  root = isl_schedule_get_root(schedule);
+  any_systolizable = subtree_has_systolizable_bands(root, prog);
+  any_systolizable = isl_bool_true;
+  isl_schedule_node_free(root);
+
+  return any_systolizable;
+}
+
+

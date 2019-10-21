@@ -38,9 +38,10 @@
 #include "opencl.h"
 #include "cpu.h"
 #include "polysa_common.h"
-#include "polysa_sa.h"
 #include "polysa_cpu.h"
 #include "polysa_t2s.h"
+#include "polysa_hls.h"
+#include "polysa_opencl.h"
 
 struct options {
 	struct pet_options *pet;
@@ -1440,17 +1441,17 @@ int main(int argc, char **argv)
 	else if (options->ppcg->target == PPCG_TARGET_C)
 		r = generate_cpu(ctx, options->ppcg, options->input,
 				options->output);
-  else if (options->ppcg->target == POLYSA_TARGET_C)
-    r = generate_polysa_cpu(ctx, options->ppcg, options->input,
-        options->output);
+  else if (options->ppcg->target == POLYSA_TARGET_T2S)
+    r = generate_polysa_t2s(ctx, options->ppcg, options->input);
+//  else if (options->ppcg->target == POLYSA_TARGET_C)
+//    r = generate_polysa_cpu(ctx, options->ppcg, options->input,
+//        options->output);
 //  else if (options->ppcg->target == POLYSA_TARGET_XILINX_HLS)
 //    r = generate_polysa_xilinx_hls(ctx, options->ppcg, options->input,
 //        options->output);
 //  else if (options->ppcg->target == POLYSA_TARGET_INTEL_OPENCL)
 //    r = generate_polysa_intel_opencl(ctx, options->ppcg, options->input,
 //        options->output);
-  else if (options->ppcg->target == POLYSA_TARGET_T2S)
-    r = generate_polysa_t2s(ctx, options->ppcg, options->input);
 
 	isl_ctx_free(ctx);
 

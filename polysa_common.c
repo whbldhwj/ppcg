@@ -1,5 +1,58 @@
 #include "polysa_common.h"
 
+static isl_stat concat_basic_map(__isl_take isl_map *el, void *user) 
+{
+  isl_basic_map_list **bmap_list = (isl_basic_map_list **)(user);
+  isl_basic_map_list *bmap_list_sub = isl_map_get_basic_map_list(el);
+  if (!(*bmap_list)) {
+    *bmap_list = bmap_list_sub;
+  } else {
+    *bmap_list = isl_basic_map_list_concat(*bmap_list, bmap_list_sub);
+  }
+
+  isl_map_free(el);
+  return isl_stat_ok;
+}
+
+__isl_give isl_basic_map_list *isl_union_map_get_basic_map_list(__isl_keep isl_union_map *umap)
+{
+  isl_map_list *map_list = isl_union_map_get_map_list(umap);
+  isl_basic_map_list *bmap_list = NULL;
+  isl_map_list_foreach(map_list, &concat_basic_map, &bmap_list);
+
+  isl_map_list_free(map_list);
+  return bmap_list;
+}
+
+static isl_stat acc_n_basic_map(__isl_take isl_map *el, void *user)
+{
+  isl_size *n = (isl_size *)(user);
+  isl_basic_map_list *bmap_list = isl_map_get_basic_map_list(el);
+  *n = *n + isl_basic_map_list_n_basic_map(bmap_list);
+
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(el), stdout);
+//  isl_printer_print_map(printer, el);
+//  printf("\n");  
+//  printf("%d\n", *n);
+//  // debug
+
+  isl_map_free(el);
+  isl_basic_map_list_free(bmap_list);
+  return isl_stat_ok;
+}
+
+isl_size isl_union_map_n_basic_map(__isl_keep isl_union_map *umap)
+{
+  isl_size n = 0;
+  isl_map_list *map_list = isl_union_map_get_map_list(umap);
+  isl_map_list_foreach(map_list, &acc_n_basic_map, &n);
+
+  isl_map_list_free(map_list);
+
+  return n;
+}
+
 /* Examines if the node is a permutable band node. */
 static isl_bool is_permutable_node(__isl_keep isl_schedule_node *node) 
 {
@@ -98,14 +151,9 @@ isl_bool is_dep_uniform_at_node(__isl_keep isl_schedule_node *node, void *user)
    * permutable band node to be analyzed. 
    */
   isl_multi_union_pw_aff *p_sc = isl_schedule_node_band_get_partial_schedule(node);
-//  // debug
-//  isl_printer *printer = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//  isl_printer_print_multi_union_pw_aff(printer, p_sc);
-//  printf("\n");
-//  isl_printer_print_basic_map(printer, dep);
-//  printf("\n");
-//  // debug
- 
+  isl_union_pw_multi_aff *contraction = isl_schedule_node_get_subtree_contraction(node);
+  p_sc = isl_multi_union_pw_aff_pullback_union_pw_multi_aff(p_sc, contraction);
+
   isl_bool is_uniform = isl_bool_true;
   for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
     isl_union_pw_aff *p_sc_hyp = isl_multi_union_pw_aff_get_union_pw_aff(p_sc, i);
@@ -174,16 +222,9 @@ isl_bool is_dep_uniform_at_node(__isl_keep isl_schedule_node *node, void *user)
       isl_dim_set, isl_dim_div, isl_dim_param, isl_dim_cst);
 
     /* Step 3: Intersect the scheduling function with the domain. */
-    isl_pw_aff *dis = isl_pw_aff_intersect_domain(dis_sc, isl_set_from_basic_set(isl_basic_set_copy(dep_set)));
+    isl_pw_aff *dis = isl_pw_aff_intersect_domain(dis_sc, 
+        isl_set_from_basic_set(isl_basic_set_copy(dep_set)));
 
-    // debug
-//    isl_printer_print_pw_aff(printer, dis);
-//    printf("\n");
-//    isl_val * val = isl_pw_aff_eval(dis, isl_basic_set_sample_point(dep_set));
-//    isl_printer_print_val(printer, val);
-//    printf("\n");
-    // debug
-  
     isl_union_pw_aff_free(p_sc_hyp);
     isl_basic_set_free(dep_set);
 
@@ -387,58 +428,8 @@ __isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_kee
   return dep_dis;
 }
 
-static isl_stat concat_basic_map(__isl_take isl_map *el, void *user) 
-{
-  isl_basic_map_list **bmap_list = (isl_basic_map_list **)(user);
-  isl_basic_map_list *bmap_list_sub = isl_map_get_basic_map_list(el);
-  if (!(*bmap_list)) {
-    *bmap_list = bmap_list_sub;
-  } else {
-    *bmap_list = isl_basic_map_list_concat(*bmap_list, bmap_list_sub);
-  }
 
-  isl_map_free(el);
-  return isl_stat_ok;
-}
 
-__isl_give isl_basic_map_list *isl_union_map_get_basic_map_list(__isl_keep isl_union_map *umap)
-{
-  isl_map_list *map_list = isl_union_map_get_map_list(umap);
-  isl_basic_map_list *bmap_list = NULL;
-  isl_map_list_foreach(map_list, &concat_basic_map, &bmap_list);
-
-  isl_map_list_free(map_list);
-  return bmap_list;
-}
-
-static isl_stat acc_n_basic_map(__isl_take isl_map *el, void *user)
-{
-  isl_size *n = (isl_size *)(user);
-  isl_basic_map_list *bmap_list = isl_map_get_basic_map_list(el);
-  *n = *n + isl_basic_map_list_n_basic_map(bmap_list);
-
-//  // debug
-//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(el), stdout);
-//  isl_printer_print_map(printer, el);
-//  printf("\n");  
-//  printf("%d\n", *n);
-//  // debug
-
-  isl_map_free(el);
-  isl_basic_map_list_free(bmap_list);
-  return isl_stat_ok;
-}
-
-isl_size isl_union_map_n_basic_map(__isl_keep isl_union_map *umap)
-{
-  isl_size n = 0;
-  isl_map_list *map_list = isl_union_map_get_map_list(umap);
-  isl_map_list_foreach(map_list, &acc_n_basic_map, &n);
-
-  isl_map_list_free(map_list);
-
-  return n;
-}
 
 /* Generate asynchronized systolic arrays with the given dimension. 
  * For async arrays, space loops are placed outside the time loops.
@@ -871,31 +862,22 @@ struct polysa_prog *polysa_prog_from_schedule(__isl_take isl_schedule *schedule)
   return sa;
 }
 
-void vsa_band_width_extract(struct polysa_prog *sa, struct polysa_vsa *vsa) {
-
-}
-
-
-struct polysa_vsa *polysa_vsa_alloc()
+struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop) 
 {
-  struct polysa_vsa *vsa = (struct polysa_vsa *)malloc(sizeof(struct polysa_vsa));
-  vsa->t2s_iters = NULL;
+  struct polysa_prog *prog;
+  isl_space *space;
+  isl_map *id;
 
-  return vsa;
-}
-
-void *polysa_vsa_free(struct polysa_vsa *vsa)
-{
-  if (!vsa)
+  if (!scop)
     return NULL;
-  if (!vsa->t2s_iters) {
-    for (int i = 0; i < vsa->t2s_iter_num; i++) {
-      free(vsa->t2s_iters[i]);
-    }
-    free(vsa->t2s_iters);
-  }
-  free(vsa);
-  return NULL;
+
+  prog = isl_calloc_type(ctx, struct polysa_prog);
+  if (!prog)
+    return NULL;
+
+  prog->ctx = ctx;
+  prog->scop = scop;
+  
 }
 
 void *polysa_acc_free(struct polysa_acc *acc) {
@@ -911,38 +893,4 @@ void *polysa_acc_free(struct polysa_acc *acc) {
   return NULL;
 }
 
-/* Open the cpu .c file and the t2s .cpp file for writing.
- * Add the necessary includes.
- */
-void t2s_open_files(struct t2s_info *info, const char *input)
-{
-  char name[PATH_MAX];
-  int len;
 
-  len = ppcg_extract_base_name(name, input);
-
-  strcpy(name + len, "_cpu.c");
-  info->host_c = fopen(name, "w");
-
-  strcpy(name + len, "_t2s.cpp");
-  info->kernel_c = fopen(name, "w");
-
-  fprintf(info->kernel_c, "#include \"Halide.h\"\n");
-  fprintf(info->kernel_c, "#include <iostream>\n\n");
-  fprintf(info->kernel_c, "using namespace Halide;\n");
-  fprintf(info->kernel_c, "using namespace std;\n");
-
-//    fprintf(info->host_c, "#include <assert.h>\n");
-//    fprintf(info->host_c, "#include <stdio.h>\n");
-//    fprintf(info->host_c, "#include \"%s\"\n", name);
-//    fprintf(info->kernel_c, "#include \"%s\"\n", name);
-//    fprintf(info->kernel_h, "#include \"cuda.h\"\n\n");
-}
-
-/* Close all output files.
- */
-void t2s_close_files(struct t2s_info *info)
-{
-  fclose(info->host_c);
-  fclose(info->kernel_c);
-}

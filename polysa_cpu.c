@@ -76,39 +76,6 @@ static FILE *get_output_file(const char *input, const char *output)
 	return file;
 }
 
-/* Derive the output file name from the input file name.
- * 'input' is the entire path of the input file. The output
- * is the file name plus the additional extension.
- *
- * We will basically replace everything after the last point
- * with '.t2s.c'. This means file.c becomes file.t2s.c
- */
-static FILE *get_t2s_output_file(const char *input, const char *output)
-{
-	char name[PATH_MAX];
-	const char *ext;
-	const char ppcg_marker[] = ".t2s";
-	int len;
-	FILE *file;
-
-	len = ppcg_extract_base_name(name, input);
-
-	strcpy(name + len, ppcg_marker);
-	ext = strrchr(input, '.');
-	strcpy(name + len + sizeof(ppcg_marker) - 1, ext ? ext : ".c");
-
-	if (!output)
-		output = name;
-
-	file = fopen(output, "w");
-	if (!file) {
-		fprintf(stderr, "Unable to open '%s' for writing\n", output);
-		return NULL;
-	}
-
-	return file;
-}
-
 /* Data used to annotate for nodes in the ast.
  */
 struct ast_node_userinfo {
@@ -645,28 +612,28 @@ static __isl_give isl_schedule_constraints *construct_cpu_schedule_constraints(
 		validity = isl_union_map_copy(ps->dep_flow);
 		validity = isl_union_map_union(validity,
 				isl_union_map_copy(ps->dep_forced));
+		if (ps->options->openmp) {
+			coincidence = isl_union_map_copy(validity);
+			coincidence = isl_union_map_union(coincidence,
+					isl_union_map_copy(ps->dep_order));
+		}
     /* Add the RAR dependences into the validity constraints for
      * systolic array generation.
      */
     if (ps->options->polysa) {
       validity = isl_union_map_union(validity,
           isl_union_map_copy(ps->dep_rar));
-    }
-		if (ps->options->openmp) {
-			coincidence = isl_union_map_copy(validity);
-			coincidence = isl_union_map_union(coincidence,
-					isl_union_map_copy(ps->dep_order));
-		}
+    }   
 	} else {
 		validity = isl_union_map_copy(ps->dep_flow);
 		validity = isl_union_map_union(validity,
 				isl_union_map_copy(ps->dep_false));
+		if (ps->options->openmp)
+			coincidence = isl_union_map_copy(validity);
     if (ps->options->polysa) {
       validity = isl_union_map_union(validity,
           isl_union_map_copy(ps->dep_rar));
-    }
-		if (ps->options->openmp)
-			coincidence = isl_union_map_copy(validity);
+    }   
 	}
 	if (ps->options->openmp)
 		sc = isl_schedule_constraints_set_coincidence(sc, coincidence);

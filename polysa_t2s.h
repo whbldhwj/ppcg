@@ -4,8 +4,15 @@
 #include <pet.h>
 #include "ppcg_options.h"
 #include "ppcg.h"
-#include "polysa_common.h"
 #include "string.h"
+#include "gpu.h"
+#include "polysa_common.h"
+
+struct t2s_info {
+	FILE *host_c;
+	FILE *kernel_c;
+  FILE *kernel_h;
+};
 
 struct iter_exp {
   char *iter_name;
@@ -22,6 +29,8 @@ struct acc_var_pair {
   bool d;  // 0: not drain 1: drain
 };
 
+void t2s_open_files(struct t2s_info *info, const char *input);
+void t2s_close_files(struct t2s_info *info);
 int generate_polysa_t2s(isl_ctx *ctx, struct ppcg_options *options,
 	const char *input);
 
