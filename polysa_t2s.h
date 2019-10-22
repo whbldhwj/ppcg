@@ -6,12 +6,18 @@
 #include "ppcg.h"
 #include "string.h"
 #include "gpu.h"
+#include "gpu_print.h"
 #include "polysa_common.h"
 
 struct t2s_info {
 	FILE *host_c;
 	FILE *kernel_c;
   FILE *kernel_h;
+};
+
+struct print_host_user_data {
+	struct t2s_info *t2s;
+	struct gpu_prog *prog;
 };
 
 struct iter_exp {

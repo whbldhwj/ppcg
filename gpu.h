@@ -413,6 +413,127 @@ struct ppcg_kernel {
 	isl_ast_node *tree;
 };
 
+/* Representation of a kernel.
+ *
+ * prog describes the original code from which the kernel is extracted.
+ *
+ * id is the sequence number of the kernel.
+ *
+ * block_ids contains the list of block identifiers for this kernel.
+ * thread_ids contains the list of thread identifiers for this kernel.
+ *
+ * the first n_grid elements of grid_dim represent the specified size
+ * of the grid.
+ * the first n_block elements of block_dim represent the specified or
+ * effective size of the block.
+ * Note that in the input file, the sizes of the grid and the blocks
+ * are specified in the order x, y, z, but internally, the sizes
+ * are stored in reverse order, so that the last element always
+ * refers to the x dimension.
+ *
+ * grid_size reflects the effective grid size.
+ * grid_size_expr contains a corresponding access AST expression, built within
+ * the context where the launch appears.
+ *
+ * context contains the values of the parameters and outer schedule dimensions
+ * for which any statement instance in this kernel needs to be executed.
+ *
+ * n_sync is the number of synchronization operations that have
+ * been introduced in the schedule tree corresponding to this kernel (so far).
+ *
+ * core contains the spaces of the statement domains that form
+ * the core computation of the kernel.  It is used to navigate
+ * the tree during the construction of the device part of the schedule
+ * tree in gpu_create_kernel.
+ *
+ * expanded_domain contains the original statement instances,
+ * i.e., those that appear in the domains of access relations,
+ * that are involved in the kernel.
+ * contraction maps those original statement instances to
+ * the statement instances that are active at the point
+ * in the schedule tree where the kernel is created.
+ *
+ * arrays is the set of possibly accessed outer array elements.
+ *
+ * space is the schedule space of the AST context.  That is, it represents
+ * the loops of the generated host code containing the kernel launch.
+ *
+ * n_array is the total number of arrays in the input program and also
+ * the number of element in the array array.
+ * array contains information about each array that is local
+ * to the current kernel.  If an array is not used in a kernel,
+ * then the corresponding entry does not contain any information.
+ *
+ * any_force_private is set if any array in the kernel is marked force_private
+ *
+ * block_filter contains constraints on the domain elements in the kernel
+ * that encode the mapping to block identifiers, where the block identifiers
+ * are represented by "n_grid" parameters with as names the elements
+ * of "block_ids".
+ *
+ * thread_filter contains constraints on the domain elements in the kernel
+ * that encode the mapping to thread identifiers, where the thread identifiers
+ * are represented by "n_block" parameters with as names the elements
+ * of "thread_ids".
+ *
+ * copy_schedule corresponds to the schedule dimensions of
+ * the (tiled) schedule for this kernel that have been taken into account
+ * for computing private/shared memory tiles.
+ * The domain corresponds to the original statement instances, i.e.,
+ * those that appear in the leaves of the schedule tree.
+ * copy_schedule_dim is the dimension of this schedule.
+ *
+ * sync_writes contains write references that require synchronization.
+ * Each reference is represented by a universe set in a space [S[i,j] -> R[]]
+ * with S[i,j] the statement instance space and R[] the array reference.
+ */
+struct polysa_kernel {
+	isl_ctx *ctx;
+	struct ppcg_options *options;
+
+	struct gpu_prog *prog;
+
+	int id;
+
+	isl_id_list *block_ids;
+	isl_id_list *thread_ids;
+
+	int n_grid;
+	int n_block;
+	int grid_dim[2];
+	int block_dim[3];
+
+	isl_multi_pw_aff *grid_size;
+	isl_ast_expr *grid_size_expr;
+	isl_set *context;
+
+	int n_sync;
+	isl_union_set *core;
+	isl_union_set *arrays;
+
+	isl_union_pw_multi_aff *contraction;
+	isl_union_set *expanded_domain;
+
+	isl_space *space;
+
+	int n_array;
+	struct gpu_local_array_info *array;
+
+	int n_var;
+	struct ppcg_kernel_var *var;
+
+	int any_force_private;
+
+	isl_union_set *block_filter;
+	isl_union_set *thread_filter;
+	isl_union_pw_multi_aff *copy_schedule;
+	int copy_schedule_dim;
+
+	isl_union_set *sync_writes;
+
+	isl_ast_node *tree;
+};
+
 int gpu_array_is_scalar(struct gpu_array_info *array);
 int gpu_array_is_read_only_scalar(struct gpu_array_info *array);
 int gpu_array_requires_device_allocation(struct gpu_array_info *array);
@@ -445,9 +566,10 @@ int generate_sa(isl_ctx *ctx, const char *input, FILE *out,
 		struct gpu_types *types, void *user), void *user);
 __isl_give isl_schedule *polysa_map_to_device(struct gpu_gen *gen,
     __isl_take isl_schedule *schedule);
-__isl_give isl_ast_node *polysa_generate_code(struct gpu_gen *gen,
-    __isl_take isl_schedule *schedule);
 isl_bool has_any_systolizable_node(__isl_keep isl_schedule *schedule, struct gpu_prog *prog);
-
+isl_bool subtree_has_systolizable_bands(__isl_keep isl_schedule_node *node,
+    struct gpu_prog *prog);
+__isl_give isl_schedule_node *polysa_create_kernel(struct gpu_gen *gen,
+    __isl_take isl_schedule_node *node, int scale);
 
 #endif
