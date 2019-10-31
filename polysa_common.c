@@ -53,6 +53,21 @@ isl_size isl_union_map_n_basic_map(__isl_keep isl_union_map *umap)
   return n;
 }
 
+__isl_give isl_basic_map *isl_basic_map_from_map(__isl_take isl_map *map)
+{
+  if (!map)
+    return NULL;
+
+  assert(isl_map_n_basic_map(map) == 1);
+  isl_basic_map_list *bmap_list = isl_map_get_basic_map_list(map);
+  isl_map_free(map);
+
+  isl_basic_map *bmap = isl_basic_map_list_get_basic_map(bmap_list, 0);
+  isl_basic_map_list_free(bmap_list);
+
+  return bmap;
+}
+
 /* Examines if the node is a permutable band node. */
 static isl_bool is_permutable_node(__isl_keep isl_schedule_node *node) 
 {
@@ -347,7 +362,13 @@ isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
 /* Compute the dependence distance vector of the dependence under the partial schedule of the band node. */
 __isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_keep isl_schedule_node *band)
 {
+  if (isl_schedule_node_get_type(band) != isl_schedule_node_band)
+    return NULL;
+
   isl_multi_union_pw_aff *p_sc = isl_schedule_node_band_get_partial_schedule(band);
+  isl_union_pw_multi_aff *contraction = isl_schedule_node_get_subtree_contraction(band);
+  p_sc = isl_multi_union_pw_aff_pullback_union_pw_multi_aff(p_sc, contraction);
+
   int band_w = isl_schedule_node_band_n_member(band);
   isl_vec *dep_dis = isl_vec_zero(isl_basic_map_get_ctx(dep), band_w);
   for (int i = 0; i < band_w; i++) {
@@ -357,11 +378,12 @@ __isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_kee
     isl_space *src_space = isl_space_domain(isl_space_copy(space));
     isl_space *dest_space = isl_space_range(space);
 
-    isl_pw_aff *src_sc;
+    isl_pw_aff *src_sc = NULL;
     isl_pw_aff_list *p_sc_hyp_list = isl_union_pw_aff_get_pw_aff_list(p_sc_hyp);
     for (int j = 0; j < isl_union_pw_aff_n_pw_aff(p_sc_hyp); j++) {
       isl_pw_aff *single_sc = isl_pw_aff_list_get_pw_aff(p_sc_hyp_list, j);
       isl_space *single_sc_stmt = isl_space_domain(isl_pw_aff_get_space(single_sc));
+
       if (isl_space_is_equal(src_space, single_sc_stmt)) {
         isl_space_free(single_sc_stmt);
         src_sc = single_sc;
@@ -374,11 +396,12 @@ __isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_kee
     isl_space_free(src_space);
 
     /* Obtain the schedule for the dest statement. */
-    isl_pw_aff *dest_sc;
+    isl_pw_aff *dest_sc = NULL;
     p_sc_hyp_list = isl_union_pw_aff_get_pw_aff_list(p_sc_hyp);
     for (int j = 0; j < isl_union_pw_aff_n_pw_aff(p_sc_hyp); j++) {
       isl_pw_aff *single_sc = isl_pw_aff_list_get_pw_aff(p_sc_hyp_list, j);
       isl_space *single_sc_stmt = isl_space_domain(isl_pw_aff_get_space(single_sc));
+
       if (isl_space_is_equal(dest_space, single_sc_stmt)) {
         isl_space_free(single_sc_stmt);
         dest_sc = single_sc;

@@ -19,8 +19,8 @@ __global__ void kernel0(int *A, int *B, int *C)
           private_C[0][1] = 0;
         }
         for (int c3 = 0; c3 <= 31; c3 += 1) {
-          private_C[0][0] = (private_C[0][0] + (shared_A[t0][c3] * shared_B[c3][t1]));
-          private_C[0][1] = (private_C[0][1] + (shared_A[t0][c3] * shared_B[c3][t1 + 16]));
+          private_C[0][0] += (shared_A[t0][c3] * shared_B[c3][t1]);
+          private_C[0][1] += (shared_A[t0][c3] * shared_B[c3][t1 + 16]);
         }
         __syncthreads();
       }

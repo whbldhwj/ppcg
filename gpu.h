@@ -570,6 +570,7 @@ isl_bool has_any_systolizable_node(__isl_keep isl_schedule *schedule, struct gpu
 isl_bool subtree_has_systolizable_bands(__isl_keep isl_schedule_node *node,
     struct gpu_prog *prog);
 __isl_give isl_schedule_node *polysa_create_kernel(struct gpu_gen *gen,
-    __isl_take isl_schedule_node *node, int scale);
+    __isl_take isl_schedule_node *node, int scale,
+    __isl_keep isl_multi_val *sizes);
 
 #endif

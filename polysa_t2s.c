@@ -18,6 +18,119 @@
 #include "util.h"
 #include "polysa_t2s.h"
 
+static __isl_give isl_printer *print_cuda_macros(__isl_take isl_printer *p)
+{
+	const char *macros =
+		"#define cudaCheckReturn(ret) \\\n"
+		"  do { \\\n"
+		"    cudaError_t cudaCheckReturn_e = (ret); \\\n"
+		"    if (cudaCheckReturn_e != cudaSuccess) { \\\n"
+		"      fprintf(stderr, \"CUDA error: %s\\n\", "
+		"cudaGetErrorString(cudaCheckReturn_e)); \\\n"
+		"      fflush(stderr); \\\n"
+		"    } \\\n"
+		"    assert(cudaCheckReturn_e == cudaSuccess); \\\n"
+		"  } while(0)\n"
+		"#define cudaCheckKernel() \\\n"
+		"  do { \\\n"
+		"    cudaCheckReturn(cudaGetLastError()); \\\n"
+		"  } while(0)\n\n";
+
+	p = isl_printer_print_str(p, macros);
+	return p;
+}
+
+/* Print a declaration for the device array corresponding to "array" on "p".
+ */
+static __isl_give isl_printer *declare_device_array(__isl_take isl_printer *p,
+	struct gpu_array_info *array)
+{
+	int i;
+
+	p = isl_printer_start_line(p);
+	p = isl_printer_print_str(p, array->type);
+	p = isl_printer_print_str(p, " ");
+	if (!array->linearize && array->n_index > 1)
+		p = isl_printer_print_str(p, "(");
+	p = isl_printer_print_str(p, "*dev_");
+	p = isl_printer_print_str(p, array->name);
+	if (!array->linearize && array->n_index > 1) {
+		p = isl_printer_print_str(p, ")");
+		for (i = 1; i < array->n_index; i++) {
+			isl_ast_expr *bound;
+			bound = isl_ast_expr_get_op_arg(array->bound_expr,
+							1 + i);
+			p = isl_printer_print_str(p, "[");
+			p = isl_printer_print_ast_expr(p, bound);
+			p = isl_printer_print_str(p, "]");
+			isl_ast_expr_free(bound);
+		}
+	}
+	p = isl_printer_print_str(p, ";");
+	p = isl_printer_end_line(p);
+
+	return p;
+}
+
+static __isl_give isl_printer *declare_device_arrays(__isl_take isl_printer *p,
+	struct gpu_prog *prog)
+{
+	int i;
+
+	for (i = 0; i < prog->n_array; ++i) {
+		if (!gpu_array_requires_device_allocation(&prog->array[i]))
+			continue;
+
+		p = declare_device_array(p, &prog->array[i]);
+	}
+	p = isl_printer_start_line(p);
+	p = isl_printer_end_line(p);
+	return p;
+}
+
+static __isl_give isl_printer *allocate_device_arrays(
+	__isl_take isl_printer *p, struct gpu_prog *prog)
+{
+	int i;
+
+	for (i = 0; i < prog->n_array; ++i) {
+		struct gpu_array_info *array = &prog->array[i];
+
+		if (!gpu_array_requires_device_allocation(&prog->array[i]))
+			continue;
+		p = ppcg_ast_expr_print_macros(array->bound_expr, p);
+		p = isl_printer_start_line(p);
+		p = isl_printer_print_str(p,
+			"cudaCheckReturn(cudaMalloc((void **) &dev_");
+		p = isl_printer_print_str(p, prog->array[i].name);
+		p = isl_printer_print_str(p, ", ");
+		p = gpu_array_info_print_size(p, &prog->array[i]);
+		p = isl_printer_print_str(p, "));");
+		p = isl_printer_end_line(p);
+	}
+	p = isl_printer_start_line(p);
+	p = isl_printer_end_line(p);
+	return p;
+}
+
+static __isl_give isl_printer *free_device_arrays(__isl_take isl_printer *p,
+	struct gpu_prog *prog)
+{
+	int i;
+
+	for (i = 0; i < prog->n_array; ++i) {
+		if (!gpu_array_requires_device_allocation(&prog->array[i]))
+			continue;
+		p = isl_printer_start_line(p);
+		p = isl_printer_print_str(p, "cudaCheckReturn(cudaFree(dev_");
+		p = isl_printer_print_str(p, prog->array[i].name);
+		p = isl_printer_print_str(p, "));");
+		p = isl_printer_end_line(p);
+	}
+
+	return p;
+}
+
 /* Open the cpu .c file and the t2s .cpp file for writing.
  * Add the necessary includes.
  */
@@ -33,6 +146,9 @@ void t2s_open_files(struct t2s_info *info, const char *input)
 
   strcpy(name + len, "_t2s.cpp");
   info->kernel_c = fopen(name, "w");
+
+  strcpy(name + len, "_t2s.h");
+  info->kernel_h = fopen(name, "w");
 
   fprintf(info->kernel_c, "#include \"Halide.h\"\n");
   fprintf(info->kernel_c, "#include <iostream>\n\n");
@@ -52,6 +168,7 @@ void t2s_close_files(struct t2s_info *info)
 {
   fclose(info->host_c);
   fclose(info->kernel_c);
+  fclose(info->kernel_h);
 }
 
 /* Print the arguments to a kernel declaration or call.  If "types" is set,
@@ -244,6 +361,53 @@ static __isl_give isl_printer *print_kernel_stmt(__isl_take isl_printer *p,
 	return p;
 }
 
+static void print_indent(FILE *dst, int indent)
+{
+	fprintf(dst, "%*s", indent, "");
+}
+
+/* Print a list of iterators of type "type" with names "ids" to "out".
+ * Each iterator is assigned one of the cuda identifiers in cuda_dims.
+ * In particular, the last iterator is assigned the x identifier
+ * (the first in the list of cuda identifiers).
+ */
+static void print_iterators(FILE *out, const char *type,
+	__isl_keep isl_id_list *ids, const char *cuda_dims[])
+{
+	int i, n;
+
+	n = isl_id_list_n_id(ids);
+	if (n <= 0)
+		return;
+	print_indent(out, 4);
+	fprintf(out, "%s ", type);
+	for (i = 0; i < n; ++i) {
+		isl_id *id;
+
+		if (i)
+			fprintf(out, ", ");
+		id = isl_id_list_get_id(ids, i);
+		fprintf(out, "%s = %s", isl_id_get_name(id),
+			cuda_dims[n - 1 - i]);
+		isl_id_free(id);
+	}
+	fprintf(out, ";\n");
+}
+
+static void print_kernel_iterators(FILE *out, struct ppcg_kernel *kernel)
+{
+	isl_ctx *ctx = isl_ast_node_get_ctx(kernel->tree);
+	const char *type;
+	const char *block_dims[] = { "blockIdx.x", "blockIdx.y" };
+	const char *thread_dims[] = { "threadIdx.x", "threadIdx.y",
+					"threadIdx.z" };
+
+	type = isl_options_get_ast_iterator_type(ctx);
+
+	print_iterators(out, type, kernel->block_ids, block_dims);
+	print_iterators(out, type, kernel->thread_ids, thread_dims);
+}
+
 static void print_kernel(struct gpu_prog *prog, struct ppcg_kernel *kernel, 
     struct t2s_info *t2s)
 {
@@ -253,6 +417,7 @@ static void print_kernel(struct gpu_prog *prog, struct ppcg_kernel *kernel,
 
   print_kernel_headers(prog, kernel, t2s);
   fprintf(t2s->kernel_c, "{\n");
+  print_kernel_iterators(t2s->kernel_c, kernel);
 
   p = isl_printer_to_file(ctx, t2s->kernel_c);
   p = isl_printer_set_output_format(p, ISL_FORMAT_C);
@@ -270,6 +435,125 @@ static void print_kernel(struct gpu_prog *prog, struct ppcg_kernel *kernel,
   isl_printer_free(p);
 
   fprintf(t2s->kernel_c, "}\n");
+}
+
+/* Print code to "p" for copying "array" from the host to the device
+ * in its entirety.  The bounds on the extent of "array" have
+ * been precomputed in extract_array_info and are used in
+ * gpu_array_info_print_size.
+ */
+static __isl_give isl_printer *copy_array_to_device(__isl_take isl_printer *p,
+	struct gpu_array_info *array)
+{
+	p = isl_printer_start_line(p);
+	p = isl_printer_print_str(p, "cudaCheckReturn(cudaMemcpy(dev_");
+	p = isl_printer_print_str(p, array->name);
+	p = isl_printer_print_str(p, ", ");
+
+	if (gpu_array_is_scalar(array))
+		p = isl_printer_print_str(p, "&");
+	p = isl_printer_print_str(p, array->name);
+	p = isl_printer_print_str(p, ", ");
+
+	p = gpu_array_info_print_size(p, array);
+	p = isl_printer_print_str(p, ", cudaMemcpyHostToDevice));");
+	p = isl_printer_end_line(p);
+
+	return p;
+}
+
+/* Print code to "p" for copying "array" back from the device to the host
+ * in its entirety.  The bounds on the extent of "array" have
+ * been precomputed in extract_array_info and are used in
+ * gpu_array_info_print_size.
+ */
+static __isl_give isl_printer *copy_array_from_device(
+	__isl_take isl_printer *p, struct gpu_array_info *array)
+{
+	p = isl_printer_start_line(p);
+	p = isl_printer_print_str(p, "cudaCheckReturn(cudaMemcpy(");
+	if (gpu_array_is_scalar(array))
+		p = isl_printer_print_str(p, "&");
+	p = isl_printer_print_str(p, array->name);
+	p = isl_printer_print_str(p, ", dev_");
+	p = isl_printer_print_str(p, array->name);
+	p = isl_printer_print_str(p, ", ");
+	p = gpu_array_info_print_size(p, array);
+	p = isl_printer_print_str(p, ", cudaMemcpyDeviceToHost));");
+	p = isl_printer_end_line(p);
+
+	return p;
+}
+
+/* Print code for initializing the device for execution of the transformed
+ * code.  This includes declaring locally defined variables as well as
+ * declaring and allocating the required copies of arrays on the device.
+ */
+static __isl_give isl_printer *init_device(__isl_take isl_printer *p,
+	struct gpu_prog *prog)
+{
+	p = print_cuda_macros(p);
+
+	p = gpu_print_local_declarations(p, prog);
+	p = declare_device_arrays(p, prog);
+	p = allocate_device_arrays(p, prog);
+
+	return p;
+}
+
+/* Print code for clearing the device after execution of the transformed code.
+ * In particular, free the memory that was allocated on the device.
+ */
+static __isl_give isl_printer *clear_device(__isl_take isl_printer *p,
+	struct gpu_prog *prog)
+{
+	p = free_device_arrays(p, prog);
+
+	return p;
+}
+
+/* Print a statement for copying an array to or from the device,
+ * or for initializing or clearing the device.
+ * The statement identifier of a copying node is called
+ * "to_device_<array name>" or "from_device_<array name>" and
+ * its user pointer points to the gpu_array_info of the array
+ * that needs to be copied.
+ * The node for initializing the device is called "init_device".
+ * The node for clearing the device is called "clear_device".
+ *
+ * Extract the array (if any) from the identifier and call
+ * init_device, clear_device, copy_array_to_device or copy_array_from_device.
+ */
+static __isl_give isl_printer *print_device_node(__isl_take isl_printer *p,
+	__isl_keep isl_ast_node *node, struct gpu_prog *prog)
+{
+	isl_ast_expr *expr, *arg;
+	isl_id *id;
+	const char *name;
+	struct gpu_array_info *array;
+
+	expr = isl_ast_node_user_get_expr(node);
+	arg = isl_ast_expr_get_op_arg(expr, 0);
+	id = isl_ast_expr_get_id(arg);
+	name = isl_id_get_name(id);
+	array = isl_id_get_user(id);
+	isl_id_free(id);
+	isl_ast_expr_free(arg);
+	isl_ast_expr_free(expr);
+
+	if (!name)
+		return isl_printer_free(p);
+	if (!strcmp(name, "init_device"))
+		return init_device(p, prog);
+	if (!strcmp(name, "clear_device"))
+		return clear_device(p, prog);
+	if (!array)
+		return isl_printer_free(p);
+
+	if (!prefixcmp(name, "to_device"))
+		return copy_array_to_device(p, array);
+	else
+		return copy_array_from_device(p, array);
 }
 
 /* Printer the user statement of the host code to "p".
@@ -297,6 +581,8 @@ static __isl_give isl_printer *print_host_user(__isl_take isl_printer *p,
   data = (struct print_host_user_data *) user;
 
   id = isl_ast_node_get_annotation(node);
+  if (!id)
+    return print_device_node(p, node, data->prog);
   
   is_user = !strcmp(isl_id_get_name(id), "user");
   kernel = is_user ? NULL : isl_id_get_user(id);
