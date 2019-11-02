@@ -550,9 +550,9 @@ static __isl_give isl_ast_node *at_each_domain(__isl_take isl_ast_node *node,
 	map = isl_map_from_union_map(isl_ast_build_get_schedule(build));
 //  // debug
 //  isl_printer *pr = isl_printer_to_file(isl_ast_build_get_ctx(build), stdout);
-////  pr = isl_printer_print_map(pr, map);
-////  printf("\n");
-////  // debug
+//  pr = isl_printer_print_map(pr, map);
+//  printf("\n");
+//  // debug
 	map = isl_map_reverse(map);
 //  // debug
 //  pr = isl_printer_print_map(pr, map);
@@ -560,6 +560,10 @@ static __isl_give isl_ast_node *at_each_domain(__isl_take isl_ast_node *node,
 //  // debug
 
 	iterator_map = isl_pw_multi_aff_from_map(map);
+//  // debug
+//  pr = isl_printer_print_pw_multi_aff(pr, iterator_map);
+//  printf("\n");
+//  // debug
 	stmt->ref2expr = pet_stmt_build_ast_exprs(stmt->stmt, build,
 				    &pullback_index, iterator_map, NULL, NULL);
 //  // debug
@@ -1351,7 +1355,12 @@ static char *isl_set_to_t2s_format(__isl_keep isl_set *set)
       }
 
       isl_constraint *cst_i = isl_constraint_list_get_constraint(cst_list, cst_id);
-      // p = isl_printer_print_constraint(p, cst_i);
+//      // debug
+//      isl_printer *p_debug = isl_printer_to_file(isl_set_get_ctx(set), stdout);
+//      p_debug = isl_printer_print_constraint(p_debug, cst_i);
+//      printf("\n");
+//      // debug
+
       /* TODO: consider isl_dim_div later. */
       int is_first = 1;
       for (int i = 0; i < isl_constraint_dim(cst_i, isl_dim_set); i++) {        
@@ -1417,6 +1426,9 @@ static char *isl_set_to_t2s_format(__isl_keep isl_set *set)
 
   isl_basic_set_list_free(bset_list);
   t2s_cst = isl_printer_get_str(p);
+//  // debug
+//  printf("%s\n", t2s_cst);
+//  // debug
   isl_printer_free(p);
 
   return t2s_cst;
@@ -1536,6 +1548,7 @@ static __isl_null struct t2s_stmt_data *t2s_stmt_data_free(__isl_take struct t2s
   free(d->stmt_domain);
 
   isl_set_free(d->stmt_anchor_domain);
+  isl_pw_multi_aff_free(d->iterator_map);
 
   for (int i = 0; i < d->n_acc_group; i++) {
     for (int j = 0; j < d->n_dep_per_acc_group[i]; j++) {
@@ -1553,6 +1566,7 @@ static __isl_null struct t2s_stmt_data *t2s_stmt_data_free(__isl_take struct t2s
   return NULL;
 }
 
+/* Transform each user statement in the original program to a T2S URE. */
 static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node *node, void *user)
 {
   struct ppcg_stmt *stmt;
@@ -1594,6 +1608,7 @@ static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node 
   stmt_data->n_acc_group = 0;
   stmt_data->n_dep_per_acc_group = 0;
   stmt_data->dep_stmt_pair = NULL;
+  stmt_data->iterator_map = NULL;
   isl_set_list *stmt_domain_list = isl_union_set_get_set_list(data->stmt_domain);
   for (int i = 0; i < isl_union_set_n_set(data->stmt_domain); i++) {
     isl_set *stmt_domain_i = isl_set_list_get_set(stmt_domain_list, i);
@@ -1631,11 +1646,301 @@ static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node 
   return node;
 }
 
+static __isl_give char *array_acc_from_multi_pw_aff(__isl_take isl_multi_pw_aff *mpa)
+{
+  isl_ctx *ctx;
+
+  ctx = isl_multi_pw_aff_get_ctx(mpa);
+  isl_space *space = isl_multi_pw_aff_get_space(mpa);
+  const char *array_name = isl_space_get_tuple_name(space, isl_dim_out);
+  isl_printer *p_str = isl_printer_to_str(ctx);
+  p_str = isl_printer_print_multi_pw_aff(p_str, mpa);
+  char *mpa_str = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
+
+  p_str = isl_printer_to_str(ctx);
+  p_str = isl_printer_print_str(p_str, array_name);
+  char ch;
+  int loc = 0;
+  while ((ch = mpa_str[loc]) != '\0') {
+    if (ch == '(') {
+      while((ch = mpa_str[++loc]) == '(')
+        ;
+      loc--;
+      p_str = isl_printer_print_str(p_str, "[");
+      while((ch = mpa_str[++loc]) != ')') {
+        char ch_arr[2];
+        ch_arr[0] = ch;
+        ch_arr[1] = '\0';
+        p_str = isl_printer_print_str(p_str, ch_arr);
+      }
+      p_str = isl_printer_print_str(p_str, "]");
+    }
+    loc++;
+  }
+  
+  char *acc_str = isl_printer_get_str(p_str);
+  free(mpa_str);
+  isl_printer_free(p_str);
+  isl_multi_pw_aff_free(mpa);
+  isl_space_free(space);
+
+  return acc_str;
+}
+
+/* Set the iterator names in the target domain. */
+static __isl_give isl_set *t2s_set_set_iters(__isl_take isl_set *s)
+{
+  isl_ctx *ctx = isl_set_get_ctx(s);
+  for (int i = 0; i < isl_set_dim(s, isl_dim_set); i++) {
+    char iter_name[100];
+    sprintf(iter_name, "c%d", i);
+    isl_id *id_i = isl_id_alloc(ctx, iter_name, NULL);
+    s = isl_set_set_dim_id(s, isl_dim_set, i, id_i);
+  }
+  
+  return s;
+}
+
+static __isl_give isl_multi_pw_aff *t2s_set_multi_pw_aff_iters(__isl_take isl_multi_pw_aff *mpa)
+{
+  isl_ctx *ctx = isl_multi_pw_aff_get_ctx(mpa);
+  for (int i = 0; i < isl_multi_pw_aff_dim(mpa, isl_dim_in); i++) {
+    char iter_name[100];
+    sprintf(iter_name, "c%d", i);
+    isl_id *id_i = isl_id_alloc(ctx, iter_name, NULL);
+    mpa = isl_multi_pw_aff_set_dim_id(mpa, isl_dim_in, i, id_i);
+  }
+
+  return mpa;
+}
+
+static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
+{
+  struct t2s_data *data = user;
+  struct t2s_stmt_data *stmt_data = data->stmt_data;
+  isl_multi_pw_aff *index;
+  isl_id *id;
+  id = isl_id_copy(expr->acc.ref_id);
+  index = isl_multi_pw_aff_copy(expr->acc.index);
+  struct polysa_dep *dep;
+  int n;
+  isl_ctx *ctx = data->ctx;
+
+  for (n = 0; n < data->ndeps; n++) {
+    dep = data->deps[n];
+    if (dep->dest == id && dep->type == POLYSA_DEP_RAR)
+      break;
+  }
+
+  if (n != data->ndeps) {
+    isl_set *stmt_domain = isl_set_copy(stmt_data->stmt_anchor_domain);
+    isl_set *dep_dest_domain = isl_set_copy(dep->dest_sched_domain);
+    /* Project out the extra scalar dimensions. */
+    dep_dest_domain = isl_set_project_out(dep_dest_domain, 
+        isl_dim_set, data->iter_num, isl_set_dim(dep_dest_domain, isl_dim_set) - data->iter_num);
+    dep_dest_domain = isl_set_set_tuple_name(dep_dest_domain, isl_set_get_tuple_name(stmt_domain));
+
+    /* Generate the init domain */
+    isl_set *init_domain = isl_set_subtract(stmt_domain, isl_set_copy(dep_dest_domain));
+    isl_set *anchor_domain = isl_set_copy(data->anchor_domain);
+    anchor_domain = isl_set_set_tuple_name(anchor_domain, isl_set_get_tuple_name(init_domain));
+    init_domain = isl_set_gist(init_domain, isl_set_copy(anchor_domain));
+
+    /* Set up the iterator names. */
+    init_domain = t2s_set_set_iters(init_domain);
+    char *init_domain_str = isl_set_to_t2s_format(init_domain);
+    isl_set_free(init_domain);
+
+    isl_set *reuse_domain = isl_set_gist(dep_dest_domain, anchor_domain);
+    reuse_domain = t2s_set_set_iters(reuse_domain);
+    char *reuse_domain_str = isl_set_to_t2s_format(reuse_domain);
+    isl_set_free(reuse_domain);
+
+    /* Generate the func name .*/
+    isl_id *array_id;
+    isl_space *index_space;
+    index_space = isl_multi_pw_aff_get_space(index);
+    array_id = isl_space_get_tuple_id(index_space, isl_dim_out);
+    isl_space_free(index_space);
+    
+    isl_id *func = isl_id_copy(array_id);
+    isl_id_free(array_id);
+    isl_printer *p_str = isl_printer_to_str(ctx);
+    p_str = isl_printer_print_id(p_str, func);
+    p_str = isl_printer_print_str(p_str, "(");
+    for (int i = 0; i < data->iter_num; i++) {
+      if (i > 0) {
+        p_str = isl_printer_print_str(p_str, ", ");
+      }
+      char iter_name[100];
+      sprintf(iter_name, "c%d", i);
+      p_str = isl_printer_print_str(p_str, iter_name);
+    }
+    p_str = isl_printer_print_str(p_str, ")");
+    char *func_str = isl_printer_get_str(p_str);
+
+    isl_printer_free(p_str);
+    p_str = isl_printer_to_str(ctx);
+    p_str = isl_printer_print_id(p_str, func);
+    p_str = isl_printer_print_str(p_str, "(");
+    for (int i = 0; i < data->iter_num; i++) {
+      if (i > 0) {
+        p_str = isl_printer_print_str(p_str, ", ");
+      }
+      char iter_name[100];
+      isl_val *ele = isl_vec_get_element_val(dep->disvec, i);
+      if (isl_val_is_zero(ele)) {
+        sprintf(iter_name, "c%d", i);
+      } else {
+        sprintf(iter_name, "c%d - %ld", i, isl_val_get_num_si(ele));
+      }
+      p_str = isl_printer_print_str(p_str, iter_name);
+      isl_val_free(ele);
+    }
+    p_str = isl_printer_print_str(p_str, ")");
+    char *reuse_func_str = isl_printer_get_str(p_str);
+    isl_printer_free(p_str);
+
+    /* Generate the transformed index. */
+    isl_multi_pw_aff *trans_index = isl_multi_pw_aff_copy(index);
+    trans_index = isl_multi_pw_aff_pullback_pw_multi_aff(trans_index, isl_pw_multi_aff_copy(stmt_data->iterator_map));
+
+    /* Set up the iterator names. */
+    trans_index = t2s_set_multi_pw_aff_iters(trans_index);
+    char *acc_str = array_acc_from_multi_pw_aff(trans_index);
+
+    /* Generate the URE. */
+    p_str = isl_printer_to_str(ctx);
+    p_str = isl_printer_print_str(p_str, func_str);
+    p_str = isl_printer_print_str(p_str, " = 0;\n");
+    char *URE_text = isl_printer_get_str(p_str);
+    isl_printer_free(p_str);
+
+    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
+    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
+    data->t2s_stmt_num++;
+
+    p_str = isl_printer_to_str(ctx);
+    p_str = isl_printer_print_str(p_str, func_str);
+    p_str = isl_printer_print_str(p_str, " = ");
+    p_str = isl_printer_print_str(p_str, "select(");
+    p_str = isl_printer_print_str(p_str, init_domain_str);
+    p_str = isl_printer_print_str(p_str, ", ");
+    p_str = isl_printer_print_str(p_str, acc_str);
+    p_str = isl_printer_print_str(p_str, ", select(");
+    p_str = isl_printer_print_str(p_str, reuse_domain_str);
+    p_str = isl_printer_print_str(p_str, ", ");
+    p_str = isl_printer_print_str(p_str, reuse_func_str);
+    p_str = isl_printer_print_str(p_str, ", ");
+    p_str = isl_printer_print_str(p_str, func_str);
+    p_str = isl_printer_print_str(p_str, "));\n");
+    URE_text = isl_printer_get_str(p_str);
+    isl_printer_free(p_str);
+
+    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
+    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
+    data->t2s_stmt_num++;
+
+    isl_id_free(func);
+    free(func_str);
+    free(init_domain_str);
+    free(acc_str);
+    free(reuse_domain_str);
+    free(reuse_func_str);
+  }
+
+  isl_id_free(id);
+  isl_multi_pw_aff_free(index);
+
+  return 0;
+}
+
+static isl_stat extract_rar_URE(__isl_take struct ppcg_stmt *stmt, struct t2s_data *data) {
+  pet_tree_foreach_access_expr(stmt->stmt->body, &t2s_rar_URE_access, data);
+  ppcg_stmt_free(stmt);
+
+  return isl_stat_ok;
+}
+
+/* Generate the reuse (RAR) UREs for the operands in the user statements. */
+static __isl_give isl_schedule_node *gen_op_stmt_text(__isl_take isl_schedule_node *node, void *user) 
+{
+  struct t2s_data *data = user;
+  struct t2s_stmt_data *stmt_data;
+  struct ppcg_stmt *stmt;
+  isl_set *domain;
+  isl_space *space;
+  isl_id *id;
+
+  if (!node)
+    return NULL;
+
+  if (isl_schedule_node_get_type(node) != isl_schedule_node_leaf)
+    return node;
+
+  /* Find the statement. */
+  stmt = isl_calloc_type(data->ctx, struct ppcg_stmt);
+  domain = isl_set_from_union_set(isl_schedule_node_get_domain(node));
+  space = isl_set_get_space(domain);
+  id = isl_space_get_tuple_id(space, isl_dim_set);
+  stmt->stmt = find_stmt(data->scop, id);
+  isl_space_free(space);
+  isl_set_free(domain);
+
+  stmt_data = isl_calloc_type(data->ctx, struct t2s_stmt_data);
+  stmt_data->stmt_num = 0;
+  stmt_data->stmts = NULL;
+  stmt_data->stmt_domain = NULL;
+  stmt_data->stmt_deps = NULL;
+  stmt_data->n_acc_group = 0;
+  stmt_data->n_dep_per_acc_group = 0;
+  stmt_data->dep_stmt_pair = NULL;
+  stmt_data->iterator_map = NULL;
+  isl_set_list *stmt_domain_list = isl_union_set_get_set_list(data->stmt_domain);
+  for (int i = 0; i < isl_union_set_n_set(data->stmt_domain); i++) {
+    isl_set *stmt_domain_i = isl_set_list_get_set(stmt_domain_list, i);
+    isl_space *space_i = isl_set_get_space(stmt_domain_i);
+    isl_id *id_i = isl_space_get_tuple_id(space_i, isl_dim_set);
+    if (id_i == id)
+      stmt_data->stmt_anchor_domain = isl_set_copy(stmt_domain_i);
+    isl_set_free(stmt_domain_i);
+    isl_space_free(space_i);
+    isl_id_free(id_i);
+  }
+  isl_set_list_free(stmt_domain_list);
+  isl_id_free(id);
+
+  data->stmt_data = stmt_data;
+
+  /* Extract the schedule. */
+  isl_map *sched = isl_map_from_union_map(isl_schedule_node_get_prefix_schedule_relation(node));
+  sched = isl_map_reverse(sched);
+  isl_pw_multi_aff *iterator_map = isl_pw_multi_aff_from_map(sched);
+
+  data->stmt_data->iterator_map = iterator_map;
+
+  extract_rar_URE(stmt, data);
+
+  data->stmt_data = t2s_stmt_data_free(stmt_data);
+
+  return node;
+}
+
+/* Generate the drain UREs for the intermediate variables in the user statement. */
+static __isl_give isl_schedule_node *gen_drain_stmt_text(__isl_take isl_schedule_node *node, void *user)
+{
+
+  return node;
+}
+
 static __isl_give isl_schedule *gen_stmt_text_wrap(__isl_take isl_schedule *schedule, struct t2s_data *data)
 {
   /* TODO: Generate the reuse (RAR) statement. */
+  schedule = isl_schedule_map_schedule_node_bottom_up(schedule,
+    &gen_op_stmt_text, data);
 
-  /* TODO: Traverse each statmenet, build the ppcg_stmt struct and update
+  /* Traverse each statmenet, build the ppcg_stmt struct and update
    * the ref2expr using T2S functions.
    * Print the stmt to data->t2s_stmt_text.
    */
@@ -1643,6 +1948,8 @@ static __isl_give isl_schedule *gen_stmt_text_wrap(__isl_take isl_schedule *sche
     &gen_stmt_text, data);
 
   /* TODO: Generate the drain statement. */
+  schedule = isl_schedule_map_schedule_node_bottom_up(schedule,
+    &gen_drain_stmt_text, data);
 
   /* Print out the T2S stmt texts. */
   for (int i = 0; i < data->t2s_stmt_num; i++) {
@@ -1813,6 +2120,121 @@ __isl_null struct t2s_data *t2s_data_free(__isl_take struct t2s_data *d) {
   return NULL;
 }
 
+static __isl_give isl_schedule *test_func0(__isl_take isl_schedule *schedule, __isl_keep struct ppcg_scop *scop)
+{
+  isl_multi_val *sizes = NULL;
+  isl_space *space;
+  isl_ctx *ctx = isl_schedule_get_ctx(schedule);
+
+  isl_schedule_node *band = get_outermost_permutable_node(schedule);
+  space = isl_schedule_node_band_get_space(band);
+  // debug
+  isl_printer *p = isl_printer_to_file(ctx, stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  p = isl_printer_print_space(p, space);
+  printf("\n");
+  // debug
+
+  sizes = isl_multi_val_zero(space);
+  for (int i = 0; i < isl_space_dim(space, isl_dim_set); i++) {
+    isl_val *v;
+    v = isl_val_int_from_si(ctx, 8);
+    sizes = isl_multi_val_set_val(sizes, i, v);
+  }
+
+  band = isl_schedule_node_band_tile(band, sizes);
+  // debug
+  p = isl_printer_print_schedule_node(p, band);
+  printf("\n");
+  // debug
+
+  /* Trnasform the deps. */
+  isl_union_map *deps = scop->dep_flow;
+  isl_basic_map_list *deps_list = isl_union_map_get_basic_map_list(deps);
+  isl_union_map *sched = isl_schedule_node_get_subtree_schedule_union_map(band);
+  // debug  
+  p = isl_printer_print_union_map(p, sched);
+  printf("\n");
+  // debug
+  
+  isl_basic_map_list *sched_list = isl_union_map_get_basic_map_list(sched);  
+
+  for (int i = 0; i < isl_union_map_n_basic_map(deps); i++) {
+    isl_basic_map *dep = isl_basic_map_list_get_basic_map(deps_list, i);
+    // debug
+    p = isl_printer_print_basic_map(p, dep);
+    printf("\n");  
+    // debug
+    isl_basic_map *sched1 = isl_basic_map_list_get_basic_map(sched_list, 0); // S1
+    isl_basic_map *sched0 = isl_basic_map_list_get_basic_map(sched_list, 1); // S0
+    // debug
+    p = isl_printer_print_basic_map(p, sched0);
+    printf("\n");
+    // debug
+    
+    dep = isl_basic_map_apply_domain(dep, sched0);
+    dep = isl_basic_map_apply_range(dep, sched1);
+    // debug
+    p = isl_printer_print_basic_map(p, dep);
+    printf("\n");
+    // debug
+  }
+
+  isl_schedule_free(schedule);
+  schedule = isl_schedule_node_get_schedule(band);
+
+  isl_schedule_node_free(band);
+  return schedule;
+}
+
+static __isl_give isl_schedule *test_func1(__isl_take isl_schedule *schedule, __isl_keep struct ppcg_scop *scop)
+{
+  isl_multi_val *sizes = NULL;
+  isl_space *space;
+  isl_ctx *ctx = isl_schedule_get_ctx(schedule);
+
+  isl_schedule_node *band = get_outermost_permutable_node(schedule);
+  space = isl_schedule_node_band_get_space(band);
+  // debug
+  isl_printer *p = isl_printer_to_file(ctx, stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  p = isl_printer_print_space(p, space);
+  printf("\n");
+  // debug
+
+//  sizes = isl_multi_val_zero(space);
+//  for (int i = 0; i < isl_space_dim(space, isl_dim_set); i++) {
+//    isl_val *v;
+//    v = isl_val_int_from_si(ctx, 8);
+//    sizes = isl_multi_val_set_val(sizes, i, v);
+//  }
+//
+//  band = isl_schedule_node_band_tile(band, sizes);
+  // debug
+  p = isl_printer_print_schedule_node(p, band);
+  printf("\n");
+  // debug
+
+  /* Trnasform the deps. */
+  isl_union_map *deps = scop->dep_flow;
+  isl_basic_map_list *deps_list = isl_union_map_get_basic_map_list(deps);
+
+  for (int i = 0; i < isl_union_map_n_basic_map(deps); i++) {
+    isl_basic_map *dep = isl_basic_map_list_get_basic_map(deps_list, i);
+    // debug
+    p = isl_printer_print_basic_map(p, dep);
+    printf("\n");  
+    // debug
+  }
+
+  isl_schedule_free(schedule);
+  schedule = isl_schedule_node_get_schedule(band);
+
+  isl_schedule_node_free(band);
+  return schedule;
+}
+
+
 /* This function adds T2S statement as extension nodes after each original
  * user stmt. 
  */
@@ -1925,8 +2347,10 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 //    polysa_prog_free(sa_opt);
 //  }
 
-  // TODO: to fix
   schedule = print_t2s_with_schedule(schedule, scop);
+
+//  schedule = test_func0(schedule, scop);
+//  schedule = test_func1(schedule, scop);
 
 	return print_cpu_with_schedule(p, scop, schedule, options);
 }

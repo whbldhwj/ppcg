@@ -1,9 +1,17 @@
-domain: "{ S_0[i, j, k = 0] : 0 <= i <= 511 and 0 <= j <= 511; S_1[i, j, k] : 0 <= i <= 511 and 0 <= j <= 511 and 0 <= k <= 511 }"
+domain: "{ S_1[c0, c1, c2, c3, c4, c5] : (c0) mod 8 = 0 and (c1) mod 8 = 0 and (c2) mod 8 = 0 and 0 <= c0 <= 511 and 0 <= c1 <= 511 and 0 <= c2 <= 511 and 0 <= c3 <= 7 and 0 <= c4 <= 7 and 0 <= c5 <= 7; S_0[c0, c1, c2 = 0, c3, c4] : (c1) mod 8 = 0 and (c0) mod 8 = 0 and 0 <= c0 <= 511 and 0 <= c1 <= 511 and 0 <= c3 <= 7 and 0 <= c4 <= 7 }"
 child:
-  schedule: "[{ S_1[i, j, k] -> [(i)]; S_0[i, j, k] -> [(i)] }, { S_1[i, j, k] -> [(j)]; S_0[i, j, k] -> [(j)] }, { S_1[i, j, k] -> [(k)]; S_0[i, j, k] -> [(0)] }]"
-  permutable: 1
-  coincident: [ 1, 1, 0 ]
+  schedule: "L_0[{ S_1[c0, c1, c2, c3, c4, c5] -> [(c0)]; S_0[c0, c1, c2, c3, c4] -> [(c0)] }]"
   child:
-    sequence:
-    - filter: "{ S_0[i, j, k] }"
-    - filter: "{ S_1[i, j, k] }"
+    schedule: "L_1[{ S_1[c0, c1, c2, c3, c4, c5] -> [(c1)]; S_0[c0, c1, c2, c3, c4] -> [(c1)] }]"
+    child:
+      schedule: "L_2[{ S_1[c0, c1, c2, c3, c4, c5] -> [(c2)]; S_0[c0, c1, c2, c3, c4] -> [(c2)] }]"
+      child:
+        schedule: "L_3[{ S_1[c0, c1, c2, c3, c4, c5] -> [(c3)]; S_0[c0, c1, c2, c3, c4] -> [(c3)] }]"
+        child:
+          schedule: "L_4[{ S_1[c0, c1, c2, c3, c4, c5] -> [(c4)]; S_0[c0, c1, c2, c3, c4] -> [(c4)] }]"
+          child:
+            sequence:
+            - filter: "{ S_0[c0, c1, c2, c3, c4] }"
+            - filter: "{ S_1[c0, c1, c2, c3, c4, c5] }"
+              child:
+                schedule: "L_5[{ S_1[c0, c1, c2, c3, c4, c5] -> [(c5)] }]"

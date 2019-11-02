@@ -3394,6 +3394,7 @@ array	gpu.h	/^	struct gpu_array_info *array;$/;"	m	struct:ppcg_kernel_var	typere
 array	gpu.h	/^	struct gpu_local_array_info *array;$/;"	m	struct:polysa_kernel	typeref:struct:polysa_kernel::gpu_local_array_info
 array	gpu.h	/^	struct gpu_local_array_info *array;$/;"	m	struct:ppcg_kernel	typeref:struct:ppcg_kernel::gpu_local_array_info
 array	gpu_group.h	/^	struct gpu_array_info *array;$/;"	m	struct:gpu_array_ref_group	typeref:struct:gpu_array_ref_group::gpu_array_info
+array_acc_from_multi_pw_aff	polysa_cpu.c	/^static __isl_give char *array_acc_from_multi_pw_aff(__isl_take isl_multi_pw_aff *mpa)$/;"	f	file:
 array_anonymize	pet/scop.c	/^static struct pet_array *array_anonymize(struct pet_array *array)$/;"	f	file:
 array_collect_params	pet/scop.c	/^static __isl_give isl_space *array_collect_params(struct pet_array *array,$/;"	f	file:
 array_desc_less	pet/scop_plus.h	/^struct array_desc_less {$/;"	s
@@ -4165,7 +4166,7 @@ c0	isl/test_inputs/codegen/omega/stride1-0.c	/^  s0(c0);$/;"	v
 c0	isl/test_inputs/codegen/omega/stride4-0.c	/^  s0(c0);$/;"	v
 c0	isl/test_inputs/codegen/stride5.c	/^    S(c0);$/;"	v
 c_size	isl/isl_map_private.h	/^	size_t c_size;$/;"	m	struct:isl_basic_map
-c_to_t2s_stmt	polysa_cpu.c	/^static __isl_give char *c_to_t2s_stmt(char *c_text, __isl_keep isl_set *domain, int iter_num) {$/;"	f	file:
+c_to_t2s_stmt	polysa_cpu.c	/^static __isl_give char *c_to_t2s_stmt(__isl_take char *c_text, __isl_take isl_set *domain, int iter_num) {$/;"	f	file:
 cache	isl/isl_ctx_private.h	/^	struct isl_blk		cache[ISL_BLK_CACHE_SIZE];$/;"	m	struct:isl_ctx	typeref:struct:isl_ctx::isl_blk
 cached_simple_hull	isl/isl_convex_hull.c	/^static __isl_give isl_basic_map *cached_simple_hull(__isl_take isl_map *map,$/;"	f	file:
 cached_simple_hull	isl/isl_map_private.h	/^	isl_basic_map *cached_simple_hull[2];$/;"	m	struct:isl_map
@@ -5504,9 +5505,9 @@ drop_skip_later	pet/skip.c	/^static void drop_skip_later(struct pet_scop *scop1,
 drop_unknown_divs_and_extract_div	isl/isl_local_space.c	/^static __isl_give isl_aff *drop_unknown_divs_and_extract_div($/;"	f	file:
 drop_unrelated_constraints	isl/isl_map_simplify.c	/^static __isl_give isl_basic_map *drop_unrelated_constraints($/;"	f	file:
 dsa_kernel	kernel.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
-dsa_kernel	kernel.polysa.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	kernel.ppcg.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	kernel_cpu.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
+dsa_kernel	kernel_tile.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dst	grouping.c	/^	struct ppcg_grouping_leaf *dst;$/;"	m	struct:ppcg_merge_leaves_data	typeref:struct:ppcg_merge_leaves_data::ppcg_grouping_leaf	file:
 dst	isl/isl_scheduler.c	/^	int dst;$/;"	m	struct:isl_mark_merge_sccs_data	file:
 dst	isl/isl_scheduler.c	/^	struct isl_sched_node *dst;$/;"	m	struct:isl_sched_edge	typeref:struct:isl_sched_edge::isl_sched_node	file:
@@ -5932,6 +5933,7 @@ extract_op	pet/parse.c	/^static enum pet_op_type extract_op(isl_ctx *ctx, yaml_d
 extract_pending	isl/isl_ast_codegen.c	/^static __isl_give isl_set *extract_pending(__isl_keep isl_ast_build *build,$/;"	f	file:
 extract_prototype	isl/interface/generator.cc	/^const FunctionProtoType *generator::extract_prototype(QualType type)$/;"	f	class:generator
 extract_racc_from_tagged_reads	polysa_vsa.c	/^static struct polysa_acc **extract_racc_from_tagged_reads(__isl_keep isl_union_map *tagged_reads, int *n_racc) {$/;"	f	file:
+extract_rar_URE	polysa_cpu.c	/^static isl_stat extract_rar_URE(__isl_take struct ppcg_stmt *stmt, struct t2s_data *data) {$/;"	f	file:
 extract_rational	isl/isl_ast_build_expr.c	/^static __isl_give isl_aff *extract_rational(__isl_take isl_aff *aff,$/;"	f	file:
 extract_result	isl/imath/tests/gmp-compat-test/genctest.py	/^  def extract_result(self, ty, pos):$/;"	m	class:APITest
 extract_results	isl/imath/tests/gmp-compat-test/genctest.py	/^  def extract_results(self):$/;"	m	class:APITest
@@ -7425,6 +7427,7 @@ gen_bin_entry	isl/isl_union_map.c	/^static isl_stat gen_bin_entry(void **entry, 
 gen_bin_op	isl/isl_union_map.c	/^static __isl_give isl_union_map *gen_bin_op(__isl_take isl_union_map *umap1,$/;"	f	file:
 gen_bin_set_op	isl/isl_union_map.c	/^static __isl_give isl_union_map *gen_bin_set_op(__isl_take isl_union_map *umap,$/;"	f	file:
 gen_digits	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_digits(length):$/;"	f
+gen_drain_stmt_text	polysa_cpu.c	/^static __isl_give isl_schedule_node *gen_drain_stmt_text(__isl_take isl_schedule_node *node, void *user)$/;"	f	file:
 gen_large_mpzs	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_large_mpzs(count=default_count):$/;"	f
 gen_list_for_type	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_list_for_type(t, is_write_only):$/;"	f
 gen_medium_mpzs	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_medium_mpzs(count=default_count):$/;"	f
@@ -7432,6 +7435,7 @@ gen_mpq_args	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_mpq_args(count
 gen_mpz_args	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_mpz_args(count=default_count):$/;"	f
 gen_mpz_spread	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_mpz_spread(count=default_count):$/;"	f
 gen_mpzs	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_mpzs(mindigits=1, maxdigits=100, count=10):$/;"	f
+gen_op_stmt_text	polysa_cpu.c	/^static __isl_give isl_schedule_node *gen_op_stmt_text(__isl_take isl_schedule_node *node, void *user) $/;"	f	file:
 gen_random_mpz	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_random_mpz(mindigits=1, maxdigits=100, allowneg=True):$/;"	f
 gen_random_si	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_random_si():$/;"	f
 gen_random_ui	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_random_ui():$/;"	f
@@ -17840,6 +17844,8 @@ t2s_info	polysa_t2s.h	/^struct t2s_info {$/;"	s
 t2s_iter_num	polysa_vsa.h	/^  int t2s_iter_num;$/;"	m	struct:polysa_vsa
 t2s_iters	polysa_vsa.h	/^  char **t2s_iters;$/;"	m	struct:polysa_vsa
 t2s_open_files	polysa_t2s.c	/^void t2s_open_files(struct t2s_info *info, const char *input)$/;"	f
+t2s_rar_URE_access	polysa_cpu.c	/^static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)$/;"	f	file:
+t2s_set_domain_iters	polysa_cpu.c	/^static __isl_give isl_set *t2s_set_domain_iters(__isl_take isl_set *s)$/;"	f	file:
 t2s_stmt	polysa_cpu.c	/^struct t2s_stmt {$/;"	s	file:
 t2s_stmt_data	polysa_cpu.h	/^struct t2s_stmt_data {$/;"	s
 t2s_stmt_data_free	polysa_cpu.c	/^static __isl_null struct t2s_stmt_data *t2s_stmt_data_free(__isl_take struct t2s_stmt_data *d) {$/;"	f	file:
@@ -18043,6 +18049,8 @@ test_flow	isl/isl_test.c	/^static int test_flow(isl_ctx *ctx)$/;"	f	file:
 test_foreach	isl/isl_test_cpp-checked.cc	/^void test_foreach(isl::ctx ctx)$/;"	f
 test_foreach	isl/isl_test_cpp.cc	/^static void test_foreach(isl::ctx ctx)$/;"	f	file:
 test_foreach	isl/isl_test_python.py	/^def test_foreach():$/;"	f
+test_func0	polysa_cpu.c	/^static __isl_give isl_schedule *test_func0(__isl_take isl_schedule *schedule, __isl_keep struct ppcg_scop *scop)$/;"	f	file:
+test_func1	polysa_cpu.c	/^static __isl_give isl_schedule *test_func1(__isl_take isl_schedule *schedule, __isl_keep struct ppcg_scop *scop)$/;"	f	file:
 test_gcd	isl/imath/imdrover.c	/^int test_gcd(testspec_t* t, FILE* ofp)$/;"	f
 test_get_list	isl/isl_test.c	/^static int test_get_list(isl_ctx *ctx)$/;"	f	file:
 test_gist	isl/isl_test.c	/^static int test_gist(struct isl_ctx *ctx)$/;"	f	file:

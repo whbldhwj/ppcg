@@ -333,14 +333,14 @@ isl_bool uniform_dep_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
  * - uniform dependency
  */
 isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop) {
-  // debug
-  FILE *fp = fopen("schedule.tmp", "w");
-  isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(schedule), fp);
-  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-  isl_printer_print_schedule(printer, schedule);
-  isl_printer_free(printer);
-  fclose(fp);
-  // debug
+//  // debug
+//  FILE *fp = fopen("schedule.tmp", "w");
+//  isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(schedule), fp);
+//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//  isl_printer_print_schedule(printer, schedule);
+//  isl_printer_free(printer);
+//  fclose(fp);
+//  // debug
 
   /* Check if there is only one single permutable band in the schedule tree. */
   isl_bool single_p_band = has_single_permutable_node(schedule);

@@ -35,6 +35,9 @@ struct t2s_stmt_data {
   /* The scheduling domain of the statement. */
   isl_set *stmt_anchor_domain;
 
+  /* The mapping from the original iterators to scheduling iterators. */
+  isl_pw_multi_aff *iterator_map;
+
   /* The flow deps associated with each t2s_stmt. */
   struct polysa_dep *** stmt_deps;
   /* The number of access groups. */
