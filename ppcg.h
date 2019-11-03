@@ -100,9 +100,6 @@ struct ppcg_scop {
 	isl_union_map *dep_flow;
 	isl_union_map *tagged_dep_flow;
 	isl_union_map *dep_false;
-  isl_union_map *dep_rar;
-  isl_union_map *tagged_dep_rar;
-
 	isl_union_map *dep_forced;
 	isl_union_map *dep_order;
 	isl_union_map *tagged_dep_order;
@@ -111,6 +108,12 @@ struct ppcg_scop {
 	isl_id_to_ast_expr *names;
 
 	struct pet_scop *pet;
+
+  /* Added for PolySA */
+  isl_union_map *dep_rar;
+  isl_union_map *tagged_dep_rar;
+  isl_union_map *dep_waw;
+  isl_union_map *tagged_dep_waw;
 };
 
 int ppcg_scop_any_hidden_declarations(struct ppcg_scop *scop);

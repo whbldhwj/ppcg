@@ -788,6 +788,12 @@ static void derive_rar_dep_from_tagged_rar_dep(struct ppcg_scop *ps)
   ps->dep_rar = isl_union_map_factor_domain(ps->dep_rar);
 }
 
+static void derive_waw_dep_from_tagged_waw_dep(struct ppcg_scop *ps)
+{
+  ps->dep_waw = isl_union_map_copy(ps->tagged_dep_waw);
+  ps->dep_waw = isl_union_map_factor_domain(ps->dep_waw);
+}
+
 /* Compute the flow dependences and the live_in accesses and store
  * the results in ps->dep_flow and ps->live_in.
  * A copy of the flow dependences, tagged with the reference tags
@@ -804,7 +810,7 @@ static void compute_tagged_flow_dep(struct ppcg_scop *ps)
 
 /* Compute the rar dependence for each externel read access.
  * The results are stored in ps->dep_rar.
- * A copy of the rar dependneces, tagged with the reference tags 
+ * A copy of the rar dependences, tagged with the reference tags 
  * is stored in ps->tagged_dep_rar.
  *
  * We first compute ps->tagged_dep_rar, i.e., the tagged rar dependences
@@ -823,6 +829,48 @@ static void compute_tagged_rar_dep(struct ppcg_scop *ps)
 //  printf("\n");
   // debug
   derive_rar_dep_from_tagged_rar_dep(ps);
+}
+
+static void compute_tagged_waw_dep_only(struct ppcg_scop *ps)
+{
+  isl_union_pw_multi_aff *tagger;
+  isl_schedule *schedule;
+  isl_union_map *kills;
+  isl_union_map *must_source;
+  isl_union_access_info *access;
+  isl_union_flow *flow;
+  isl_union_map *tagged_flow;
+
+  tagger = isl_union_pw_multi_aff_copy(ps->tagger);
+  schedule = isl_schedule_copy(ps->schedule);
+  schedule = isl_schedule_pullback_union_pw_multi_aff(schedule, tagger);
+  kills = isl_union_map_copy(ps->tagged_must_kills);
+  must_source = isl_union_map_copy(ps->tagged_must_writes);
+  kills = isl_union_map_union(kills, must_source);
+  access = isl_union_access_info_from_sink(
+      isl_union_map_copy(ps->tagged_may_writes));
+  access = isl_union_access_info_set_kill(access, kills);
+  access = isl_union_access_info_set_may_source(access, 
+      isl_union_map_copy(ps->tagged_may_writes));
+  access = isl_union_access_info_set_schedule(access, schedule);
+  flow = isl_union_access_info_compute_flow(access);
+  tagged_flow = isl_union_flow_get_may_dependence(flow);
+  ps->tagged_dep_waw = tagged_flow;
+  isl_union_flow_free(flow);
+}
+
+/* Compute the waw dependence for each intermediate write access.
+ * The results are stored in ps->dep_waw.
+ * A copy of the waw dependences, tagged with the reference tags 
+ * is stored in ps->tagged_dep_waw.
+ *
+ * We first compute ps->tagged_dep_waw, i.e., the tagged waw dependences
+ * and then project out the tags. 
+ */
+static void compute_tagged_waw_dep(struct ppcg_scop *ps)
+{
+  compute_tagged_waw_dep_only(ps); 
+  derive_waw_dep_from_tagged_waw_dep(ps);
 }
 
 /* Compute the order dependences that prevent the potential live ranges
@@ -1097,23 +1145,18 @@ static void compute_dependences(struct ppcg_scop *scop)
 	scop->dep_false = isl_union_map_coalesce(scop->dep_false);
 	isl_union_flow_free(flow);
 
-  // debug
-//  isl_printer *printer = isl_printer_to_file(isl_union_map_get_ctx(scop->tagged_dep_flow), stdout);
-//  isl_printer_print_union_map(printer, scop->tagged_dep_flow);
-//  printf("\n");
-
-  // debug
-
   /* Add analysis for RAR dependence */
-  if (scop->options->polysa)
+  if (scop->options->polysa) {
     compute_tagged_rar_dep(scop);
-
-  // debug
-//  isl_printer_print_union_map(printer, scop->tagged_dep_rar);
-//  printf("\n");
-//  isl_printer_print_union_map(printer, scop->dep_rar);
-//  printf("\n");
-  // debug
+    compute_tagged_waw_dep(scop); 
+//    // debug
+//    isl_printer *p = isl_printer_to_file(isl_union_map_get_ctx(scop->may_writes), stdout);
+//    p = isl_printer_print_union_map(p, scop->tagged_dep_waw);
+//    printf("\n");
+//    p = isl_printer_print_union_map(p, scop->dep_waw);
+//    printf("\n");
+//    // debug
+  }
 }
 
 /* Eliminate dead code from ps->domain.
@@ -1221,8 +1264,12 @@ static void *ppcg_scop_free(struct ppcg_scop *ps)
 	isl_union_map_free(ps->must_kills);
 	isl_union_map_free(ps->tagged_dep_flow);
 	isl_union_map_free(ps->dep_flow);
+
   isl_union_map_free(ps->tagged_dep_rar);
   isl_union_map_free(ps->dep_rar);
+  isl_union_map_free(ps->tagged_dep_waw);
+  isl_union_map_free(ps->dep_waw);
+
 	isl_union_map_free(ps->dep_false);
 	isl_union_map_free(ps->dep_forced);
 	isl_union_map_free(ps->tagged_dep_order);
