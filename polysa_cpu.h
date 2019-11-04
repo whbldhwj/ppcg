@@ -2,6 +2,7 @@
 #define _POLYSA_CPU_H
 
 #include <isl/ctx.h>
+#include <isl/id_to_id.h>
 
 #include "ppcg.h"
 #include "polysa_common.h"
@@ -51,6 +52,13 @@ struct t2s_stmt_data {
   struct polysa_dep **dep_stmt_pair;
 };
 
+struct t2s_URE {
+  char *name;
+  int update_level;
+  char *text;
+  int d; // drain URE
+};
+
 struct t2s_data {
   /* The union of scheduling domains of all the statements. */
   isl_set *anchor_domain;  
@@ -60,6 +68,10 @@ struct t2s_data {
 
   /* The simplified scheduling domain of all the statements. */
   isl_union_set *stmt_sim_domain;
+
+  /* URE. */
+  struct t2s_URE **URE;
+  int URE_num;
 
   /* T2S stmt nums. */
   int t2s_stmt_num;  
@@ -78,9 +90,16 @@ struct t2s_data {
 
   isl_ctx *ctx;
 
-  /* Flow deps .*/
+  /* Flow deps. */
   struct polysa_dep **deps;
   int ndeps;
+
+  /* Virtual Systolic Array */
+  // TODO: struct polysa_vsa *vsa;
+
+  /* Fucntion decls. */
+  isl_id_to_id *ref2func;
+  isl_id_to_id *ref2dfunc;
 
   struct t2s_stmt_data *stmt_data;
 };

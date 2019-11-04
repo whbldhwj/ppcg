@@ -10,6 +10,7 @@
 #include <isl/schedule.h>
 #include <isl/schedule_node.h>
 #include <isl/constraint.h>
+#include <isl/id_to_id.h>
 #include <pet.h>
 #include <pet/expr.h>
 
@@ -1536,6 +1537,155 @@ static __isl_give char *c_to_t2s_stmt(__isl_take char *c_text, __isl_take isl_se
   return t2s_text;
 }
 
+static int get_t2s_URE_update_level(struct t2s_URE **UREs, int URE_num, __isl_take char *func_name) {
+  char **URE_names = NULL;
+  if (URE_num > 0) {
+    URE_names = (char **)malloc(URE_num * sizeof(char *));
+    for (int i = 0; i < URE_num; i++) {
+      URE_names[i] = strdup(UREs[i]->name);
+    }
+  }
+  int update_level = -1;
+  for (int i = 0; i < URE_num; i++) {
+    char *cur_name = URE_names[i];
+    if (strlen(cur_name) >= strlen(func_name)) {
+      char cur_name_prefix[strlen(cur_name) + 1];
+      char ch;
+      int loc = 0;
+      while ((ch = cur_name[loc]) != '\0') {
+        if (ch == '.')
+          break;
+        else {
+          cur_name_prefix[loc] = cur_name[loc];
+          loc++;
+        }
+      }
+      cur_name_prefix[loc] = '\0';
+      if (!strcmp(cur_name_prefix, func_name))
+        update_level++;
+    }
+  }
+   
+  if (URE_num > 0) {
+    for (int i = 0; i < URE_num; i++) {
+      free(URE_names[i]);
+    }
+  }
+  free(URE_names);
+  free(func_name);
+
+  return update_level;
+}
+
+/* Given the func name, update the URE name and the update_level. */
+static __isl_give struct t2s_URE *create_t2s_URE(__isl_keep struct t2s_URE **UREs, int URE_num, __isl_take char *func_name, __isl_take char *URE_text, int d, isl_ctx *ctx) {
+  struct t2s_URE *URE = (struct t2s_URE *)malloc(sizeof(struct t2s_URE));
+
+  char **URE_names = NULL;
+  if (URE_num > 0) {
+    URE_names = (char **)malloc(URE_num * sizeof(char *));
+    for (int i = 0; i < URE_num; i++) {
+      URE_names[i] = strdup(UREs[i]->name);
+    }
+  }
+  int update_level = -1;
+  for (int i = 0; i < URE_num; i++) {
+    char *cur_name = URE_names[i];
+    if (strlen(cur_name) >= strlen(func_name)) {
+      char cur_name_prefix[strlen(cur_name) + 1];
+      char ch;
+      int loc = 0;
+      while ((ch = cur_name[loc]) != '\0') {
+        if (ch == '.')
+          break;
+        else {
+          cur_name_prefix[loc] = cur_name[loc];
+          loc++;
+        }
+      }
+      cur_name_prefix[loc] = '\0';
+      if (!strcmp(cur_name_prefix, func_name))
+        update_level++;
+    }
+  }
+  
+  isl_printer *p = isl_printer_to_str(ctx);
+  p = isl_printer_print_str(p, func_name);
+  if (update_level >= 0) {
+    p = isl_printer_print_str(p, ".update(");
+    p = isl_printer_print_int(p, update_level);
+    p = isl_printer_print_str(p, ")");
+  }
+  URE->name = isl_printer_get_str(p);
+  isl_printer_free(p);
+
+  URE->d = d;
+  URE->text = URE_text;
+  URE->update_level = update_level;
+
+  if (URE_num > 0) {
+    for (int i = 0; i < URE_num; i++) {
+      free(URE_names[i]);
+    }
+  }
+  free(URE_names);
+  free(func_name);
+
+  return URE;
+}
+
+static isl_stat create_t2s_URE_from_text(struct t2s_data *data, __isl_take char *URE_text, int d, isl_ctx *ctx) {
+  char *func_name; 
+  char ch;
+  int loc = 0;
+  isl_printer *p = isl_printer_to_str(ctx);  
+  char *func_name_tmp;
+  struct t2s_URE **UREs = data->URE;
+  int URE_num = data->URE_num;
+
+  while ((ch = URE_text[loc]) != '\0') {
+    if (ch == '=')
+      break;
+    char ch_arr[2];
+    ch_arr[0] = ch;
+    ch_arr[1] = '\0';
+    p = isl_printer_print_str(p, ch_arr);
+    loc++;
+  }
+  func_name_tmp = isl_printer_get_str(p);
+  isl_printer_free(p);
+   
+  loc = strlen(func_name_tmp) - 1;
+  while((ch = func_name_tmp[loc]) == ' ') {
+    loc--;
+  }
+  func_name = (char *)malloc(sizeof(char) * (loc + 1 + 1));
+  strncpy(func_name, func_name_tmp, loc + 1);
+  func_name[loc + 1] = '\0';
+  free(func_name_tmp);
+
+  int update_level = get_t2s_URE_update_level(UREs, URE_num, strdup(func_name));
+  if (update_level == -1) {
+    p = isl_printer_to_str(ctx);
+    p = isl_printer_print_str(p, func_name);
+    p = isl_printer_print_str(p, " = 0;\n");
+    char *init_URE_text = isl_printer_get_str(p);
+    isl_printer_free(p);
+
+    data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
+    data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(func_name), init_URE_text, 1, ctx);
+    data->URE_num++;
+  }
+
+  /* Add the statement URE. */
+  data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
+  data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(func_name), URE_text, d, ctx);
+  data->URE_num++;
+  
+  free(func_name);
+  return isl_stat_ok;
+}
+
 static __isl_null struct t2s_stmt_data *t2s_stmt_data_free(__isl_take struct t2s_stmt_data *d) {
   if (!d)
     return NULL;
@@ -1582,6 +1732,7 @@ static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node 
   if (isl_schedule_node_get_type(node) != isl_schedule_node_leaf)
     return node;
 
+  isl_ctx *ctx = isl_schedule_node_get_ctx(node);
 //  // debug
 //  isl_printer *p = isl_printer_to_file(data->ctx, stdout);
 //  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
@@ -1627,19 +1778,23 @@ static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node 
   /* Extract the ref2expr for each access. */
   extract_t2s_stmt_access(stmt, data);
 
-  data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + data->stmt_data->stmt_num));
+//  data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + data->stmt_data->stmt_num));
+  data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + data->stmt_data->stmt_num));
   /* Print the stmt to data->t2s_stmt_text and update data->t2s_stmt_num. */
   for (int i = 0; i < data->stmt_data->stmt_num; i++) {
     isl_printer *p_str = isl_printer_to_str(data->ctx);
 	  p_str = isl_printer_set_output_format(p_str, ISL_FORMAT_C);
     struct ppcg_stmt *stmt_i = data->stmt_data->stmts[i];
     p_str = pet_stmt_print_body(stmt_i->stmt, p_str, stmt_i->ref2expr);
-    data->t2s_stmt_text[data->t2s_stmt_num + i] = isl_printer_get_str(p_str);
-    data->t2s_stmt_text[data->t2s_stmt_num + i] = c_to_t2s_stmt(data->t2s_stmt_text[data->t2s_stmt_num + i], 
-        isl_set_copy(data->stmt_data->stmt_domain[i]), data->iter_num);
+    char *stmt_text = isl_printer_get_str(p_str);
+    stmt_text = c_to_t2s_stmt(stmt_text, isl_set_copy(data->stmt_data->stmt_domain[i]), data->iter_num);
+//    data->t2s_stmt_text[data->t2s_stmt_num + i] = isl_printer_get_str(p_str);
+//    data->t2s_stmt_text[data->t2s_stmt_num + i] = c_to_t2s_stmt(data->t2s_stmt_text[data->t2s_stmt_num + i], 
+//        isl_set_copy(data->stmt_data->stmt_domain[i]), data->iter_num);
+    create_t2s_URE_from_text(data, stmt_text, 0, ctx);  
     isl_printer_free(p_str);
   }
-  data->t2s_stmt_num += data->stmt_data->stmt_num;
+//  data->t2s_stmt_num += data->stmt_data->stmt_num;
 
   data->stmt_data = t2s_stmt_data_free(stmt_data);
 
@@ -1726,6 +1881,7 @@ static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
   struct polysa_dep *dep;
   int n;
   isl_ctx *ctx = data->ctx;
+  char *URE_text;
 
   for (n = 0; n < data->ndeps; n++) {
     dep = data->deps[n];
@@ -1811,15 +1967,23 @@ static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
     char *acc_str = array_acc_from_multi_pw_aff(trans_index);
 
     /* Generate the URE. */
-    p_str = isl_printer_to_str(ctx);
-    p_str = isl_printer_print_str(p_str, func_str);
-    p_str = isl_printer_print_str(p_str, " = 0;\n");
-    char *URE_text = isl_printer_get_str(p_str);
-    isl_printer_free(p_str);
+    int update_level = get_t2s_URE_update_level(data->URE, data->URE_num, strdup(func_str));
 
-    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
-    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
-    data->t2s_stmt_num++;
+    if (update_level == -1) {
+      p_str = isl_printer_to_str(ctx);
+      p_str = isl_printer_print_str(p_str, func_str);
+      p_str = isl_printer_print_str(p_str, " = 0;\n");
+      URE_text = isl_printer_get_str(p_str);
+      isl_printer_free(p_str);
+
+//      data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
+//      data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
+//      data->t2s_stmt_num++;
+
+      data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
+      data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(func_str), URE_text, 0, ctx); 
+      data->URE_num++;
+    }
 
     p_str = isl_printer_to_str(ctx);
     p_str = isl_printer_print_str(p_str, func_str);
@@ -1838,9 +2002,13 @@ static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
     URE_text = isl_printer_get_str(p_str);
     isl_printer_free(p_str);
 
-    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
-    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
-    data->t2s_stmt_num++;
+//    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
+//    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
+//    data->t2s_stmt_num++;
+
+    data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
+    data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(func_str), URE_text, 0, ctx);
+    data->URE_num++;
 
     isl_id_free(func);
     free(func_str);
@@ -2028,9 +2196,13 @@ static int t2s_drain_URE_access(__isl_keep pet_expr *expr, void *user)
     char *URE_text = isl_printer_get_str(p_str);
     isl_printer_free(p_str);
 
-    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
-    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
-    data->t2s_stmt_num++;
+//    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
+//    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
+//    data->t2s_stmt_num++;
+
+    data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
+    data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(drain_func_str), URE_text, 1, ctx);
+    data->URE_num++;
 
     p_str = isl_printer_to_str(ctx);
     p_str = isl_printer_print_str(p_str, drain_func_str);
@@ -2045,9 +2217,13 @@ static int t2s_drain_URE_access(__isl_keep pet_expr *expr, void *user)
     URE_text = isl_printer_get_str(p_str);
     isl_printer_free(p_str);
 
-    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
-    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
-    data->t2s_stmt_num++;
+//    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
+//    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
+//    data->t2s_stmt_num++;
+
+    data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
+    data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(drain_func_str), URE_text, 1, ctx);
+    data->URE_num++;
 
     isl_id_free(func);
     free(func_str);
@@ -2137,6 +2313,10 @@ static __isl_give isl_schedule_node *gen_drain_stmt_text(__isl_take isl_schedule
 
 static __isl_give isl_schedule *gen_stmt_text_wrap(__isl_take isl_schedule *schedule, struct t2s_data *data)
 {
+  data->p = isl_printer_start_line(data->p);
+  data->p = isl_printer_print_str(data->p, "// UREs");
+  data->p = isl_printer_end_line(data->p);
+
   /* Generate the reuse (RAR) statement. */
   schedule = isl_schedule_map_schedule_node_bottom_up(schedule,
     &gen_op_stmt_text, data);
@@ -2152,11 +2332,15 @@ static __isl_give isl_schedule *gen_stmt_text_wrap(__isl_take isl_schedule *sche
   schedule = isl_schedule_map_schedule_node_bottom_up(schedule,
     &gen_drain_stmt_text, data);
 
-  /* Print out the T2S stmt texts. */
-  for (int i = 0; i < data->t2s_stmt_num; i++) {
-//    data->p = isl_printer_start_line(data->p);
-    data->p = isl_printer_print_str(data->p, data->t2s_stmt_text[i]);
-//    data->p = isl_printer_end_line(data->p);
+//  /* Print out the T2S stmt texts. */
+//  for (int i = 0; i < data->t2s_stmt_num; i++) {
+////    data->p = isl_printer_start_line(data->p);
+//    data->p = isl_printer_print_str(data->p, data->t2s_stmt_text[i]);
+////    data->p = isl_printer_end_line(data->p);
+//  }
+  /* Print out the URE texts. */
+  for (int i = 0; i < data->URE_num; i++) {
+    data->p = isl_printer_print_str(data->p, data->URE[i]->text);
   }
   data->p = isl_printer_start_line(data->p);
   data->p = isl_printer_end_line(data->p);
@@ -2344,6 +2528,17 @@ static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, 
   return schedule;
 }
 
+static __isl_null struct t2s_URE *t2s_URE_free(__isl_take struct t2s_URE *u) {
+  if (!u)
+    return NULL;
+
+  free(u->name);
+  free(u->text);
+  free(u);
+
+  return NULL;
+}
+
 __isl_null struct t2s_data *t2s_data_free(__isl_take struct t2s_data *d) {
   if (!d)
     return NULL;
@@ -2355,6 +2550,11 @@ __isl_null struct t2s_data *t2s_data_free(__isl_take struct t2s_data *d) {
     free(d->t2s_stmt_text[i]);
   }
   free(d->t2s_stmt_text);
+
+  for (int i = 0; i < d->URE_num; i++) {
+    t2s_URE_free(d->URE[i]);
+  }
+  free(d->URE);
 
   isl_printer_free(d->p);
   for (int i = 0; i < d->ndeps; i++) {
@@ -2482,6 +2682,205 @@ static __isl_give isl_schedule *test_func1(__isl_take isl_schedule *schedule, __
   return schedule;
 }
 
+static isl_stat gen_t2s_headers(struct t2s_data *data)
+{
+  isl_printer *p = data->p;
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "#include \"Halide.h\"");
+  p = isl_printer_end_line(p);
+  p = isl_printer_print_str(p, "#include <iostream>");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "using namespace Halide;");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "using namespace std;\n");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_end_line(p);
+
+  return isl_stat_ok;
+}
+
+static isl_stat gen_t2s_inputs(struct t2s_data *data)
+{
+  isl_printer *p = data->p;
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "// Inputs (Fill in manually)");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_end_line(p);
+}
+
+static isl_stat gen_t2s_vars(struct t2s_data *data)
+{
+  isl_printer *p = data->p;
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "// Variable declarations");
+  p = isl_printer_end_line(p);
+  p = isl_printer_print_str(p, "Var ");
+  for (int i = 0; i < data->iter_num; i++) {
+    char iter_str[100];
+    sprintf(iter_str, "c%d", i);
+    if (i > 0) {
+      p = isl_printer_print_str(p, ", ");
+    }
+    p = isl_printer_print_str(p, iter_str);
+  }
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_end_line(p);
+
+  return isl_stat_ok;
+}
+
+/* Generate function declarations. 
+ * Assign a function name to each access reference.
+ * First group references that access the same array together.
+ * Connect all accesses in the same group together.
+ * Inside each group, if the access is a write access (assocaited with
+ * RAW), check if there is any other write access scheduled in-between this
+ * write access and the read access that uses this data by RAW.
+ * If so, break the edge between these two write accesses.
+ * At last, compute the CCs of the graph, and assign a unique function name 
+ * to each CC of the array group.
+ *
+ * Inside each group, if the access is a read access (associated with
+ * RAR), check if there is any other read access scheduled in-between this 
+ * read access and the read access that uses this data by RAR.
+ * If so, break the edge between these two read accesses.
+ * At last, compute the CCs of the graph, and assign a unique function name
+ * to each CC of the array group.
+ * 
+ * Inside each group, if the access is a write access (associated with 
+ * WAW), check if the write-out domain is empty. If not, generate a unique function 
+ * name to this write access as the drain function.
+ */
+static isl_stat gen_t2s_funcs(struct t2s_data *data)
+{
+  isl_printer *p = data->p;
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "// Function declarations");
+  p = isl_printer_end_line(p);
+
+  // TODO  
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_end_line(p);
+
+  return isl_stat_ok;
+}
+
+static isl_stat gen_t2s_space_time(struct t2s_data *data)
+{
+  struct t2s_URE *d_URE;
+
+  isl_printer *p = data->p;
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "// Space-time transformation");
+  p = isl_printer_end_line(p);
+
+  for (int i = 0; i < data->URE_num; i++) {
+    if (data->URE[i]->d == 1) {
+      d_URE = data->URE[i];
+      if (d_URE->update_level == -1)
+        break;
+    }
+  }
+  assert(d_URE->update_level == -1);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, d_URE->name);
+  p = isl_printer_print_str(p, ".");
+  p = isl_printer_print_str(p, "merge_defs(");
+  p = isl_printer_print_str(p, "{");
+  int is_first = 1;
+  for (int i = 0; i < data->URE_num; i++) {
+    struct t2s_URE *URE = data->URE[i];
+    if (URE->update_level >= 0) {
+      if (!is_first) {
+        p = isl_printer_print_str(p, ", ");
+      }
+      p = isl_printer_print_str(p, URE->name);
+      if (is_first)
+        is_first = 0;
+    }
+  }
+  p = isl_printer_print_str(p, "}, {");
+  is_first = 1;
+  for (int i = 0; i < data->URE_num; i++) {
+    struct t2s_URE *URE = data->URE[i];
+    if (URE->update_level == -1 && URE->d == 0) {
+      if (!is_first) {
+        p = isl_printer_print_str(p, ", ");
+      }
+      p = isl_printer_print_str(p, URE->name);
+      if (is_first)
+        is_first = 0;
+    }
+  }
+  p = isl_printer_print_str(p, "}");
+  p = isl_printer_print_str(p, ")");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_indent(p, strlen(d_URE->name));
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, ".reorder_inward(");
+  is_first = 1;
+  for (int i = 0; i < data->iter_num; i++) {
+    if (!is_first) 
+      p = isl_printer_print_str(p, ", ");
+    char iter_name[100];
+    sprintf(iter_name, "c%d", i);
+    p = isl_printer_print_str(p, iter_name);
+    if (is_first)
+      is_first = 0;
+  }
+  p = isl_printer_print_str(p, ")");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, ".space_time_transform(");
+  // TODO
+  p = isl_printer_print_str(p, ")");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, ".domain(");
+  // TODO
+  p = isl_printer_print_str(p, ");");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_indent(p, -strlen(d_URE->name));
+  p = isl_printer_start_line(p);
+  p = isl_printer_end_line(p);
+
+  return isl_stat_ok;
+}
+
+static __isl_give struct t2s_data *t2s_data_init(__isl_take struct t2s_data *d) {
+  d->anchor_domain = NULL;
+  d->stmt_domain = NULL;
+  d->stmt_sim_domain = NULL;
+  d->URE = NULL;
+  d->URE_num = 0;
+  d->t2s_stmt_num = 0;
+  d->t2s_stmt_text = NULL;
+  d->iter_num = 0;
+  d->scop = NULL;
+  d->p = NULL;
+  d->ctx = NULL;
+  d->deps = NULL;
+  d->ndeps = 0;
+  d->ref2func = NULL;
+  d->ref2dfunc = NULL;
+  d->stmt_data = NULL;
+}
 
 /* This function adds T2S statement as extension nodes after each original
  * user stmt. 
@@ -2499,11 +2898,18 @@ static __isl_give isl_schedule *print_t2s_with_schedule(__isl_take isl_schedule 
 
   ctx = isl_schedule_get_ctx(schedule);
   data = isl_calloc_type(ctx, struct t2s_data);
+  data = t2s_data_init(data);
 
   data->ctx = ctx;
   data->scop = scop;
   FILE *t2s_fp = fopen("t2s.cpp", "w");
   data->p = isl_printer_to_file(ctx, t2s_fp); 
+
+  /* Print out the headers. */
+  gen_t2s_headers(data);
+  data->p = isl_printer_start_line(data->p);
+  data->p = isl_printer_print_str(data->p, "int main(void) {");
+  data->p = isl_printer_end_line(data->p);
 
   /* Calcualte the iterator num. */  
   data->iter_num = 0;
@@ -2536,10 +2942,38 @@ static __isl_give isl_schedule *print_t2s_with_schedule(__isl_take isl_schedule 
 //  isl_printer_free(p);
 //  // debug
 
+  /* Generate input declarations. */
+  gen_t2s_inputs(data);
+
+  /* Generate variable declarations. */
+  gen_t2s_vars(data);
+
+  /* TODO: Generate function declarations. */
+  gen_t2s_funcs(data);
+
   /* Generate the T2S statements .*/ 
   data->t2s_stmt_num = 0;
   data->t2s_stmt_text = NULL;
   schedule = gen_stmt_text_wrap(schedule, data);
+
+  /* Generate time-space transformation. */
+  gen_t2s_space_time(data);
+
+  data->p = isl_printer_start_line(data->p);
+  data->p = isl_printer_print_str(data->p, "// PE optimization (Fill in manually)");
+  data->p = isl_printer_end_line(data->p);
+  data->p = isl_printer_start_line(data->p);
+  data->p = isl_printer_end_line(data->p);
+
+  data->p = isl_printer_start_line(data->p);
+  data->p = isl_printer_print_str(data->p, "// CPU verification (Fill in manually)");
+  data->p = isl_printer_end_line(data->p);
+  data->p = isl_printer_start_line(data->p);
+  data->p = isl_printer_end_line(data->p);
+
+  data->p = isl_printer_start_line(data->p);
+  data->p = isl_printer_print_str(data->p, "}");
+  data->p = isl_printer_end_line(data->p);
 
   fclose(t2s_fp);
   t2s_data_free(data);
