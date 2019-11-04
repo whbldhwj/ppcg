@@ -29,7 +29,10 @@ C_drain(c0, c1, c2) = select(c2 + -511 == 0, C(c0, c1, c2), C_drain(c0, c1, c2))
 C(c0, c1, c2).merge_defs({A(c0, c1, c2).update(0), B(c0, c1, c2).update(0), C(c0, c1, c2).update(0), C(c0, c1, c2).update(1), C(c0, c1, c2).update(2), C_drain(c0, c1, c2).update(0)}, {A(c0, c1, c2), B(c0, c1, c2)})
              .reorder_inward(c0, c1, c2)
              .space_time_transform()
-             .domain();
+             .domain(c0, 0, 512, 1,
+                     c1, 0, 512, 1,
+                     c2, 0, 512, 1,
+                     );
 
 // PE optimization (Fill in manually)
 

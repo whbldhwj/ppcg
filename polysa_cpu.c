@@ -2370,6 +2370,91 @@ static __isl_give isl_schedule_node *create_dep(__isl_take isl_schedule_node *no
   return node;
 }
 
+/* Extract the detailed information of iterators in the code, including:
+ * - iterator name
+ * - lower bound
+ * - upper bound
+ * - stride
+ */
+static isl_stat extract_iters(struct t2s_data *data) {
+  isl_ctx *ctx;
+  isl_set *domain = isl_set_copy(data->anchor_domain); 
+  int iter_num = data->iter_num;
+  ctx = isl_set_get_ctx(domain);
+  
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_print_set(p, domain);
+//  printf("\n");
+//  // debug
+
+  data->iter = (struct polysa_iter **)malloc(sizeof(struct polysa_iter *) * iter_num);
+
+  isl_map *domain_map = isl_map_from_range(isl_set_copy(domain));
+  isl_fixed_box *box = isl_map_get_range_simple_fixed_box_hull(domain_map);
+  isl_multi_aff *offset;
+  isl_multi_val *size;
+  isl_map_free(domain_map);
+
+  if (isl_fixed_box_is_valid(box)) {
+    offset = isl_fixed_box_get_offset(box);
+    size = isl_fixed_box_get_size(box);
+//    // debug
+//    p = isl_printer_print_multi_aff(p, offset);
+//    printf("\n");
+//    p = isl_printer_print_multi_val(p, size);
+//    printf("\n");
+//    // debug
+  }
+
+  for (int i = 0; i < data->iter_num; i++) {
+    struct polysa_iter *iter = (struct polysa_iter *)malloc(sizeof(struct polysa_iter));
+    /* Stride. */
+    isl_stride_info *si;
+    si = isl_set_get_stride_info(domain, i);
+    isl_val *s = isl_stride_info_get_stride(si);
+//    // debug
+//    p = isl_printer_print_val(p, s);
+//    printf("\n");
+//    // debug
+    iter->stride = isl_val_get_num_si(s);
+    isl_val_free(s);
+    isl_stride_info_free(si);
+
+    /* Name. */
+    char iter_name[100];
+    sprintf(iter_name, "c%d", i);
+    iter->name = strdup(iter_name);
+
+    /* Bounds. */
+    if (isl_fixed_box_is_valid(box)) {
+      isl_aff *offset_i = isl_multi_aff_get_aff(offset, i);
+      iter->lb = isl_aff_copy(offset_i);
+//    // debug
+//    p = isl_printer_print_aff(p, offset_i);
+//    printf("\n");
+//    p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+//    p = isl_printer_print_aff(p, offset_i);
+//    printf("\n");
+//    // debug
+      isl_val *size_i = isl_multi_val_get_val(size, i);
+      offset_i = isl_aff_add_constant_val(offset_i, size_i);
+      iter->ub = offset_i;
+    }
+
+    data->iter[i] = iter;
+  }
+
+  if (isl_fixed_box_is_valid(box)) {
+    isl_multi_aff_free(offset);
+    isl_multi_val_free(size);
+  }
+  isl_fixed_box_free(box);
+  isl_set_free(domain);
+
+  return isl_stat_ok;
+}
+
 static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, struct t2s_data *data) {
   isl_schedule_node *band;
   isl_union_map *dep_flow;
@@ -2555,6 +2640,11 @@ __isl_null struct t2s_data *t2s_data_free(__isl_take struct t2s_data *d) {
     t2s_URE_free(d->URE[i]);
   }
   free(d->URE);
+
+  for (int i = 0; i < d->iter_num; i++) {
+    polysa_iter_free(d->iter[i]);
+  }
+  free(d->iter);
 
   isl_printer_free(d->p);
   for (int i = 0; i < d->ndeps; i++) {
@@ -2852,9 +2942,29 @@ static isl_stat gen_t2s_space_time(struct t2s_data *data)
 
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, ".domain(");
-  // TODO
-  p = isl_printer_print_str(p, ");");
+  int indent_tmp = strlen(".domain(");
+  p = isl_printer_indent(p, indent_tmp);
+  for (int i = 0; i < data->iter_num; i++) {
+    if (i > 0)
+      p = isl_printer_start_line(p);
+    struct polysa_iter *iter = data->iter[i];    
+    p = isl_printer_print_str(p, iter->name);
+    p = isl_printer_print_str(p, ", ");
+    p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+    p = isl_printer_print_aff(p, iter->lb);
+    p = isl_printer_print_str(p, ", ");
+    p = isl_printer_print_aff(p, iter->ub);
+    p = isl_printer_print_str(p, ", ");
+    p = isl_printer_print_int(p, iter->stride);
+    p = isl_printer_print_str(p, ",");
+    p = isl_printer_end_line(p);
+  }
+  // TODO: add time loops
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, ");");  
   p = isl_printer_end_line(p);
+  p = isl_printer_indent(p, -indent_tmp);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_ISL);
 
   p = isl_printer_indent(p, -strlen(d_URE->name));
   p = isl_printer_start_line(p);
@@ -2872,6 +2982,7 @@ static __isl_give struct t2s_data *t2s_data_init(__isl_take struct t2s_data *d) 
   d->t2s_stmt_num = 0;
   d->t2s_stmt_text = NULL;
   d->iter_num = 0;
+  d->iter = NULL;
   d->scop = NULL;
   d->p = NULL;
   d->ctx = NULL;
@@ -2926,6 +3037,9 @@ static __isl_give isl_schedule *print_t2s_with_schedule(__isl_take isl_schedule 
   data->anchor_domain = NULL;
   schedule = isl_schedule_map_schedule_node_bottom_up(schedule,
       &aggregate_stmt_domain, &data->anchor_domain);
+
+  /* Generate the iterator meta data. */
+  extract_iters(data);
 
   /* Calculate the simplified domain (in scheduling dims) for each statement. */
   data->stmt_domain = NULL;
@@ -3029,11 +3143,19 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 //    polysa_prog_free(sa_opt);
 //  }
 
-  schedule = print_t2s_with_schedule(schedule, scop);
+  if (is_legal) {
+    /* Generate systolic arrays using space-time mapping. */
+
+    /* Generate T2S program. */
+    schedule = print_t2s_with_schedule(schedule, scop);
+
+    // TODO: Apply PE optimization and fill in the PE opt fields of T2S. */
+  }
 
 //  schedule = test_func0(schedule, scop);
 //  schedule = test_func1(schedule, scop);
 
+  /* Generate the transformed CPU program. */
 	return print_cpu_with_schedule(p, scop, schedule, options);
 }
 

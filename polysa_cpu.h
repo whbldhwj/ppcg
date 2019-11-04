@@ -59,6 +59,7 @@ struct t2s_URE {
   int d; // drain URE
 };
 
+
 struct t2s_data {
   /* The union of scheduling domains of all the statements. */
   isl_set *anchor_domain;  
@@ -81,6 +82,9 @@ struct t2s_data {
 
   /* Iterator num. */
   int iter_num;
+
+  /* T2S iter. */
+  struct polysa_iter **iter;
 
   /* PPCG scop. */
   struct ppcg_scop *scop;

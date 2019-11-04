@@ -916,4 +916,15 @@ void *polysa_acc_free(struct polysa_acc *acc) {
   return NULL;
 }
 
+__isl_null struct polysa_iter *polysa_iter_free(struct polysa_iter *iter) {
+  if (!iter)
+    return NULL;
 
+  free(iter->name);
+  isl_aff_free(iter->lb);
+  isl_aff_free(iter->ub);
+
+  free(iter);
+
+  return NULL;
+}
