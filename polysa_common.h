@@ -15,14 +15,13 @@
 #include <isl/schedule_node.h>
 
 #include "ppcg.h"
-// #include "gpu.h"
 
 struct polysa_iter {
   char *name;
   isl_aff *lb;
   isl_aff *ub;
-
   int stride;
+  char *ts_name;
 };
 
 struct polysa_prog {
@@ -34,6 +33,8 @@ struct polysa_prog {
   int array_part_w;
   int space_w;
   int time_w;
+
+  int type; // 0 - async 1 - sync 
 };
 
 struct polysa_acc {

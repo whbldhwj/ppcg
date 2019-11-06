@@ -14,7 +14,7 @@ static struct isl_arg_choice target[] = {
 	{"c",		        PPCG_TARGET_C},
 	{"cuda",	      PPCG_TARGET_CUDA},
 	{"opencl",      PPCG_TARGET_OPENCL},
-  {"polysa_c",    POLYSA_TARGET_C},
+//  {"polysa_c",    POLYSA_TARGET_C},
   {"polysa_hls",  POLYSA_TARGET_XILINX_HLS},
   {"polysa_opencl", POLYSA_TARGET_INTEL_OPENCL},
   {"polysa_t2s",    POLYSA_TARGET_T2S},

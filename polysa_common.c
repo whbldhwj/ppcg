@@ -451,9 +451,6 @@ __isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_kee
   return dep_dis;
 }
 
-
-
-
 /* Generate asynchronized systolic arrays with the given dimension. 
  * For async arrays, space loops are placed outside the time loops.
  */
@@ -525,10 +522,13 @@ struct polysa_prog **sa_space_time_transform_at_dim_async(__isl_keep isl_schedul
         /* Update the hyperplane types. */
         struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
         sa->scop = scop;
+        sa->type = POLYSA_SA_TYPE_ASYNC;
 
         /* Update the array dimension. */
         sa->array_dim = dim;
         sa->array_part_w = 0;
+        sa->space_w = dim;
+        sa->time_w = band_w - dim;
 
         /* Add the new variant into the list. */
         sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
@@ -557,10 +557,13 @@ struct polysa_prog **sa_space_time_transform_at_dim_async(__isl_keep isl_schedul
             /* Update the hyperplane types. */
             struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
             sa->scop = scop;
+            sa->type = POLYSA_SA_TYPE_ASYNC;
 
             /* Update the array dimension. */
             sa->array_dim = dim;
             sa->array_part_w = 0;
+            sa->space_w = dim;
+            sa->time_w = band_w - dim;
 
             /* Add the new variant into the list. */
             sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
@@ -598,10 +601,13 @@ struct polysa_prog **sa_space_time_transform_at_dim_async(__isl_keep isl_schedul
                 /* Update the hyperplane types. */
                 struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
                 sa->scop = scop;
+                sa->type = POLYSA_SA_TYPE_ASYNC;
 
                 /* Update the array dimension. */
                 sa->array_dim = dim;
                 sa->array_part_w = 0;
+                sa->space_w = dim;
+                sa->time_w = band_w - dim;
     
                 /* Add the new variant into the list. */
                 sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
@@ -869,6 +875,9 @@ struct polysa_prog *polysa_prog_copy(struct polysa_prog *sa) {
   sa_dup->array_part_w = sa->array_part_w;
   sa_dup->space_w = sa->space_w;
   sa_dup->time_w = sa->time_w;
+  sa_dup->type = sa->type;
+
+  return sa_dup;
 }
 
 /* Allocate a new polysa_sa struct with the given schedule. */
@@ -881,6 +890,7 @@ struct polysa_prog *polysa_prog_from_schedule(__isl_take isl_schedule *schedule)
   sa->array_part_w = 0;
   sa->space_w = 0;
   sa->time_w = 0;
+  sa->type = 0;
 
   return sa;
 }
@@ -921,6 +931,7 @@ __isl_null struct polysa_iter *polysa_iter_free(struct polysa_iter *iter) {
     return NULL;
 
   free(iter->name);
+  free(iter->ts_name);
   isl_aff_free(iter->lb);
   isl_aff_free(iter->ub);
 
