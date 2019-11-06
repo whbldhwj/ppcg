@@ -6,6 +6,7 @@
 #include <isl/ctx.h>
 #include <isl/flow.h>
 #include <isl/map.h>
+#include <isl/vec.h>
 #include <isl/ast_build.h>
 #include <isl/schedule.h>
 #include <isl/schedule_node.h>
@@ -24,6 +25,31 @@
 struct t2s_stmt {
   char *content;
 };
+
+static struct t2s_array_ref_group *t2s_array_ref_group_free(
+  struct t2s_array_ref_group *group
+) {
+  if (!group)
+    return NULL;
+
+  isl_map_free(group->access);
+  if (group->n_ref > 1)
+    free(group->refs);
+  free(group);
+
+  return NULL;
+}
+
+static struct t2s_group_data *t2s_group_data_free(struct t2s_group_data *d)
+{
+  if (!d)
+    return NULL;
+
+  isl_union_map_free(d->full_sched);
+  free(d);
+  
+  return NULL;
+}
 
 struct polysa_stmt {
   struct ppcg_stmt *stmt;
@@ -1139,11 +1165,11 @@ static int t2s_update_access(__isl_keep pet_expr *expr, void *user)
   index = isl_multi_pw_aff_copy(expr->acc.index);
   ctx = isl_id_get_ctx(id);
 
-  index_space = isl_multi_pw_aff_get_space(index);
-  array_id = isl_space_get_tuple_id(index_space, isl_dim_out);
+//  index_space = isl_multi_pw_aff_get_space(index);
+//  array_id = isl_space_get_tuple_id(index_space, isl_dim_out);
 
   isl_multi_pw_aff_free(index);
-  isl_space_free(index_space);
+//  isl_space_free(index_space);
 
   /* If the access is associated with RAR, then generate access as
    * A(c0, c1, c2).
@@ -1151,11 +1177,12 @@ static int t2s_update_access(__isl_keep pet_expr *expr, void *user)
    * A(c0, c1 - 1, c2).
    * Otherwise, generate A(c0, c1, c2).
    */
-  isl_id *func = isl_id_copy(array_id);
+//  isl_id *func = isl_id_copy(array_id);
+  isl_id *func = isl_id_to_id_get(data->ref2func, isl_id_copy(id));
   isl_ast_expr *func_expr = isl_ast_expr_from_id(func);
   isl_ast_expr_list *args = isl_ast_expr_list_alloc(ctx, 0);
 
-  isl_id_free(array_id);
+//  isl_id_free(array_id);
 
   int i;
   for (i = 0; i < stmt_data->n_acc_group; i++) {
@@ -1914,14 +1941,16 @@ static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
     isl_set_free(reuse_domain);
 
     /* Generate the func name .*/
-    isl_id *array_id;
-    isl_space *index_space;
-    index_space = isl_multi_pw_aff_get_space(index);
-    array_id = isl_space_get_tuple_id(index_space, isl_dim_out);
-    isl_space_free(index_space);
-    
-    isl_id *func = isl_id_copy(array_id);
-    isl_id_free(array_id);
+//    isl_id *array_id;
+//    isl_space *index_space;
+//    index_space = isl_multi_pw_aff_get_space(index);
+//    array_id = isl_space_get_tuple_id(index_space, isl_dim_out);
+//    isl_space_free(index_space);
+//    
+//    isl_id *func = isl_id_copy(array_id);
+//    isl_id_free(array_id);
+
+    isl_id *func = isl_id_to_id_get(data->ref2func, isl_id_copy(id));
     isl_printer *p_str = isl_printer_to_str(ctx);
     p_str = isl_printer_print_id(p_str, func);
     p_str = isl_printer_print_str(p_str, "(");
@@ -2143,14 +2172,15 @@ static int t2s_drain_URE_access(__isl_keep pet_expr *expr, void *user)
     isl_set_free(writeout_domain);
 
     /* Generate the func name .*/
-    isl_id *array_id;
-    isl_space *index_space;
-    index_space = isl_multi_pw_aff_get_space(index);
-    array_id = isl_space_get_tuple_id(index_space, isl_dim_out);
-    isl_space_free(index_space);
+//    isl_id *array_id;
+//    isl_space *index_space;
+//    index_space = isl_multi_pw_aff_get_space(index);
+//    array_id = isl_space_get_tuple_id(index_space, isl_dim_out);
+//    isl_space_free(index_space);
     
-    isl_id *func = isl_id_copy(array_id);
-    isl_id_free(array_id);
+//    isl_id *func = isl_id_copy(array_id);
+//    isl_id_free(array_id);
+    isl_id *func = isl_id_to_id_get(data->ref2func, isl_id_copy(id));
     isl_printer *p_str = isl_printer_to_str(ctx);
     p_str = isl_printer_print_id(p_str, func);
     p_str = isl_printer_print_str(p_str, "(");
@@ -2653,6 +2683,19 @@ __isl_null struct t2s_data *t2s_data_free(__isl_take struct t2s_data *d) {
   free(d->deps);
   t2s_stmt_data_free(d->stmt_data); 
 
+  isl_id_to_id_free(d->ref2func);
+  for (int i = 0; i < d->n_array; i++) {
+    struct t2s_array_info *array = &d->array[i];
+    for (int j = 0; j < array->n_group; j++) {
+      t2s_array_ref_group_free(array->groups[j]);
+    }
+    free(array->groups);
+  }
+  free(d->array);
+  t2s_group_data_free(d->group_data);
+
+  isl_id_list_free(d->func_ids);
+
   free(d);
 
   return NULL;
@@ -2830,6 +2873,382 @@ static isl_stat gen_t2s_vars(struct t2s_data *data)
   return isl_stat_ok;
 }
 
+/* Fill up the group arrays with singleton groups, i.e., one group
+ * per reference, initializing the array, access, write, n_ref and refs fields.
+ * In particular the access field is initialized to the scheduled access relation 
+ * of the array references.
+ *
+ * Return the number of elements initialized, i.e., the number of 
+ * active references in the current kernel.
+ */
+static int t2s_populate_array_references(struct t2s_array_info *info, struct t2s_array_ref_group **groups, struct t2s_data *data) 
+{
+  isl_ctx *ctx = data->ctx;
+  int n = 0;
+
+  for (int i = 0; i < info->array->n_ref; i++) {
+    isl_union_map *umap;
+    isl_map *map;
+    struct t2s_array_ref_group *group;
+    struct gpu_stmt_access *access = info->array->refs[i];
+
+    map = isl_map_copy(access->access);
+    umap = isl_union_map_from_map(map);
+    umap = isl_union_map_apply_domain(umap,
+        isl_union_map_copy(data->group_data->full_sched));
+
+    if (isl_union_map_is_empty(umap)) {
+      isl_union_map_free(umap);
+      continue;
+    }
+
+    map = isl_map_from_union_map(umap);
+    map = isl_map_detect_equalities(map);
+
+    group = isl_calloc_type(ctx, struct t2s_array_ref_group);
+    if (!group) {
+      isl_map_free(map);
+      return -1;
+    }
+
+    group->t2s_array = info;
+    group->array = info->array;
+    group->access = map;
+    group->write = access->write;
+    group->exact_write = access->exact_write;
+    group->refs = &info->array->refs[i];
+    group->n_ref = 1;
+
+    groups[n++] = group;
+  }
+
+  return n;
+}
+
+
+static struct t2s_array_ref_group *join_groups(
+  struct t2s_array_ref_group *group1,
+  struct t2s_array_ref_group *group2)
+{
+  isl_ctx *ctx;
+  struct t2s_array_ref_group *group;
+
+  if (!group1 || !group2) 
+    return NULL;
+
+  ctx = isl_map_get_ctx(group1->access);
+  group = isl_calloc_type(ctx, struct t2s_array_ref_group);
+  if (!group)
+    return NULL;
+  group->t2s_array = group1->t2s_array;
+  group->array = group1->array;
+  group->access = isl_map_union(isl_map_copy(group1->access),
+      isl_map_copy(group2->access));
+  group->write = group1->write || group2->write;
+  group->exact_write = group1->exact_write && group2->exact_write;
+  group->n_ref = group1->n_ref + group2->n_ref;
+  group->refs = isl_alloc_array(ctx, struct gpu_stmt_access *,
+      group->n_ref);
+  if (!group->refs);
+    return t2s_array_ref_group_free(group);
+  for (int i = 0; i < group1->n_ref; i++)
+    group->refs[i] = group1->refs[i];
+  for (int i = 0; i < group2->n_ref; i++)
+    group->refs[group1->n_ref + i] = group2->refs[i];
+
+  return group;
+}
+
+/* Combine the given two groups into a single group and free
+ * the original two groups. 
+ */
+static struct t2s_array_ref_group *join_groups_and_free(
+  struct t2s_array_ref_group *group1,
+  struct t2s_array_ref_group *group2)
+{
+  struct t2s_array_ref_group *group;
+
+  group = join_groups(group1, group2);
+  t2s_array_ref_group_free(group1);
+  t2s_array_ref_group_free(group2);
+  return group;
+}
+
+static int t2s_group_writes(int n, struct t2s_array_ref_group **groups, 
+    int (*overlap)(struct t2s_array_ref_group *group1, 
+      struct t2s_array_ref_group *group2, void *user), struct t2s_data *data) {
+  int i, j;
+  int any_merge;
+
+  for (i = 0; i < n; i += !any_merge) {
+    any_merge = 0;
+    for (j = n - 1; j > i; j--) {
+      if (!overlap(groups[i], groups[j], data))
+        continue;
+
+      any_merge = 1;
+      groups[i] = join_groups_and_free(groups[i], groups[j]);
+      if (j != n - 1)
+        groups[j] = groups[n - 1];
+      groups[n - 1] = NULL;
+      n--;
+
+      if (!groups[i])
+        return -1;      
+    }
+  }
+  return n;
+}
+
+/* For each dependence, if the dependence distance are all zero by the members of the schedule band,
+ * then, compute the live-range from the src to the dest of the dependence.
+ * Otherwise, compute the live-range by not considering the dest of the dependence.
+ */
+static __isl_give isl_set *t2s_compute_dep_live_range(struct polysa_dep *d, struct t2s_data *data) {
+  isl_basic_map *bmap;
+  isl_basic_set *bset;
+  isl_map *map;
+  isl_set *set;
+  isl_set *src_set;
+  isl_set *dest_set;
+  isl_map *lex_map;
+  isl_union_map *sched;
+  isl_set *live_range;
+
+  bmap = isl_basic_map_copy(d->isl_dep);
+  map = isl_map_factor_domain(isl_map_from_basic_map(bmap));
+  set = isl_map_domain(map);
+  sched = isl_union_map_copy(data->group_data->full_sched);
+  sched = isl_union_map_intersect_domain(sched, isl_union_set_from_set(set));
+  set = isl_map_range(isl_map_from_union_map(sched));
+  lex_map = isl_map_lex_le(isl_set_get_space(set));
+  for (int i = 0; i < data->iter_num; i++) {
+    lex_map = isl_map_equate(lex_map, isl_dim_in, i, isl_dim_out, i);
+  }
+
+  src_set = isl_set_apply(set, lex_map);
+  if (isl_vec_is_zero(d->disvec)) {
+    bmap = isl_basic_map_copy(d->isl_dep);
+    map = isl_map_factor_domain(isl_map_from_basic_map(bmap));
+    set = isl_map_range(map);
+    sched = isl_union_map_copy(data->group_data->full_sched);
+    sched = isl_union_map_intersect_domain(sched, isl_union_set_from_set(set));
+    set = isl_map_range(isl_map_from_union_map(sched));
+    lex_map = isl_map_lex_gt(isl_set_get_space(set));
+    for (int i = 0; i < data->iter_num; i++) {
+      lex_map = isl_map_equate(lex_map, isl_dim_in, i, isl_dim_out, i);
+    }
+    dest_set = isl_set_apply(set, lex_map);
+    live_range = isl_set_intersect(src_set, dest_set);
+  } else {
+    live_range = src_set;
+  }
+
+  return live_range;
+}
+
+static int accesses_overlap(struct polysa_dep *d1, struct polysa_dep *d2, int wr,
+    struct t2s_data *data) 
+{
+  isl_set *live_range1;
+  isl_set *live_range2;
+  int r;
+
+  live_range1 = t2s_compute_dep_live_range(d1, data);
+  live_range2 = t2s_compute_dep_live_range(d2, data);
+  if (isl_set_is_disjoint(live_range1, live_range2)) {
+    r = 0;
+  } else {
+    r = 1;
+  }
+
+  isl_set_free(live_range1);
+  isl_set_free(live_range2);
+
+  return r;
+}
+
+/* If both accesses are write accesses with RAW dep (intermediate access),
+ * we will check if:
+ * 1) both writes are local to the permutable band, i.e., if they are 
+ * assigned the same value by the members of the band.
+ * 2) if the first condition holds, check if the live-ranges (RAW) of two accesses
+ * are overlapped.
+ * If both conditions hold, which means that these two write accesses 
+ * need to be assigned different T2S function names to avoid overwriting 
+ * the value of each other. We will return 1 and later group them into the 
+ * same array reference group. 
+ *
+ * If both accesses are read accesses with RAR dep (intermediate access),
+ * we will check if:
+ * 1) both read are local to the permutable band, i.e., if they are 
+ * assigned the same value by the members of the band.
+ * 2) if the first condition holds, check if the live-ranges (RAR) of two accesses
+ * are overlapped.
+ * If both conditions hold, which means that these two read accesses 
+ * need to be assigned different T2S function names to avoid overwriting
+ * the value of each other. We will return 1 and later group them into the 
+ * same array reference group.
+ */
+static int accesses_overlap_wrap(struct t2s_array_ref_group *group1, 
+    struct t2s_array_ref_group *group2, void *user)
+{
+  struct t2s_data *data = user;
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_map_get_ctx(group1->access), stdout);
+//  p = isl_printer_print_map(p, group1->access);
+//  printf("\n");
+//  p = isl_printer_print_map(p, group2->access);
+//  printf("\n");
+//  isl_printer_free(p);
+//  // debug
+
+  for (int i = 0; i < group1->n_ref; i++) {
+    for (int j = 0; j < group2->n_ref; j++) {
+      struct gpu_stmt_access *ref1 = group1->refs[i];
+      struct gpu_stmt_access *ref2 = group2->refs[j];
+
+      if (ref1->write == 1 && ref2->write == 1) {
+        for (int n = 0; n < data->ndeps; n++) {
+          struct polysa_dep *dep1 = data->deps[n];
+          if (dep1->type == POLYSA_DEP_RAW && dep1->src == ref1->ref_id) {
+            for (int m = 0; m < data->ndeps; m++) {
+              struct polysa_dep *dep2 = data->deps[m];
+              if (dep2->type == POLYSA_DEP_RAW && dep2->src == ref2->ref_id) {
+                /* Examine if two write accesses are overlapped. */
+                return accesses_overlap(dep1, dep2, 0, data);
+              }
+            }
+          }
+        }
+      } else if (ref1->read == 1 && ref2->read == 1) {
+        for (int n = 0; n < data->ndeps; n++) {
+          struct polysa_dep *dep1 = data->deps[n];
+          if (dep1->type == POLYSA_DEP_RAR && dep1->src == ref1->ref_id) {
+            for (int m = 0; m < data->ndeps; m++) {
+              struct polysa_dep *dep2 = data->deps[m];
+              if (dep2->type == POLYSA_DEP_RAR && dep2->src == ref2->ref_id) {
+                /* Examine if two read accesses are overlapped. */
+                return accesses_overlap(dep1, dep2, 1, data);
+              }
+            }
+          }
+        }       
+      } else {
+        return 0;
+      }
+    }
+  }
+  return 0;
+}
+
+static int t2s_group_overlapping_writes(int n, struct t2s_array_ref_group **groups, struct t2s_data *data) 
+{
+  return t2s_group_writes(n, groups, &accesses_overlap_wrap, data);
+}
+
+/* Set array->n_group and array->groups to n and groups.
+ *
+ * Additionally, set the "nr" field of each group.
+ */
+static void t2s_set_array_groups(struct t2s_array_info *array, int n, struct t2s_array_ref_group **groups) 
+{
+  int i;
+
+  array->n_group = n;
+  array->groups = groups;
+
+  for (i = 0; i < n; i++) {
+    groups[i]->nr = i;
+  }
+}
+
+static void t2s_assign_array_group_func_id(struct t2s_data *data, struct t2s_array_info *array)
+{
+  int max_n_ref = 0;
+  int write = 0;
+
+  if (data->ref2func == NULL)
+    data->ref2func = isl_id_to_id_alloc(data->ctx, 0);
+ 
+  if (data->func_ids == NULL)
+    data->func_ids = isl_id_list_alloc(data->ctx, 0);
+
+  for (int i = 0; i < array->n_group; i++) {
+    struct t2s_array_ref_group *group = array->groups[i];
+    if (group->write == 1)
+      write = 1;
+
+    for (int r = 0; r < group->n_ref; r++) {
+      struct gpu_stmt_access *ref = group->refs[r];
+      char func_name[100];
+      /* Fetch the array name */
+      isl_map *access = isl_map_copy(ref->access);
+      isl_id *ref_id = isl_id_copy(ref->ref_id);
+      isl_space *space = isl_map_get_space(access);
+      const char *array_name = isl_space_get_tuple_name(space, isl_dim_out);
+      isl_space_free(space);
+      isl_map_free(access);
+      if (r == 0) {
+        sprintf(func_name, "%s", array_name);
+      } else {
+        sprintf(func_name, "%s_%d", array_name, r);
+      }
+      isl_id *func_id = isl_id_alloc(data->ctx, func_name, NULL);
+      data->ref2func = isl_id_to_id_set(data->ref2func, ref_id, func_id);
+    }
+    if (group->n_ref > max_n_ref)
+      max_n_ref = group->n_ref;
+  }
+
+//  // debug
+//  printf("%s\n", array->array->type);
+//  // debug
+
+  /* Insert the function declaraitons. */
+  for (int i = 0; i < max_n_ref; i++) {
+    char func_name[100];
+    if (i == 0) 
+      sprintf(func_name, "%s", array->array->name);
+    else
+      sprintf(func_name, "%s_%d", array->array->name, i);
+    isl_id *func_id = isl_id_alloc(data->ctx, func_name, array->array);
+    data->func_ids = isl_id_list_add(data->func_ids, func_id);
+
+    if (write == 1) {
+      /* Add the drain func. */
+      char func_name[100];
+      if (i == 0) 
+        sprintf(func_name, "%s_drain", array->array->name);
+      else
+        sprintf(func_name, "%s_%d_drain", array->array->name, i);
+      isl_id *func_id = isl_id_alloc(data->ctx, func_name, array->array);
+      data->func_ids = isl_id_list_add(data->func_ids, func_id);
+    }
+  }
+}
+
+static isl_stat gen_t2s_func_ids(struct t2s_data *data, struct t2s_array_info *array) {
+  /* Populate the array groups. */
+  isl_ctx *ctx = data->ctx;
+  struct t2s_array_ref_group **groups;
+  groups = isl_calloc_array(ctx, struct t2s_array_ref_group *, array->array->n_ref);
+
+  int n = t2s_populate_array_references(array, groups, data);
+
+  /* Group overlapping writes. */
+  n = t2s_group_overlapping_writes(n, groups, data);  
+
+  /* Set the group information. */
+  t2s_set_array_groups(array, n, groups); 
+
+  /* Assign function names. */
+  t2s_assign_array_group_func_id(data, array);
+    
+  return isl_stat_ok;
+}
+
+
 /* Generate function declarations. 
  * Assign a function name to each access reference.
  * First group references that access the same array together.
@@ -2852,18 +3271,84 @@ static isl_stat gen_t2s_vars(struct t2s_data *data)
  * WAW), check if the write-out domain is empty. If not, generate a unique function 
  * name to this write access as the drain function.
  */
-static isl_stat gen_t2s_funcs(struct t2s_data *data)
+static isl_stat gen_t2s_funcs(__isl_keep isl_schedule *schedule, struct t2s_data *data)
 {
+  isl_ctx *ctx = data->ctx;
   isl_printer *p = data->p;
+  struct t2s_group_data *group_data;
+  struct gpu_prog *prog;
+  isl_schedule_node *node;
+  
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "// Function declarations");
   p = isl_printer_end_line(p);
 
-  // TODO  
+  /* Initialization. */
+  prog = gpu_prog_alloc(ctx, data->scop);
+  group_data = isl_calloc_type(ctx, struct t2s_group_data);
+
+  data->array = isl_calloc_array(ctx, struct t2s_array_info, prog->n_array);
+  data->n_array = prog->n_array;
+  for (int i = 0; i < prog->n_array; i++) {
+    data->array[i].array = &prog->array[i];
+  }
+  node = isl_schedule_get_root(schedule);
+  group_data->full_sched = isl_schedule_node_get_subtree_schedule_union_map(node);
+  isl_schedule_node_free(node);
+  data->group_data = group_data;
+
+  for (int i = 0; i < data->n_array; i++) {
+    gen_t2s_func_ids(data, &data->array[i]);
+  }
+//  // debug
+//  isl_printer *p_debug = isl_printer_to_file(data->ctx, stdout);
+//  p_debug = isl_printer_print_id_to_id(p_debug, data->ref2func);
+//  printf("\n");
+//  isl_printer_free(p_debug);
+//  // debug
+
+  data->group_data = t2s_group_data_free(group_data);
+
+  /* Print the function decls. */
+  for (int i = 0; i < isl_id_list_n_id(data->func_ids); i++) {
+    isl_id *func_id = isl_id_list_get_id(data->func_ids, i);
+    struct gpu_array_info *array = isl_id_get_user(func_id);
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "#define FUNC_S");
+    p = isl_printer_print_int(p, i);
+    p = isl_printer_print_str(p, " type_of<");
+    p = isl_printer_print_str(p, array->type);
+    p = isl_printer_print_str(p, ">(), {");
+    for (int j = 0; j < data->iter_num; j++) {
+      if (j > 0)
+        p = isl_printer_print_str(p, ", ");
+      p = isl_printer_print_str(p, "c");
+      p = isl_printer_print_int(p, j);
+    }
+    p = isl_printer_print_str(p, "}, Place::Host");
+    p = isl_printer_end_line(p);
+    isl_id_free(func_id);
+  }
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "Func ");
+  for (int i = 0; i < isl_id_list_n_id(data->func_ids); i++) {
+    isl_id *func_id = isl_id_list_get_id(data->func_ids, i);
+    if (i > 0) {
+      p = isl_printer_print_str(p, ", ");
+    }
+    p = isl_printer_print_str(p, isl_id_get_name(func_id));
+    p = isl_printer_print_str(p, "(FUNC_S");
+    p = isl_printer_print_int(p, i);
+    p = isl_printer_print_str(p, ")");
+    isl_id_free(func_id);
+  }
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
 
   p = isl_printer_start_line(p);
   p = isl_printer_end_line(p);
 
+  gpu_prog_free(prog);
   return isl_stat_ok;
 }
 
@@ -2989,8 +3474,12 @@ static __isl_give struct t2s_data *t2s_data_init(__isl_take struct t2s_data *d) 
   d->deps = NULL;
   d->ndeps = 0;
   d->ref2func = NULL;
-  d->ref2dfunc = NULL;
+//  d->ref2dfunc = NULL;
+  d->func_ids = NULL;
   d->stmt_data = NULL;
+  d->n_array = 0;
+  d->array = NULL;
+  d->group_data = NULL;
 }
 
 /* This function adds T2S statement as extension nodes after each original
@@ -3063,14 +3552,14 @@ static __isl_give isl_schedule *print_t2s_with_schedule(__isl_take isl_schedule 
   gen_t2s_vars(data);
 
   /* TODO: Generate function declarations. */
-  gen_t2s_funcs(data);
+  gen_t2s_funcs(schedule, data);
 
   /* Generate the T2S statements .*/ 
   data->t2s_stmt_num = 0;
   data->t2s_stmt_text = NULL;
   schedule = gen_stmt_text_wrap(schedule, data);
 
-  /* Generate time-space transformation. */
+  /* TODO: Generate time-space transformation. */
   gen_t2s_space_time(data);
 
   data->p = isl_printer_start_line(data->p);

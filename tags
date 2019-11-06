@@ -2633,6 +2633,7 @@ access	isl/isl_flow.c	/^	isl_union_access_info *access;$/;"	m	struct:isl_compute
 access	isl/isl_flow.c	/^	isl_union_map *access[isl_access_end];$/;"	m	struct:isl_union_access_info	file:
 access	pet/expr.h	/^	isl_union_map *access[pet_expr_access_end];$/;"	m	struct:pet_expr_access
 access	pet/summary.c	/^		isl_union_map *access[pet_expr_access_end];$/;"	m	union:pet_function_summary_arg::__anon98	file:
+access	polysa_cpu.h	/^  isl_map *access;$/;"	m	struct:t2s_array_ref_group
 access_add_ref_id	pet/expr.c	/^static __isl_give pet_expr *access_add_ref_id(__isl_take pet_expr *expr,$/;"	f	file:
 access_anonymize	pet/expr.c	/^static __isl_give pet_expr *access_anonymize(__isl_take pet_expr *expr,$/;"	f	file:
 access_apply_value_bounds	pet/value_bounds.c	/^static __isl_give isl_map *access_apply_value_bounds(__isl_take isl_map *map,$/;"	f	file:
@@ -2662,6 +2663,7 @@ accesses	isl/isl_flow.c	/^	isl_access_info *accesses;$/;"	m	struct:isl_compute_f
 accesses	pet/scop.c	/^	isl_union_map *accesses;$/;"	m	struct:pet_expr_collect_accesses_data	file:
 accesses_fixed_element	gpu.c	/^static isl_bool accesses_fixed_element(__isl_keep pet_expr *expr)$/;"	f	file:
 accesses_overlap	gpu_group.c	/^static int accesses_overlap(struct gpu_array_ref_group *group1,$/;"	f	file:
+accesses_overlap	polysa_cpu.c	/^static int accesses_overlap(struct t2s_array_ref_group *group1, $/;"	f	file:
 add	isl/imath/gmp_compat.c	/^void GMPZAPI(add)(mp_int rop, mp_int op1, mp_int op2) {$/;"	f
 add	isl/include/isl/cpp-checked.h	/^isl::checked::aff aff::add(isl::checked::aff aff2) const$/;"	f	class:isl::checked::aff
 add	isl/include/isl/cpp-checked.h	/^isl::checked::ast_node_list ast_node_list::add(isl::checked::ast_node el) const$/;"	f	class:isl::checked::ast_node_list
@@ -3396,6 +3398,9 @@ array	gpu.h	/^	struct gpu_array_info *array;$/;"	m	struct:ppcg_kernel_var	typere
 array	gpu.h	/^	struct gpu_local_array_info *array;$/;"	m	struct:polysa_kernel	typeref:struct:polysa_kernel::gpu_local_array_info
 array	gpu.h	/^	struct gpu_local_array_info *array;$/;"	m	struct:ppcg_kernel	typeref:struct:ppcg_kernel::gpu_local_array_info
 array	gpu_group.h	/^	struct gpu_array_info *array;$/;"	m	struct:gpu_array_ref_group	typeref:struct:gpu_array_ref_group::gpu_array_info
+array	polysa_cpu.h	/^  struct gpu_array_info *array;$/;"	m	struct:t2s_array_info	typeref:struct:t2s_array_info::gpu_array_info
+array	polysa_cpu.h	/^  struct gpu_array_info *array;$/;"	m	struct:t2s_array_ref_group	typeref:struct:t2s_array_ref_group::gpu_array_info
+array	polysa_cpu.h	/^  struct t2s_array_info *array;$/;"	m	struct:t2s_data	typeref:struct:t2s_data::t2s_array_info
 array_acc_from_multi_pw_aff	polysa_cpu.c	/^static __isl_give char *array_acc_from_multi_pw_aff(__isl_take isl_multi_pw_aff *mpa)$/;"	f	file:
 array_anonymize	pet/scop.c	/^static struct pet_array *array_anonymize(struct pet_array *array)$/;"	f	file:
 array_collect_params	pet/scop.c	/^static __isl_give isl_space *array_collect_params(struct pet_array *array,$/;"	f	file:
@@ -5514,6 +5519,7 @@ drop_skip_later	pet/skip.c	/^static void drop_skip_later(struct pet_scop *scop1,
 drop_unknown_divs_and_extract_div	isl/isl_local_space.c	/^static __isl_give isl_aff *drop_unknown_divs_and_extract_div($/;"	f	file:
 drop_unrelated_constraints	isl/isl_map_simplify.c	/^static __isl_give isl_basic_map *drop_unrelated_constraints($/;"	f	file:
 dsa_kernel	kernel.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
+dsa_kernel	kernel.polysa.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	kernel.ppcg.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	kernel_cpu.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	kernel_tile.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
@@ -5688,6 +5694,7 @@ exact	isl/isl_transitive_closure.c	/^	isl_bool *exact;$/;"	m	struct:isl_union_po
 exact_bound	isl/isl_ast_codegen.c	/^static __isl_give isl_pw_aff *exact_bound(__isl_keep isl_set *domain,$/;"	f	file:
 exact_write	gpu.h	/^	int exact_write;$/;"	m	struct:gpu_stmt_access
 exact_write	gpu_group.h	/^	int exact_write;$/;"	m	struct:gpu_array_ref_group
+exact_write	polysa_cpu.h	/^  int exact_write;$/;"	m	struct:t2s_array_ref_group
 exception	isl/include/isl/cpp.h	/^	exception() {}$/;"	f	class:isl::exception
 exception	isl/include/isl/cpp.h	/^	exception(const char *what_arg) {$/;"	f	class:isl::exception
 exception	isl/include/isl/cpp.h	/^class exception : public std::exception {$/;"	c	namespace:isl
@@ -6518,6 +6525,7 @@ full_may_dependence	isl/include/isl/cpp.h	/^isl::union_map union_flow::full_may_
 full_must_dependence	isl/include/isl/cpp-checked.h	/^isl::checked::union_map union_flow::full_must_dependence() const$/;"	f	class:isl::checked::union_flow
 full_must_dependence	isl/include/isl/cpp.h	/^isl::union_map union_flow::full_must_dependence() const$/;"	f	class:isl::union_flow
 full_sched	gpu_group.c	/^	isl_union_map *full_sched;$/;"	m	struct:gpu_group_data	file:
+full_sched	polysa_cpu.h	/^  isl_union_map *full_sched;$/;"	m	struct:t2s_group_data
 func	isl/include/isl/cpp-checked.h	/^    std::function<isl::checked::ast_node(isl::checked::ast_node, isl::checked::ast_build)> func;$/;"	m	struct:isl::checked::ast_build::at_each_domain_data
 func	isl/include/isl/cpp.h	/^    std::function<isl::ast_node(isl::ast_node, isl::ast_build)> func;$/;"	m	struct:isl::ast_build::at_each_domain_data
 func_add_hook	isl/libtool	/^func_add_hook ()$/;"	f
@@ -7456,7 +7464,8 @@ gen_small_mpzs	isl/imath/tests/gmp-compat-test/gendata.py	/^def gen_small_mpzs(c
 gen_stmt_domain	polysa_cpu.c	/^static __isl_give isl_schedule_node *gen_stmt_domain(__isl_take isl_schedule_node *node, void *user)$/;"	f	file:
 gen_stmt_text	polysa_cpu.c	/^static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node *node, void *user)$/;"	f	file:
 gen_stmt_text_wrap	polysa_cpu.c	/^static __isl_give isl_schedule *gen_stmt_text_wrap(__isl_take isl_schedule *schedule, struct t2s_data *data)$/;"	f	file:
-gen_t2s_funcs	polysa_cpu.c	/^static isl_stat gen_t2s_funcs(struct t2s_data *data)$/;"	f	file:
+gen_t2s_func_ids	polysa_cpu.c	/^static isl_stat gen_t2s_func_ids(struct t2s_data *data, struct t2s_array_info *array) {$/;"	f	file:
+gen_t2s_funcs	polysa_cpu.c	/^static isl_stat gen_t2s_funcs(__isl_keep isl_schedule *schedule, struct t2s_data *data)$/;"	f	file:
 gen_t2s_headers	polysa_cpu.c	/^static isl_stat gen_t2s_headers(struct t2s_data *data)$/;"	f	file:
 gen_t2s_inputs	polysa_cpu.c	/^static isl_stat gen_t2s_inputs(struct t2s_data *data)$/;"	f	file:
 gen_t2s_space_time	polysa_cpu.c	/^static isl_stat gen_t2s_space_time(struct t2s_data *data)$/;"	f	file:
@@ -7911,6 +7920,7 @@ group_common_shared_memory_tile	gpu_group.c	/^static int group_common_shared_mem
 group_context	isl/isl_schedule_node.c	/^static __isl_give isl_schedule_tree *group_context($/;"	f	file:
 group_contraction_from_prefix_and_domain	grouping.c	/^static isl_union_pw_multi_aff *group_contraction_from_prefix_and_domain($/;"	f	file:
 group_coscheduled	isl/isl_ast_codegen.c	/^	int group_coscheduled;$/;"	m	struct:isl_any_scheduled_after_data	file:
+group_data	polysa_cpu.h	/^  struct t2s_group_data *group_data;$/;"	m	struct:t2s_data	typeref:struct:t2s_data::t2s_group_data
 group_depth_overlapping_writes	gpu_group.c	/^static int group_depth_overlapping_writes(struct ppcg_kernel *kernel,$/;"	f	file:
 group_domain	isl/isl_schedule_node.c	/^static __isl_give isl_schedule_tree *group_domain($/;"	f	file:
 group_expansion	isl/isl_schedule_node.c	/^static __isl_give isl_schedule_tree *group_expansion($/;"	f	file:
@@ -7924,6 +7934,7 @@ group_tile	gpu.c	/^static __isl_give isl_map *group_tile(struct gpu_array_ref_gr
 group_universe	isl/isl_schedule_node.c	/^	isl_union_set *group_universe;$/;"	m	struct:isl_schedule_group_data	file:
 group_writes	gpu_group.c	/^static int group_writes(struct ppcg_kernel *kernel,$/;"	f	file:
 groups	gpu.h	/^	struct gpu_array_ref_group **groups;$/;"	m	struct:gpu_local_array_info	typeref:struct:gpu_local_array_info::gpu_array_ref_group
+groups	polysa_cpu.h	/^  struct t2s_array_ref_group **groups;$/;"	m	struct:t2s_array_info	typeref:struct:t2s_array_info::t2s_array_ref_group
 grow_buf	isl/isl_printer.c	/^static int grow_buf(__isl_keep isl_printer *p, int extra)$/;"	f	file:
 grow_table	isl/isl_hash.c	/^static int grow_table(struct isl_ctx *ctx, struct isl_hash_table *table)$/;"	f	file:
 gt	isl/include/isl/cpp-checked.h	/^boolean val::gt(const isl::checked::val &v2) const$/;"	f	class:isl::checked::val
@@ -12973,7 +12984,9 @@ iv	pet/tree.h	/^			pet_expr *iv;$/;"	m	struct:pet_tree::__anon88::__anon92
 join_all_groups	gpu_group.c	/^static int join_all_groups(int n, struct gpu_array_ref_group **groups)$/;"	f	file:
 join_compatible	isl/isl_fold.c	/^static isl_bool join_compatible(__isl_keep isl_space *space1,$/;"	f	file:
 join_groups	gpu_group.c	/^static struct gpu_array_ref_group *join_groups($/;"	f	file:
+join_groups	polysa_cpu.c	/^static struct t2s_array_reg_group *join_groups($/;"	f	file:
 join_groups_and_free	gpu_group.c	/^static struct gpu_array_ref_group *join_groups_and_free($/;"	f	file:
+join_groups_and_free	polysa_cpu.c	/^static struct t2s_array_ref_group *join_groups_and_free($/;"	f	file:
 join_initial	isl/isl_map.c	/^static __isl_give isl_basic_map *join_initial(__isl_keep isl_basic_set *bset1,$/;"	f	file:
 keeps	isl/interface/generator.cc	/^bool generator::keeps(Decl *decl)$/;"	f	class:generator
 kernel	gpu.c	/^	struct ppcg_kernel *kernel;$/;"	m	struct:ppcg_at_domain_data	typeref:struct:ppcg_at_domain_data::ppcg_kernel	file:
@@ -14102,6 +14115,7 @@ n_array	gpu.h	/^	int n_array;$/;"	m	struct:gpu_prog
 n_array	gpu.h	/^	int n_array;$/;"	m	struct:polysa_kernel
 n_array	gpu.h	/^	int n_array;$/;"	m	struct:ppcg_kernel
 n_array	pet/include/pet.h	/^	int n_array;$/;"	m	struct:pet_scop
+n_array	polysa_cpu.h	/^  int n_array;$/;"	m	struct:t2s_data
 n_block	gpu.h	/^	int n_block;$/;"	m	struct:polysa_kernel
 n_block	gpu.h	/^	int n_block;$/;"	m	struct:ppcg_kernel
 n_cached	isl/isl_ctx_private.h	/^	int			n_cached;$/;"	m	struct:isl_ctx
@@ -14127,6 +14141,7 @@ n_grid	gpu.h	/^	int n_grid;$/;"	m	struct:polysa_kernel
 n_grid	gpu.h	/^	int n_grid;$/;"	m	struct:ppcg_kernel
 n_group	gpu.h	/^	int n_group;$/;"	m	struct:gpu_local_array_info
 n_group	isl/isl_factorization.h	/^	int		n_group;$/;"	m	struct:isl_factorizer
+n_group	polysa_cpu.h	/^  int n_group;$/;"	m	struct:t2s_array_info
 n_id	isl/isl_space_private.h	/^	unsigned n_id;$/;"	m	struct:isl_space
 n_implication	pet/include/pet.h	/^	int n_implication;$/;"	m	struct:pet_scop
 n_in	isl/isl_space_private.h	/^	unsigned n_in;		\/* zero for sets *\/$/;"	m	struct:isl_space
@@ -14158,6 +14173,7 @@ n_pure_div_eq	isl/isl_map_simplify.c	/^static int n_pure_div_eq(struct isl_basic
 n_redundant	isl/isl_tab.h	/^	unsigned n_redundant;$/;"	m	struct:isl_tab
 n_ref	gpu.h	/^	int n_ref;$/;"	m	struct:gpu_array_info
 n_ref	gpu_group.h	/^	int n_ref;$/;"	m	struct:gpu_array_ref_group
+n_ref	polysa_cpu.h	/^  int n_ref;$/;"	m	struct:t2s_array_ref_group
 n_region	isl/isl_tab_pip.c	/^	int n_region;$/;"	m	struct:isl_lexmin_data	file:
 n_rename	pet/scan.h	/^	int n_rename;$/;"	m	struct:PetScan
 n_ret	pet/scan.h	/^	int n_ret;$/;"	m	struct:PetScan
@@ -14367,6 +14383,7 @@ notes	isl/isl_printer_private.h	/^	isl_id_to_id	*notes;$/;"	m	struct:isl_printer
 nparam	isl/isl_scheduler.c	/^	int	 nparam;$/;"	m	struct:isl_sched_node	file:
 nparam	isl/isl_space_private.h	/^	unsigned nparam;$/;"	m	struct:isl_space
 nr	gpu_group.h	/^	int nr;$/;"	m	struct:gpu_array_ref_group
+nr	polysa_cpu.h	/^  int nr;$/;"	m	struct:t2s_array_ref_group
 num	isl/imath/imrat.h	/^  mpz_t   num;    \/* Numerator         *\/$/;"	m	struct:mpq
 num_inputs	isl/imath/imdrover.h	/^  int    num_inputs;$/;"	m	struct:__anon81
 num_inputs	isl/imath/imtest.c	/^  int    num_inputs;$/;"	m	struct:__anon86	file:
@@ -16573,7 +16590,6 @@ ref	pet/expr.h	/^	int ref;$/;"	m	struct:pet_expr
 ref	pet/loc.c	/^	int ref;$/;"	m	struct:pet_loc	file:
 ref	pet/summary.c	/^	int ref;$/;"	m	struct:pet_function_summary	file:
 ref	pet/tree.h	/^	int ref;$/;"	m	struct:pet_tree
-ref2dfunc	polysa_cpu.h	/^  isl_id_to_id *ref2dfunc;$/;"	m	struct:t2s_data
 ref2expr	cpu.c	/^	isl_id_to_ast_expr *ref2expr;$/;"	m	struct:ppcg_stmt	file:
 ref2expr	gpu.h	/^			isl_id_to_ast_expr *ref2expr;$/;"	m	struct:ppcg_kernel_stmt::__anon1::__anon3
 ref2expr	pet/print.c	/^	isl_id_to_ast_expr *ref2expr;$/;"	m	struct:pet_build_ast_expr_data	file:
@@ -16587,6 +16603,7 @@ refine_generic_bounds	isl/isl_ast_codegen.c	/^static __isl_give isl_ast_graft *r
 refine_generic_split	isl/isl_ast_codegen.c	/^static __isl_give isl_ast_graft *refine_generic_split($/;"	f	file:
 refs	gpu.h	/^	struct gpu_stmt_access **refs;$/;"	m	struct:gpu_array_info	typeref:struct:gpu_array_info::gpu_stmt_access
 refs	gpu_group.h	/^	struct gpu_stmt_access **refs;$/;"	m	struct:gpu_array_ref_group	typeref:struct:gpu_array_ref_group::gpu_stmt_access
+refs	polysa_cpu.h	/^  struct gpu_stmt_access **refs;$/;"	m	struct:t2s_array_ref_group	typeref:struct:t2s_array_ref_group::gpu_stmt_access
 region	isl/isl_scheduler.c	/^	struct isl_trivial_region *region;$/;"	m	struct:isl_sched_graph	typeref:struct:isl_sched_graph::isl_trivial_region	file:
 region	isl/isl_tab_pip.c	/^	int region;$/;"	m	struct:isl_local_region	file:
 region	isl/isl_tab_pip.c	/^	struct isl_trivial_region *region;$/;"	m	struct:isl_lexmin_data	typeref:struct:isl_lexmin_data::isl_trivial_region	file:
@@ -17867,16 +17884,27 @@ sysconfdir	pet/Makefile	/^sysconfdir = ${prefix}\/etc$/;"	m
 t2s	polysa_t2s.h	/^	struct t2s_info *t2s;$/;"	m	struct:print_host_user_data	typeref:struct:print_host_user_data::t2s_info
 t2s_URE	polysa_cpu.h	/^struct t2s_URE {$/;"	s
 t2s_URE_free	polysa_cpu.c	/^static __isl_null struct t2s_URE *t2s_URE_free(__isl_take struct t2s_URE *u) {$/;"	f	file:
+t2s_array	polysa_cpu.h	/^  struct t2s_array_info *t2s_array;$/;"	m	struct:t2s_array_ref_group	typeref:struct:t2s_array_ref_group::t2s_array_info
+t2s_array_info	polysa_cpu.h	/^struct t2s_array_info {$/;"	s
+t2s_array_ref_group	polysa_cpu.h	/^struct t2s_array_ref_group {$/;"	s
+t2s_array_ref_group_free	polysa_cpu.c	/^static struct t2s_array_ref_group *t2s_array_ref_group_free($/;"	f	file:
+t2s_assign_array_group_func_id	polysa_cpu.c	/^static void t2s_assign_array_group_func_id(struct t2s_data *data, struct t2s_array_info *array)$/;"	f	file:
 t2s_close_files	polysa_t2s.c	/^void t2s_close_files(struct t2s_info *info)$/;"	f
 t2s_data	polysa_cpu.h	/^struct t2s_data {$/;"	s
 t2s_data_free	polysa_cpu.c	/^__isl_null struct t2s_data *t2s_data_free(__isl_take struct t2s_data *d) {$/;"	f
 t2s_data_init	polysa_cpu.c	/^static __isl_give struct t2s_data *t2s_data_init(__isl_take struct t2s_data *d) {$/;"	f	file:
 t2s_drain_URE_access	polysa_cpu.c	/^static int t2s_drain_URE_access(__isl_keep pet_expr *expr, void *user)$/;"	f	file:
+t2s_group_data	polysa_cpu.h	/^struct t2s_group_data {$/;"	s
+t2s_group_data_free	polysa_cpu.c	/^static struct t2s_group_data *t2s_group_data_free(struct t2s_group_data *d)$/;"	f	file:
+t2s_group_overlapping_writes	polysa_cpu.c	/^static int t2s_group_overlapping_writes(int n, struct t2s_array_ref_group **groups, struct t2s_data *data) $/;"	f	file:
+t2s_group_writes	polysa_cpu.c	/^static int t2s_group_writes(int n, struct t2s_array_ref_group **groups, $/;"	f	file:
 t2s_info	polysa_t2s.h	/^struct t2s_info {$/;"	s
 t2s_iter_num	polysa_vsa.h	/^  int t2s_iter_num;$/;"	m	struct:polysa_vsa
 t2s_iters	polysa_vsa.h	/^  char **t2s_iters;$/;"	m	struct:polysa_vsa
 t2s_open_files	polysa_t2s.c	/^void t2s_open_files(struct t2s_info *info, const char *input)$/;"	f
+t2s_populate_array_references	polysa_cpu.c	/^static int t2s_populate_array_references(struct t2s_array_info *info, struct t2s_array_ref_group **groups, struct t2s_data *data) $/;"	f	file:
 t2s_rar_URE_access	polysa_cpu.c	/^static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)$/;"	f	file:
+t2s_set_array_groups	polysa_cpu.c	/^static void t2s_set_array_groups(struct t2s_array_info *array, int n, struct t2s_array_ref_group **groups) $/;"	f	file:
 t2s_set_multi_pw_aff_iters	polysa_cpu.c	/^static __isl_give isl_multi_pw_aff *t2s_set_multi_pw_aff_iters(__isl_take isl_multi_pw_aff *mpa)$/;"	f	file:
 t2s_set_set_iters	polysa_cpu.c	/^static __isl_give isl_set *t2s_set_set_iters(__isl_take isl_set *s)$/;"	f	file:
 t2s_stmt	polysa_cpu.c	/^struct t2s_stmt {$/;"	s	file:
@@ -19046,6 +19074,7 @@ wraps_update_max	isl/isl_coalesce.c	/^static isl_stat wraps_update_max(struct is
 write	gpu.h	/^	int write;$/;"	m	struct:gpu_stmt_access
 write	gpu_group.h	/^	int write;$/;"	m	struct:gpu_array_ref_group
 write	pet/expr.h	/^	unsigned write : 1;$/;"	m	struct:pet_expr_access
+write	polysa_cpu.h	/^  int write;$/;"	m	struct:t2s_array_ref_group
 writes	pet/expr.c	/^static int writes(__isl_keep pet_expr *expr, void *user)$/;"	f	file:
 writes	pet/tree.c	/^	int writes;$/;"	m	struct:pet_tree_writes_data	file:
 xCAT	isl/check_reparse_templ.c	1;"	d	file:

@@ -12,6 +12,11 @@ int main(void) {
 Var c0, c1, c2;
 
 // Function declarations
+#define FUNC_S0 type_of<int>(), {c0, c1, c2}, Place::Host
+#define FUNC_S1 type_of<int>(), {c0, c1, c2}, Place::Host
+#define FUNC_S2 type_of<int>(), {c0, c1, c2}, Place::Host
+#define FUNC_S3 type_of<int>(), {c0, c1, c2}, Place::Host
+Func A(FUNC_S0), B(FUNC_S1), C(FUNC_S2), C_drain(FUNC_S3);
 
 // UREs
 A(c0, c1, c2) = 0;
