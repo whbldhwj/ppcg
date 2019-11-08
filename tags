@@ -278,7 +278,7 @@ CCLD	isl/Makefile	/^CCLD = $(CC)$/;"	m
 CCLD	isl/interface/Makefile	/^CCLD = $(CC)$/;"	m
 CCLD	pet/Makefile	/^CCLD = $(CC)$/;"	m
 CFLAGS	Makefile	/^CFLAGS = -g$/;"	m
-CFLAGS	isl/Makefile	/^CFLAGS = -g -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
+CFLAGS	isl/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	isl/doc/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	isl/interface/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	pet/Makefile	/^CFLAGS = -g -O2$/;"	m
@@ -375,7 +375,7 @@ CXXDEPMODE	isl/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
 CXXDEPMODE	isl/doc/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
 CXXDEPMODE	isl/interface/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
 CXXDEPMODE	pet/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
-CXXFLAGS	isl/Makefile	/^CXXFLAGS = -g$/;"	m
+CXXFLAGS	isl/Makefile	/^CXXFLAGS = -g -O2$/;"	m
 CXXFLAGS	isl/doc/Makefile	/^CXXFLAGS = -g -O2$/;"	m
 CXXFLAGS	isl/interface/Makefile	/^CXXFLAGS = -g -O2$/;"	m
 CXXFLAGS	pet/Makefile	/^CXXFLAGS = -g -O2$/;"	m
@@ -896,9 +896,17 @@ FN	isl/read_in_string_templ.c	8;"	d	file:
 FORMAT_AFF	isl/pip.c	49;"	d	file:
 FORMAT_SET	isl/pip.c	48;"	d	file:
 FUNC_S0	t2s.cpp	15;"	d	file:
+FUNC_S0	t2s_tests/2dconv/t2s.cpp	15;"	d	file:
+FUNC_S0	t2s_tests/gemm/t2s.cpp	15;"	d	file:
 FUNC_S1	t2s.cpp	16;"	d	file:
+FUNC_S1	t2s_tests/2dconv/t2s.cpp	16;"	d	file:
+FUNC_S1	t2s_tests/gemm/t2s.cpp	16;"	d	file:
 FUNC_S2	t2s.cpp	17;"	d	file:
+FUNC_S2	t2s_tests/2dconv/t2s.cpp	17;"	d	file:
+FUNC_S2	t2s_tests/gemm/t2s.cpp	17;"	d	file:
 FUNC_S3	t2s.cpp	18;"	d	file:
+FUNC_S3	t2s_tests/2dconv/t2s.cpp	18;"	d	file:
+FUNC_S3	t2s_tests/gemm/t2s.cpp	18;"	d	file:
 Feasibility Check and Detection of Equalities	isl/doc/implementation.tex	/^of the actual dual simplex method with Gomory cuts.$/;"	b
 Further Reading	isl/doc/manual.tex	/^\\input{implementation}$/;"	c
 GBR_LP	isl/basis_reduction_tab.c	100;"	d	file:
@@ -954,7 +962,7 @@ GIT_HEAD	isl/Makefile	/^GIT_HEAD = \/curr\/jaywang\/research\/systolic_compile\/
 GIT_HEAD	isl/doc/Makefile	/^GIT_HEAD = \/curr\/jaywang\/research\/systolic_compile\/ppcg\/ppcg\/.git\/modules\/isl\/index$/;"	m
 GIT_HEAD	isl/interface/Makefile	/^GIT_HEAD = \/curr\/jaywang\/research\/systolic_compile\/ppcg\/ppcg\/.git\/modules\/isl\/index$/;"	m
 GIT_HEAD	pet/Makefile	/^GIT_HEAD = \/curr\/jaywang\/research\/systolic_compile\/ppcg\/ppcg\/.git\/modules\/pet\/index$/;"	m
-GIT_HEAD_ID	Makefile	/^GIT_HEAD_ID = ppcg-0.08.2-6-gfab2576$/;"	m
+GIT_HEAD_ID	Makefile	/^GIT_HEAD_ID = ppcg-0.08.2-14-gb6ffe0a$/;"	m
 GIT_HEAD_ID	gitversion.h	1;"	d
 GIT_HEAD_ID	isl/Makefile	/^GIT_HEAD_ID = isl-0.21$/;"	m
 GIT_HEAD_ID	isl/doc/Makefile	/^GIT_HEAD_ID = isl-0.21$/;"	m
@@ -1056,6 +1064,7 @@ HandleTopLevelDeclContinue	pet/config.h	107;"	d
 HandleTopLevelDeclReturn	isl/isl_config.h	135;"	d
 HandleTopLevelDeclReturn	pet/config.h	110;"	d
 I	kernel.h	6;"	d
+I	t2s_tests/gemm/kernel.h	6;"	d
 IMATH_DIR	isl/imath/tests/gmp-compat-test/Makefile	/^IMATH_DIR=..\/..$/;"	m
 IMATH_GMP_COMPAT_H_	isl/imath/gmp_compat.h	28;"	d
 IMATH_H_	isl/imath/imath.h	28;"	d
@@ -1570,8 +1579,11 @@ IslIntPrinter	isl/libisl-gdb.py	/^class IslIntPrinter:$/;"	c
 IslObjectPrinter	isl/libisl-gdb.py	/^class IslObjectPrinter:$/;"	c
 IslPrintCommand	isl/libisl-gdb.py	/^class IslPrintCommand (gdb.Command):$/;"	c
 J	kernel.h	7;"	d
+J	t2s_tests/gemm/kernel.h	7;"	d
 K	kernel.h	8;"	d
 K	pet/tests/QR.c	/^int N, K = 256;$/;"	v
+K	t2s_tests/2dconv/kernel.h	8;"	d
+K	t2s_tests/gemm/kernel.h	8;"	d
 KEY	isl/isl_flow.c	1880;"	d	file:
 KEY	isl/isl_flow.c	1881;"	d	file:
 KEY	isl/isl_schedule_constraints.c	548;"	d	file:
@@ -2105,8 +2117,8 @@ PKG_CONFIG	Makefile	/^PKG_CONFIG = \/usr\/bin\/pkg-config$/;"	m
 PKG_CONFIG	pet/Makefile	/^PKG_CONFIG = $/;"	m
 PKG_CONFIG_LIBDIR	Makefile	/^PKG_CONFIG_LIBDIR = $/;"	m
 PKG_CONFIG_LIBDIR	pet/Makefile	/^PKG_CONFIG_LIBDIR = $/;"	m
-PKG_CONFIG_PATH	Makefile	/^PKG_CONFIG_PATH = \/opt\/novell\/mono\/share\/pkgconfig:\/opt\/novell\/mono\/lib64\/pkgconfig:$/;"	m
-PKG_CONFIG_PATH	pet/Makefile	/^PKG_CONFIG_PATH = \/opt\/novell\/mono\/share\/pkgconfig:\/opt\/novell\/mono\/lib64\/pkgconfig:$/;"	m
+PKG_CONFIG_PATH	Makefile	/^PKG_CONFIG_PATH = \/opt\/novell\/mono\/share\/pkgconfig:\/opt\/novell\/mono\/lib64\/pkgconfig:\/opt\/novell\/mono\/share\/pkgconfig:\/opt\/novell\/mono\/lib64\/pkgconfig:$/;"	m
+PKG_CONFIG_PATH	pet/Makefile	/^PKG_CONFIG_PATH = \/opt\/novell\/mono\/share\/pkgconfig:\/opt\/novell\/mono\/lib64\/pkgconfig:\/opt\/novell\/mono\/share\/pkgconfig:\/opt\/novell\/mono\/lib64\/pkgconfig:$/;"	m
 POD2HTML	isl/Makefile	/^POD2HTML = pod2html$/;"	m
 POD2HTML	isl/doc/Makefile	/^POD2HTML = pod2html$/;"	m
 POD2HTML	isl/interface/Makefile	/^POD2HTML = pod2html$/;"	m
@@ -2218,6 +2230,7 @@ PragmaScopHandler	pet/pet.cc	/^struct PragmaScopHandler : public PragmaHandler {
 PragmaValueBoundsHandler	pet/pet.cc	/^	PragmaValueBoundsHandler(isl_ctx *ctx, Sema &sema) :$/;"	f	struct:PragmaValueBoundsHandler
 PragmaValueBoundsHandler	pet/pet.cc	/^struct PragmaValueBoundsHandler : public PragmaHandler {$/;"	s	file:
 Preprocessing	isl/doc/implementation.tex	/^produce an error if the problem turns out to be unbounded.$/;"	b
+R	t2s_tests/2dconv/kernel.h	6;"	d
 RANLIB	Makefile	/^RANLIB = ranlib$/;"	m
 RANLIB	isl/Makefile	/^RANLIB = ranlib$/;"	m
 RANLIB	isl/doc/Makefile	/^RANLIB = ranlib$/;"	m
@@ -2258,6 +2271,7 @@ S	isl/isl_union_templ.c	/^S(UNION,match_domain_data) {$/;"	f
 S	isl/isl_union_templ.c	/^S(UNION,plain_is_equal_data)$/;"	f
 S	isl/isl_union_templ.c	/^S(UNION,set_dim_name_data) {$/;"	f
 S	isl/isl_union_templ.c	/^S(UNION,transform_data)$/;"	f
+S	t2s_tests/2dconv/kernel.h	7;"	d
 SED	Makefile	/^SED = \/usr\/bin\/sed$/;"	m
 SED	isl/Makefile	/^SED = \/usr\/bin\/sed$/;"	m
 SED	isl/doc/Makefile	/^SED = \/usr\/bin\/sed$/;"	m
@@ -5238,6 +5252,8 @@ data	isl/include/isl/hash.h	/^	void     *data;$/;"	m	struct:isl_hash_table_entry
 data	isl/isl_blk.h	/^	isl_int *data;$/;"	m	struct:isl_blk
 data	isl/isl_flow.c	/^	void		*data;$/;"	m	struct:isl_labeled_map	file:
 data_t	kernel.h	/^typedef int data_t;$/;"	t
+data_t	t2s_tests/2dconv/kernel.h	/^typedef float data_t;$/;"	t
+data_t	t2s_tests/gemm/kernel.h	/^typedef int data_t;$/;"	t
 datadir	Makefile	/^datadir = ${datarootdir}$/;"	m
 datadir	isl/Makefile	/^datadir = ${datarootdir}$/;"	m
 datadir	isl/doc/Makefile	/^datadir = ${datarootdir}$/;"	m
@@ -5517,6 +5533,10 @@ dsa_kernel	kernel.polysa.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], dat
 dsa_kernel	kernel.ppcg.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	kernel_cpu.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	kernel_tile.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
+dsa_kernel	t2s_tests/2dconv/kernel.c	/^void dsa_kernel(data_t X[R + K - 1][S + K - 1], data_t W[K][K], data_t Z[R][S]) {$/;"	f
+dsa_kernel	t2s_tests/2dconv/kernel.polysa.c	/^void dsa_kernel(data_t X[R + K - 1][S + K - 1], data_t W[K][K], data_t Z[R][S]) {$/;"	f
+dsa_kernel	t2s_tests/gemm/kernel.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
+dsa_kernel	t2s_tests/gemm/kernel.polysa.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dst	grouping.c	/^	struct ppcg_grouping_leaf *dst;$/;"	m	struct:ppcg_merge_leaves_data	typeref:struct:ppcg_merge_leaves_data::ppcg_grouping_leaf	file:
 dst	isl/isl_scheduler.c	/^	int dst;$/;"	m	struct:isl_mark_merge_sccs_data	file:
 dst	isl/isl_scheduler.c	/^	struct isl_sched_node *dst;$/;"	m	struct:isl_sched_edge	typeref:struct:isl_sched_edge::isl_sched_node	file:
@@ -7622,6 +7642,7 @@ get_context	pet/interface/pet.py	/^    def get_context(self):$/;"	m	class:scop
 get_contraction	isl/include/isl/cpp-checked.h	/^isl::checked::union_pw_multi_aff schedule_node_expansion::get_contraction() const$/;"	f	class:isl::checked::schedule_node_expansion
 get_contraction	isl/include/isl/cpp.h	/^isl::union_pw_multi_aff schedule_node_expansion::get_contraction() const$/;"	f	class:isl::schedule_node_expansion
 get_dep_dis_at_node	polysa_common.c	/^__isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_keep isl_schedule_node *band)$/;"	f
+get_dep_dis_at_schedule	polysa_common.c	/^__isl_give isl_vec *get_dep_dis_at_schedule(__isl_keep isl_basic_map *dep, __isl_keep isl_schedule *schedule)$/;"	f
 get_div	isl/isl_tab_pip.c	/^	int (*get_div)(struct isl_context *context, struct isl_tab *tab,$/;"	m	struct:isl_context_op	file:
 get_div	isl/isl_tab_pip.c	/^static int get_div(struct isl_tab *tab, struct isl_context *context,$/;"	f	file:
 get_div_data	isl/imath/tests/gmp-compat-test/gendata.py	/^def get_div_data(n, d, rate=0.2):$/;"	f
@@ -13273,6 +13294,8 @@ main	pet/tests/unsigned2.c	/^int main()$/;"	f
 main	pet/tests/unsigned3.c	/^int main()$/;"	f
 main	ppcg.c	/^int main(int argc, char **argv)$/;"	f
 main	t2s.cpp	/^int main(void) {$/;"	f
+main	t2s_tests/2dconv/t2s.cpp	/^int main(void) {$/;"	f
+main	t2s_tests/gemm/t2s.cpp	/^int main(void) {$/;"	f
 main	tests/call.c	/^int main()$/;"	f
 main	tests/call2.c	/^int main()$/;"	f
 main	tests/call3.c	/^int main()$/;"	f
@@ -15751,10 +15774,12 @@ ppcg_macros	print.c	/^struct ppcg_macros {$/;"	s	file:
 ppcg_macros_default	print.c	/^struct ppcg_macros ppcg_macros_default = {$/;"	v	typeref:struct:ppcg_macros
 ppcg_macros_free	print.c	/^static void ppcg_macros_free(void *user)$/;"	f	file:
 ppcg_max	print.c	/^const char *ppcg_max = "ppcg_max";$/;"	v
+ppcg_max	t2s_tests/2dconv/kernel.polysa.c	7;"	d	file:
 ppcg_max_printed	print.c	/^static const char *ppcg_max_printed = "ppcg_max_printed";$/;"	v	file:
 ppcg_may_persist_data	gpu.c	/^struct ppcg_may_persist_data {$/;"	s	file:
 ppcg_merge_leaves_data	grouping.c	/^struct ppcg_merge_leaves_data {$/;"	s	file:
 ppcg_min	print.c	/^const char *ppcg_min = "ppcg_min";$/;"	v
+ppcg_min	t2s_tests/2dconv/kernel.polysa.c	6;"	d	file:
 ppcg_min_printed	print.c	/^static const char *ppcg_min_printed = "ppcg_min_printed";$/;"	v	file:
 ppcg_multi_val_from_int	util.c	/^__isl_give isl_multi_val *ppcg_multi_val_from_int(__isl_take isl_space *space,$/;"	f
 ppcg_multi_val_from_int_list	util.c	/^__isl_give isl_multi_val *ppcg_multi_val_from_int_list($/;"	f
@@ -16104,7 +16129,7 @@ print_stream_insertion	isl/interface/cpp.cc	/^void cpp_generator::print_stream_i
 print_sub_expr_c	isl/isl_ast.c	/^static __isl_give isl_printer *print_sub_expr_c(__isl_take isl_printer *p,$/;"	f	file:
 print_subclass_type	isl/interface/cpp.cc	/^void cpp_generator::print_subclass_type(ostream &os, const isl_class &clazz)$/;"	f	class:cpp_generator
 print_sync	cuda.c	/^static __isl_give isl_printer *print_sync(__isl_take isl_printer *p,$/;"	f	file:
-print_t2s_with_schedule	polysa_t2s.c	/^static __isl_give isl_schedule *print_t2s_with_schedule(__isl_take isl_schedule *schedule, $/;"	f	file:
+print_t2s_with_schedule	polysa_t2s.c	/^static isl_stat print_t2s_with_schedule($/;"	f	file:
 print_term	isl/isl_output.c	/^static __isl_give isl_printer *print_term(__isl_keep isl_space *space,$/;"	f	file:
 print_test_code	isl/imath/tests/gmp-compat-test/genctest.py	/^  def print_test_code(self, outf):$/;"	m	class:APITest
 print_throw_NULL_input	isl/interface/cpp.cc	/^static void print_throw_NULL_input(ostream &os)$/;"	f	file:
@@ -16165,6 +16190,7 @@ prog	gpu.h	/^	struct gpu_prog *prog;$/;"	m	struct:gpu_gen	typeref:struct:gpu_gen
 prog	gpu.h	/^	struct gpu_prog *prog;$/;"	m	struct:polysa_kernel	typeref:struct:polysa_kernel::gpu_prog
 prog	gpu.h	/^	struct gpu_prog *prog;$/;"	m	struct:ppcg_kernel	typeref:struct:ppcg_kernel::gpu_prog
 prog	opencl.c	/^	struct gpu_prog *prog;$/;"	m	struct:print_host_user_data_opencl	typeref:struct:print_host_user_data_opencl::gpu_prog	file:
+prog	polysa_t2s.h	/^  struct polysa_prog *prog;$/;"	m	struct:t2s_data	typeref:struct:t2s_data::polysa_prog
 prog_name	isl/isl_arg.c	/^static const char *prog_name(const char *prog)$/;"	f	file:
 program_details	isl/missing	/^program_details ()$/;"	f
 program_details	missing	/^program_details ()$/;"	f
@@ -18382,6 +18408,7 @@ try_merge	isl/isl_scheduler.c	/^static isl_bool try_merge(isl_ctx *ctx, struct i
 try_tightening	isl/isl_coalesce.c	/^static __isl_give isl_vec *try_tightening(struct isl_coalesce_info *info,$/;"	f	file:
 try_types	isl/imath/findsizes.py	/^try_types = [ "unsigned %s" % s for s in$/;"	v
 try_wrap_in_facets	isl/isl_coalesce.c	/^static enum isl_change try_wrap_in_facets(int i, int j,$/;"	f	file:
+ts_name	polysa_common.h	/^  char *ts_name;$/;"	m	struct:polysa_iter
 ts_space_name	hybrid.c	/^static const char *ts_space_name = "ts";$/;"	v	file:
 tuple_has_expr	isl/isl_input.c	/^static isl_bool tuple_has_expr(__isl_keep isl_multi_pw_aff *tuple)$/;"	f	file:
 tuple_id	isl/isl_space.c	/^static __isl_keep isl_id *tuple_id(__isl_keep isl_space *dim,$/;"	f	file:

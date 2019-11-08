@@ -76,6 +76,7 @@ isl_size isl_union_map_n_basic_map(__isl_keep isl_union_map *umap);
 __isl_give isl_basic_map_list *isl_union_map_get_basic_map_list(__isl_keep isl_union_map *umap);
 __isl_give isl_basic_map *isl_basic_map_from_map(__isl_take isl_map *map);
 __isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_keep isl_schedule_node *band);
+__isl_give isl_vec *get_dep_dis_at_schedule(__isl_keep isl_basic_map *dep, __isl_keep isl_schedule *schedule);
 __isl_null struct polysa_iter *polysa_iter_free(struct polysa_iter *iter);
 
 #endif

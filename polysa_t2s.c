@@ -1123,8 +1123,22 @@ static int t2s_update_access(__isl_keep pet_expr *expr, void *user)
     ast_expr = isl_ast_expr_access(func_expr, args);
   }
 
+//  // debug
+//  isl_printer *p_debug = isl_printer_to_file(data->ctx, stdout);
+//  p_debug = isl_printer_print_id_to_id(p_debug, data->ref2func);
+//  printf("\n");
+//  p_debug = isl_printer_print_ast_expr(p_debug, ast_expr);
+//  printf("\n");
+//  // debug
+
   stmt_data->stmts[stmt_data->stmt_num - 1]->ref2expr = 
     isl_id_to_ast_expr_set(stmt_data->stmts[stmt_data->stmt_num - 1]->ref2expr, id, ast_expr);
+  
+//  // debug
+//  p_debug = isl_printer_print_id_to_ast_expr(p_debug, stmt_data->stmts[stmt_data->stmt_num - 1]->ref2expr);
+//  printf("\n");
+//
+//  // debug
 
 	return 0;
 }
@@ -1590,6 +1604,13 @@ static isl_stat create_t2s_URE_from_text(struct t2s_data *data, __isl_take char 
   isl_printer_free(p);
    
   loc = strlen(func_name_tmp) - 1;
+  while((ch = func_name_tmp[loc--]) != ' ') {
+    ;
+  }
+  char *func_decl = (char *)malloc(sizeof(char) * (loc + 1 + 1));
+  strncpy(func_decl, func_name_tmp, loc + 1);
+  func_decl[loc + 1] = '\0';
+
   while((ch = func_name_tmp[loc--]) != '(') {
     ;
   }
@@ -1601,7 +1622,7 @@ static isl_stat create_t2s_URE_from_text(struct t2s_data *data, __isl_take char 
   int update_level = get_t2s_URE_update_level(UREs, URE_num, strdup(func_name));
   if (update_level == -1) {
     p = isl_printer_to_str(ctx);
-    p = isl_printer_print_str(p, func_name);
+    p = isl_printer_print_str(p, func_decl);
     p = isl_printer_print_str(p, " = 0;\n");
     char *init_URE_text = isl_printer_get_str(p);
     isl_printer_free(p);
@@ -1617,6 +1638,7 @@ static isl_stat create_t2s_URE_from_text(struct t2s_data *data, __isl_take char 
   data->URE_num++;
   
   free(func_name);
+  free(func_decl);
   return isl_stat_ok;
 }
 
@@ -1720,6 +1742,12 @@ static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node 
 	  p_str = isl_printer_set_output_format(p_str, ISL_FORMAT_C);
     struct ppcg_stmt *stmt_i = data->stmt_data->stmts[i];
     p_str = pet_stmt_print_body(stmt_i->stmt, p_str, stmt_i->ref2expr);
+//    // debug
+//    isl_printer *p_debug = isl_printer_to_file(data->ctx, stdout);
+//    p_debug = isl_printer_print_id_to_ast_expr(p_debug, stmt_i->ref2expr);
+//    printf("\n");
+//
+//    // debug
     char *stmt_text = isl_printer_get_str(p_str);
     stmt_text = c_to_t2s_stmt(stmt_text, isl_set_copy(data->stmt_data->stmt_domain[i]), data->iter_num);
 //    data->t2s_stmt_text[data->t2s_stmt_num + i] = isl_printer_get_str(p_str);
@@ -2405,6 +2433,7 @@ static isl_stat extract_iters(struct t2s_data *data) {
 //    // debug
       isl_val *size_i = isl_multi_val_get_val(size, i);
       offset_i = isl_aff_add_constant_val(offset_i, size_i);
+      offset_i = isl_aff_add_constant_si(offset_i, -1);
       iter->ub = offset_i;
     }
 
@@ -2451,7 +2480,14 @@ static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, 
 
     isl_map *untagged_dep_i = isl_map_factor_domain(isl_map_from_basic_map(isl_basic_map_copy(dep_i)));
     isl_basic_map *bmap_dep_i = isl_basic_map_from_map(untagged_dep_i);
-    disvec = get_dep_dis_at_node(bmap_dep_i, band);
+    // disvec = get_dep_dis_at_node(bmap_dep_i, band);
+    disvec = get_dep_dis_at_schedule(bmap_dep_i, schedule);
+//    // debug
+//    isl_printer *p = isl_printer_to_file(data->ctx, stdout);
+//    p = isl_printer_print_vec(p, disvec);
+//    printf("\n");
+//    isl_printer_free(p);
+//    // debug
     isl_basic_map_free(bmap_dep_i);
 
     isl_space *space = isl_basic_map_get_space(dep_i);
@@ -2500,7 +2536,8 @@ static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, 
 
     isl_map *untagged_dep_i = isl_map_factor_domain(isl_map_from_basic_map(isl_basic_map_copy(dep_i)));
     isl_basic_map *bmap_dep_i = isl_basic_map_from_map(untagged_dep_i);
-    disvec = get_dep_dis_at_node(bmap_dep_i, band);
+    // disvec = get_dep_dis_at_node(bmap_dep_i, band);
+    disvec = get_dep_dis_at_schedule(bmap_dep_i, schedule);
     isl_basic_map_free(bmap_dep_i);
 
     isl_space *space = isl_basic_map_get_space(dep_i);
@@ -2543,7 +2580,8 @@ static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, 
 
     isl_map *untagged_dep_i = isl_map_factor_domain(isl_map_from_basic_map(isl_basic_map_copy(dep_i)));
     isl_basic_map *bmap_dep_i = isl_basic_map_from_map(untagged_dep_i);
-    disvec = get_dep_dis_at_node(bmap_dep_i, band);
+    // disvec = get_dep_dis_at_node(bmap_dep_i, band);
+    disvec = get_dep_dis_at_schedule(bmap_dep_i, schedule);
     isl_basic_map_free(bmap_dep_i);
 
     isl_space *space = isl_basic_map_get_space(dep_i);
@@ -2885,7 +2923,7 @@ static struct t2s_array_ref_group *join_groups(
   group->n_ref = group1->n_ref + group2->n_ref;
   group->refs = isl_alloc_array(ctx, struct gpu_stmt_access *,
       group->n_ref);
-  if (!group->refs);
+  if (!group->refs)
     return t2s_array_ref_group_free(group);
   for (int i = 0; i < group1->n_ref; i++)
     group->refs[i] = group1->refs[i];
@@ -3691,17 +3729,19 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 
 	schedule = get_schedule(scop, options);
 
+//  // debug
+//  isl_printer *p_debug = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+//  p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
+//  p_debug = isl_printer_print_schedule(p_debug, schedule);
+//  printf("\n");
+//  isl_printer_free(p_debug);
+//  // debug
+    
   /*  Check if the program is legal to be mapped to systolic array. */
   isl_bool is_legal = sa_legality_check(schedule, scop);
   if (is_legal != isl_bool_true) {
     printf("[PolySA] Illegal to be transformed to systolic array.\n");
   }
-  
-//  // debug
-//  isl_printer *p_debug = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
-//  p_debug = isl_printer_print_schedule(p_debug, schedule);
-//  printf("\n");
-//  // debug
 
   if (is_legal) {
     /* Generate systolic arrays using space-time mapping. */
@@ -3729,9 +3769,6 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 
     polysa_prog_free(sa_opt);
   }
-
-//  schedule = test_func0(schedule, scop);
-//  schedule = test_func1(schedule, scop);
 
   /* Generate the transformed CPU program. */
 	return print_cpu_with_schedule(p, scop, schedule, options);

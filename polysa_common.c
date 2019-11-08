@@ -275,25 +275,94 @@ void print_mat(FILE *fp, __isl_keep isl_mat *mat)
  */
 isl_bool is_dep_uniform(__isl_take isl_basic_map *bmap, void *user)
 {
+  isl_bool is_uniform;
   isl_schedule *schedule = (isl_schedule *)(user);
   isl_schedule_node *root = isl_schedule_get_root(schedule);
-  /* Search for the first permutable node and analyze the dep. */
-  isl_bool is_uniform = isl_schedule_node_every_descendant(root,
-      &is_dep_uniform_at_node, bmap);
+  isl_ctx *ctx = isl_basic_map_get_ctx(bmap);
+//  /* Search for the first permutable node and analyze the dep. */
+//  is_uniform = isl_schedule_node_every_descendant(root,
+//      &is_dep_uniform_at_node, bmap);
+
+  /* Get the full schedule and apply the schedule to both the domain and range of the dependence.
+   * Generate the set from this map, and apply a map that calculate the diff at each dimension to 
+   * get the dependence vector. At last, check if the dependence vector is a constant vector.
+   */
+  isl_union_map *full_sched = isl_schedule_node_get_subtree_schedule_union_map(root);
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_print_union_map(p, full_sched);
+//  printf("\n");
+//  p = isl_printer_print_basic_map(p, bmap);
+//  printf("\n");
+//  // debug
+  isl_union_map *dep_tmp = isl_union_map_apply_domain(isl_union_map_from_map(isl_map_from_basic_map(bmap)), isl_union_map_copy(full_sched));
+  isl_union_map *dep = isl_union_map_apply_range(dep_tmp, full_sched);
+
   isl_schedule_node_free(root);
 
-  isl_basic_map_free(bmap);
-  return is_uniform;
+  isl_map *dep_map = isl_map_from_union_map(dep);
+  isl_basic_map *dep_bmap = isl_basic_map_from_map(isl_map_copy(dep_map));
 
-//  isl_schedule_node_band_get_partial_schedule_union_map
-//  isl_multi_union_pw_aff_get_union_pw_aff
-//  isl_union_pw_aff_add_pw_aff
-//  isl_union_pw_aff_n_pw_aff
-//  isl_union_pw_aff_foreach_pw_aff
-//  isl_union_pw_aff_extract_pw_aff
-//  isl_pw_aff_is_cst
-//  isl_pw_aff_sub
-//  isl_pw_aff_eval()
+  isl_set *src_dep_domain = isl_map_domain(isl_map_copy(dep_map));
+  isl_map *src_dep_domain_map = isl_set_identity(src_dep_domain);
+  isl_multi_pw_aff *src_mpa = isl_multi_pw_aff_identity(isl_map_get_space(src_dep_domain_map));
+  isl_map_free(src_dep_domain_map);
+
+  isl_set *dest_dep_domain = isl_map_range(dep_map);
+  isl_map *dest_dep_domain_map = isl_set_identity(dest_dep_domain);
+  isl_multi_pw_aff *dest_mpa = isl_multi_pw_aff_identity(isl_map_get_space(dest_dep_domain_map));
+  isl_map_free(dest_dep_domain_map);
+
+//  // debug
+//  p = isl_printer_print_multi_pw_aff(p, src_mpa);
+//  printf("\n");
+//  p = isl_printer_print_multi_pw_aff(p, dest_mpa);
+//  printf("\n");
+//  // debug
+
+  /* Add dims */
+  isl_size src_dim = isl_multi_pw_aff_dim(src_mpa, isl_dim_in);
+  isl_size dest_dim = isl_multi_pw_aff_dim(dest_mpa, isl_dim_in);
+  src_mpa = isl_multi_pw_aff_insert_dims(src_mpa, isl_dim_in, src_dim, dest_dim);
+  dest_mpa = isl_multi_pw_aff_insert_dims(dest_mpa, isl_dim_in, 0, src_dim);
+
+//  // debug
+//  p = isl_printer_print_multi_pw_aff(p, src_mpa);
+//  printf("\n");
+//  p = isl_printer_print_multi_pw_aff(p, dest_mpa);
+//  printf("\n");
+//  // debug
+ 
+  isl_multi_pw_aff *dep_dis_mpa = isl_multi_pw_aff_sub(dest_mpa, src_mpa);
+//  // debug
+//  p = isl_printer_print_multi_pw_aff(p, dep_dis_mpa);
+//  printf("\n");
+//  // debug
+
+  /* Convert the basic map to basic_set */
+  isl_mat *eq_mat = isl_basic_map_equalities_matrix(dep_bmap,
+      isl_dim_in, isl_dim_out, isl_dim_div, isl_dim_param, isl_dim_cst);
+  isl_mat *ieq_mat = isl_basic_map_inequalities_matrix(dep_bmap,
+      isl_dim_in, isl_dim_out, isl_dim_div, isl_dim_param, isl_dim_cst);
+  isl_basic_set *dep_bset = isl_basic_set_from_constraint_matrices(
+      isl_space_domain(isl_multi_pw_aff_get_space(dep_dis_mpa)),
+      eq_mat, ieq_mat,
+      isl_dim_set, isl_dim_div, isl_dim_param, isl_dim_cst);
+
+  dep_dis_mpa = isl_multi_pw_aff_intersect_domain(dep_dis_mpa, isl_set_from_basic_set(dep_bset));
+//  // debug
+//  p = isl_printer_print_multi_pw_aff(p, dep_dis_mpa);
+//  printf("\n");
+//  // debug
+  is_uniform = isl_multi_pw_aff_is_cst(dep_dis_mpa);
+
+  isl_multi_pw_aff_free(dep_dis_mpa);
+  isl_basic_map_free(dep_bmap);
+
+//  isl_basic_map_free(bmap);
+//  isl_schedule_node_free(root);
+
+  return is_uniform;
 }
 
 isl_bool is_dep_uniform_wrap(__isl_keep isl_map *map, void *user) 
@@ -329,23 +398,20 @@ isl_bool uniform_dep_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
 
 /* A program is legal to be transformed to systolic array if and on if 
  * it satisfies the following constraints:
- * - single fully permutable band
+ * - one single fully permutable outermost band
  * - uniform dependency
  */
 isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop) {
-//  // debug
-//  FILE *fp = fopen("schedule.tmp", "w");
-//  isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(schedule), fp);
-//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-//  isl_printer_print_schedule(printer, schedule);
-//  isl_printer_free(printer);
-//  fclose(fp);
-//  // debug
-
-  /* Check if there is only one single permutable band in the schedule tree. */
-  isl_bool single_p_band = has_single_permutable_node(schedule);
-  if (single_p_band < 1) {
-    printf("[PolySA] Single permutable band not found.\n");
+  /* Check if the root node point to a band node */
+  isl_bool single_p_band;
+  isl_schedule_node *node = isl_schedule_get_root(schedule);
+  node = isl_schedule_node_child(node, 0);
+  enum isl_schedule_node_type type;
+  type = isl_schedule_node_get_type(node);
+  single_p_band = (type == isl_schedule_node_band);
+  isl_schedule_node_free(node);
+  if (!single_p_band) {
+    printf("[PolySA] Single outermost permutable band not found.\n");
     return isl_bool_false;
   }
 
@@ -357,6 +423,91 @@ isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
   }
 
   return isl_bool_true;
+}
+
+/* Set *depth (initialized to 0 by the caller) to the maximum
+ * of the schedule depths of the leaf nodes for which this function is called.
+ */
+static isl_bool update_depth(__isl_keep isl_schedule_node *node, void *user)
+{
+	int *depth = user;
+	int node_depth;
+
+	if (isl_schedule_node_get_type(node) != isl_schedule_node_leaf)
+		return isl_bool_true;
+	node_depth = isl_schedule_node_get_schedule_depth(node);
+	if (node_depth > *depth)
+		*depth = node_depth;
+
+	return isl_bool_false;
+}
+
+__isl_give isl_vec *get_dep_dis_at_schedule(__isl_keep isl_basic_map *dep, __isl_keep isl_schedule *schedule)
+{
+  isl_schedule_node *root = isl_schedule_get_root(schedule);
+  isl_ctx *ctx = isl_basic_map_get_ctx(dep);
+  isl_union_map *full_sched = isl_schedule_node_get_subtree_schedule_union_map(root);
+  isl_schedule_node_free(root);
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_print_union_map(p, full_sched);
+//  printf("\n");
+//  isl_printer_free(p);
+//  // debug
+
+  /* Extract the iterator num. */
+  int iter_num;
+  isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth, &iter_num);
+
+  isl_union_map *dep_sched = isl_union_map_apply_domain(isl_union_map_from_map(isl_map_from_basic_map(isl_basic_map_copy(dep))),
+      isl_union_map_copy(full_sched));
+  dep_sched = isl_union_map_apply_range(dep_sched, full_sched);
+
+  isl_map *dep_map = isl_map_from_union_map(dep_sched);
+  isl_basic_map *dep_bmap = isl_basic_map_from_map(isl_map_copy(dep_map));
+
+  isl_set *src_dep_domain = isl_map_domain(isl_map_copy(dep_map));
+  isl_map *src_dep_domain_map = isl_set_identity(src_dep_domain);
+  isl_multi_pw_aff *src_mpa = isl_multi_pw_aff_identity(isl_map_get_space(src_dep_domain_map));
+  isl_map_free(src_dep_domain_map);
+
+  isl_set *dest_dep_domain = isl_map_range(dep_map);
+  isl_map *dest_dep_domain_map = isl_set_identity(dest_dep_domain);
+  isl_multi_pw_aff *dest_mpa = isl_multi_pw_aff_identity(isl_map_get_space(dest_dep_domain_map));
+  isl_map_free(dest_dep_domain_map);
+
+  /* Add dims. */
+  isl_size src_dim = isl_multi_pw_aff_dim(src_mpa, isl_dim_in);
+  isl_size dest_dim = isl_multi_pw_aff_dim(dest_mpa, isl_dim_in);
+  src_mpa = isl_multi_pw_aff_insert_dims(src_mpa, isl_dim_in, src_dim, dest_dim);
+  dest_mpa = isl_multi_pw_aff_insert_dims(dest_mpa, isl_dim_in, 0, src_dim);
+
+  isl_multi_pw_aff *dep_dis_mpa = isl_multi_pw_aff_sub(dest_mpa, src_mpa);
+
+  /* Convert the basic map to basic_set. */
+  isl_mat *eq_mat = isl_basic_map_equalities_matrix(dep_bmap,
+      isl_dim_in, isl_dim_out, isl_dim_div, isl_dim_param, isl_dim_cst);
+  isl_mat *ieq_mat = isl_basic_map_inequalities_matrix(dep_bmap,
+      isl_dim_in, isl_dim_out, isl_dim_div, isl_dim_param, isl_dim_cst);
+  isl_basic_set *dep_bset = isl_basic_set_from_constraint_matrices(
+      isl_space_domain(isl_multi_pw_aff_get_space(dep_dis_mpa)),
+      eq_mat, ieq_mat,
+      isl_dim_set, isl_dim_div, isl_dim_param, isl_dim_cst);
+
+  dep_dis_mpa = isl_multi_pw_aff_intersect_domain(dep_dis_mpa, isl_set_from_basic_set(isl_basic_set_copy(dep_bset)));
+  isl_vec *dep_dis = isl_vec_zero(ctx, iter_num);
+  for (int i = 0; i < isl_vec_size(dep_dis); i++) {
+    isl_pw_aff *pa = isl_multi_pw_aff_get_pw_aff(dep_dis_mpa, i);
+    isl_val *val = isl_pw_aff_eval(pa, isl_basic_set_sample_point(isl_basic_set_copy(dep_bset)));
+    dep_dis = isl_vec_set_element_val(dep_dis, i, val);
+  }
+
+  isl_basic_set_free(dep_bset);
+  isl_basic_map_free(dep_bmap);
+  isl_multi_pw_aff_free(dep_dis_mpa);
+
+  return dep_dis;
 }
 
 /* Compute the dependence distance vector of the dependence under the partial schedule of the band node. */
