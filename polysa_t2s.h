@@ -106,6 +106,9 @@ struct t2s_data {
   /* The simplified scheduling domain of all the statements. */
   isl_union_set *stmt_sim_domain;
 
+  /* Internal use. */
+  isl_union_map *sched;
+
   /* URE. */
   struct t2s_URE **URE;
   int URE_num;

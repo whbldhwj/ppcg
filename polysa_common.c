@@ -457,7 +457,7 @@ __isl_give isl_vec *get_dep_dis_at_schedule(__isl_keep isl_basic_map *dep, __isl
 //  // debug
 
   /* Extract the iterator num. */
-  int iter_num;
+  int iter_num = 0;
   isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth, &iter_num);
 
   isl_union_map *dep_sched = isl_union_map_apply_domain(isl_union_map_from_map(isl_map_from_basic_map(isl_basic_map_copy(dep))),

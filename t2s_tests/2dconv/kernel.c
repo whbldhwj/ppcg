@@ -7,7 +7,7 @@ void dsa_kernel(data_t X[R + K - 1][S + K - 1], data_t W[K][K], data_t Z[R][S]) 
 //      Z[r][s] = 0;
       for (int i = 0; i < K; i++) 
         for (int j = 0; j < K; j++) {
-          if (r == 0 && s == 0)
+          if (i == 0 && j == 0)
             Z[r][s] = 0;
           Z[r][s] = Z[r][s] + X[r + i][s + j] * W[i][j];
         }
