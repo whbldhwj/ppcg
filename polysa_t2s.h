@@ -108,6 +108,7 @@ struct t2s_data {
 
   /* Internal use. */
   isl_union_map *sched;
+  isl_schedule *schedule;
 
   /* URE. */
   struct t2s_URE **URE;

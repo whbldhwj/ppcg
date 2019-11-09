@@ -105,6 +105,62 @@ static void polysa_stmt_free(void *user)
   free(p_stmt);
 }
 
+static isl_bool update_seq_band(__isl_keep isl_schedule_node *node, void *user)
+{
+  enum isl_schedule_node_type node_type = isl_schedule_node_get_type(node);
+  enum isl_schedule_node_type *type_depth = user;
+  int total_band_depth = isl_schedule_node_get_schedule_depth(node);
+  int total_seq_depth = 0;
+  isl_schedule_node *node_tmp = isl_schedule_node_copy(node);
+  while (isl_schedule_node_has_parent(node_tmp)) {
+    node_tmp = isl_schedule_node_parent(node_tmp);
+    if (isl_schedule_node_get_type(node_tmp) == isl_schedule_node_sequence)
+      total_seq_depth += 1;
+  }
+  isl_schedule_node_free(node_tmp);
+  int cur_depth = total_band_depth + total_seq_depth;
+
+  if (node_type == isl_schedule_node_band) {
+    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+      type_depth[cur_depth + i] = node_type;
+    }
+  } else if (node_type == isl_schedule_node_sequence) {
+    type_depth[cur_depth + 0] = node_type;
+  }
+
+  return isl_bool_true;
+}
+
+static __isl_give isl_set *t2s_peel_off_scalar_dims(__isl_take isl_set *set, __isl_keep isl_schedule *schedule)
+{
+  isl_schedule_node *root = isl_schedule_get_root(schedule);
+  isl_union_map *full_sched = isl_schedule_node_get_subtree_schedule_union_map(root);
+  isl_set *sched_range = isl_set_from_union_set(isl_union_map_range(full_sched));
+  int sched_depth = isl_set_dim(sched_range, isl_dim_set);
+  isl_set_free(sched_range);
+  isl_schedule_node_free(root);
+
+  enum isl_schedule_node_type *type_depth = isl_calloc_array(isl_schedule_get_ctx(schedule), 
+      enum isl_schedule_node_type, sched_depth);
+  for (int i = 0; i < sched_depth; i++) {
+    type_depth[i] = -1;
+  }
+
+  isl_schedule_foreach_schedule_node_top_down(
+      schedule, &update_seq_band, type_depth);
+
+  int proj_dim = 0;
+  for (int i = 0; i < sched_depth; i++) {
+    if (type_depth[i] == isl_schedule_node_sequence) {
+      set = isl_set_project_out(set, isl_dim_set, i - proj_dim, 1);
+      proj_dim++;
+    }
+  }
+
+  free(type_depth);
+  return set;
+}
+
 /* Derive the output file name from the input file name.
  * 'input' is the entire path of the input file. The output
  * is the file name plus the additional extension.
@@ -1243,8 +1299,9 @@ isl_bool gen_t2s_stmt(__isl_take struct polysa_dep **dep_stmt_pair, struct ppcg_
   isl_space_free(space);
 
   /* Peel off the scalar dimensions. */
-  union_domain = isl_set_project_out(union_domain,
-      isl_dim_set, data->iter_num, isl_set_dim(union_domain, isl_dim_set) - data->iter_num);
+//  union_domain = isl_set_project_out(union_domain,
+//      isl_dim_set, data->iter_num, isl_set_dim(union_domain, isl_dim_set) - data->iter_num);
+  union_domain = t2s_peel_off_scalar_dims(union_domain, data->schedule);
 
   data->stmt_data->stmt_num += 1;
   data->stmt_data->stmts = (struct ppcg_stmt **)realloc(data->stmt_data->stmts, data->stmt_data->stmt_num * sizeof(struct ppcg_stmt *));
@@ -1385,6 +1442,8 @@ static char *isl_set_to_t2s_format(__isl_keep isl_set *set)
             p = isl_printer_print_str(p, " * ");
           }
           p = isl_printer_print_str(p, name);
+          if (is_first)
+            is_first = 0;
         }
         isl_val_free(val);
       }
@@ -1401,6 +1460,8 @@ static char *isl_set_to_t2s_format(__isl_keep isl_set *set)
             p = isl_printer_print_str(p, " * ");
           }
           p = isl_printer_print_str(p, name);
+          if (is_first)
+            is_first = 0;
         }
         isl_val_free(val);
       }
@@ -1924,14 +1985,22 @@ static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
     isl_set *reuse_domain = isl_set_gist(dep_dest_domain, anchor_domain);
     
     /* Peel off the scalar dimensions */
-    init_domain = isl_set_project_out(init_domain,
-        isl_dim_set, data->iter_num, isl_set_dim(init_domain, isl_dim_set) - data->iter_num);
-    reuse_domain = isl_set_project_out(reuse_domain,
-        isl_dim_set, data->iter_num, isl_set_dim(reuse_domain, isl_dim_set) - data->iter_num);
-
+//    init_domain = isl_set_project_out(init_domain,
+//        isl_dim_set, data->iter_num, isl_set_dim(init_domain, isl_dim_set) - data->iter_num);
+//    reuse_domain = isl_set_project_out(reuse_domain,
+//        isl_dim_set, data->iter_num, isl_set_dim(reuse_domain, isl_dim_set) - data->iter_num);
+    init_domain = t2s_peel_off_scalar_dims(init_domain, data->schedule);
+    reuse_domain = t2s_peel_off_scalar_dims(reuse_domain, data->schedule);
+      
     /* Set up the iterator names. */
     init_domain = t2s_set_set_iters(init_domain);
     reuse_domain = t2s_set_set_iters(reuse_domain);
+
+//    // debug
+//    isl_printer *p = isl_printer_to_file(data->ctx, stdout);
+//    p = isl_printer_print_set(p, init_domain);
+//    printf("\n");
+//    // debug
 
     char *init_domain_str = isl_set_to_t2s_format(init_domain);
     isl_set_free(init_domain);
@@ -2160,8 +2229,9 @@ static int t2s_drain_URE_access(__isl_keep pet_expr *expr, void *user)
     writeout_domain = isl_set_gist(writeout_domain, anchor_domain);
 
     /* Peel off the scalar dimensions. */
-    writeout_domain = isl_set_project_out(writeout_domain,
-        isl_dim_set, data->iter_num, isl_set_dim(writeout_domain, isl_dim_set) - data->iter_num);
+//    writeout_domain = isl_set_project_out(writeout_domain,
+//        isl_dim_set, data->iter_num, isl_set_dim(writeout_domain, isl_dim_set) - data->iter_num);
+    writeout_domain = t2s_peel_off_scalar_dims(writeout_domain, data->schedule);
 
     if (isl_set_is_empty(writeout_domain)) {
       isl_set_free(writeout_domain);
@@ -2418,7 +2488,7 @@ static __isl_give isl_schedule_node *create_dep(__isl_take isl_schedule_node *no
  * - upper bound
  * - stride
  */
-static isl_stat extract_iters(struct t2s_data *data) {
+static isl_stat extract_iters(__isl_keep isl_schedule *schedule, struct t2s_data *data) {
   isl_ctx *ctx;
   isl_set *domain = isl_set_copy(data->anchor_domain); 
   int iter_num = data->iter_num;
@@ -2426,6 +2496,15 @@ static isl_stat extract_iters(struct t2s_data *data) {
   
 //  // debug
 //  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_print_set(p, domain);
+//  printf("\n");
+//  // debug
+
+  /* Peel off the scalar dimensions. */
+  domain = t2s_peel_off_scalar_dims(domain, schedule);
+
+//  // debug
+////  isl_printer *p = isl_printer_to_file(ctx, stdout);
 //  p = isl_printer_print_set(p, domain);
 //  printf("\n");
 //  // debug
@@ -3692,6 +3771,7 @@ static __isl_give struct t2s_data *t2s_data_init(__isl_take struct t2s_data *d) 
   d->array = NULL;
   d->group_data = NULL;
   d->prog = NULL;
+  d->schedule = NULL;
 }
 
 static isl_stat extract_anchor_domain(__isl_keep isl_schedule *schedule, struct t2s_data *data) {
@@ -3736,6 +3816,7 @@ static isl_stat print_t2s_with_schedule(
   data->ctx = ctx;
   data->scop = scop;
   data->prog = prog;
+  data->schedule = schedule;
   FILE *t2s_fp = fopen("t2s.cpp", "w");
   data->p = isl_printer_to_file(ctx, t2s_fp); 
 
@@ -3763,7 +3844,7 @@ static isl_stat print_t2s_with_schedule(
   extract_anchor_domain(schedule, data);
 
   /* Generate the iterator meta data. */
-  extract_iters(data);
+  extract_iters(schedule, data);
 
   /* Calculate the simplified domain (in scheduling dims) for each statement. */
   data->stmt_domain = NULL;
@@ -3810,6 +3891,67 @@ static isl_stat print_t2s_with_schedule(
 
   prog->schedule = schedule;
   return isl_stat_ok;
+}
+
+/* Sequence node and band node are not allowed to appear at the same level. */
+static isl_bool t2s_legal_at_node(__isl_keep isl_schedule_node *node, void *user) {
+  enum isl_schedule_node_type *type_depth = user;
+  enum isl_schedule_node_type node_type = isl_schedule_node_get_type(node);
+
+  /* Calculate the total schedule depth */
+  int total_band_depth = isl_schedule_node_get_schedule_depth(node);
+  int total_seq_depth = 0;
+  isl_schedule_node *node_tmp = isl_schedule_node_copy(node);
+  while (isl_schedule_node_has_parent(node_tmp)) {
+    node_tmp = isl_schedule_node_parent(node_tmp);
+    if (isl_schedule_node_get_type(node_tmp) == isl_schedule_node_sequence)
+      total_seq_depth += 1;
+  }
+  isl_schedule_node_free(node_tmp);
+
+  int cur_depth = total_band_depth + total_seq_depth;
+
+  if (node_type == isl_schedule_node_band) {
+    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+      if (type_depth[cur_depth + i] == -1)
+        type_depth[cur_depth + i] = node_type;
+      else {
+        if (type_depth[cur_depth + i] != node_type)
+          return isl_bool_false;
+      }
+    }
+  } else if (node_type == isl_schedule_node_sequence) {
+    if (type_depth[cur_depth] == -1)
+      type_depth[cur_depth] = node_type;
+    else if (type_depth[cur_depth] != node_type)
+      return isl_bool_false;
+  }
+
+  return isl_bool_true;
+}
+
+/* Check if all the sibling nodes at the same level are of the same node type. */
+static isl_bool t2s_legality_check(__isl_keep isl_schedule *schedule) {
+  isl_schedule_node *root = isl_schedule_get_root(schedule);
+  /* Get the schedule depth. */
+  isl_union_map *full_sched = isl_schedule_node_get_subtree_schedule_union_map(root);
+  isl_set *sched_range = isl_set_from_union_set(isl_union_map_range(full_sched));
+  int sched_depth = isl_set_dim(sched_range, isl_dim_set);
+  isl_set_free(sched_range);
+
+  enum isl_schedule_node_type *type_depth = isl_calloc_array(isl_schedule_get_ctx(schedule),
+      enum isl_schedule_node_type, sched_depth);
+  for (int i = 0; i < sched_depth; i++) {
+    type_depth[i] = -1;
+  }
+
+  isl_bool is_legal = isl_schedule_node_every_descendant(root,
+      &t2s_legal_at_node, type_depth);
+
+  isl_schedule_node_free(root);
+  free(type_depth);
+
+  return is_legal;
 }
 
 /* Generate CPU code for "scop" and print it to "p".
@@ -3859,7 +4001,12 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 //    // debug
 
     /* Generate T2S program. */
-    print_t2s_with_schedule(sa_opt, scop);
+    isl_bool is_t2s_legal = t2s_legality_check(sa_opt->schedule);
+    if (is_t2s_legal) {
+      print_t2s_with_schedule(sa_opt, scop);
+    } else {
+      printf("[PolySA] Illegal to be transformed to T2S program.\n");
+    }
     schedule = isl_schedule_copy(sa_opt->schedule);
 
     polysa_prog_free(sa_opt);
