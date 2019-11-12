@@ -3930,8 +3930,8 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 		return NULL;
 
   // debug
-  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
 ////  isl_printer_print_schedule_node(printer, node);
 ////  printf("\n");
 //  // debug
@@ -4079,15 +4079,15 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 	node = gpu_tree_move_up_to_kernel(node);
 
 	node = add_sync(kernel, node);
-  // debug
-  isl_printer_print_schedule_node(printer, node);
-  printf("\n");
-  // debug
+//  // debug
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
+//  // debug
 	node = add_copies(kernel, node);
-  // debug
-  isl_printer_print_schedule_node(printer, node);
-  printf("\n");
-  // debug
+//  // debug
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
+//  // debug
 
 	node = gpu_tree_move_down_to_shared(node, kernel->core);
 	node = isl_schedule_node_delete(node);
@@ -4255,9 +4255,9 @@ static __isl_give isl_schedule_node *mark_outer_permutable(
 	sizes = construct_band_tiles_sizes(node, tile_size);
 	node = tile_band(node, isl_multi_val_copy(sizes));
 
-  // debug
-  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//  // debug
+//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
 //  isl_printer_print_schedule_node(printer, node);
 //  printf("\n");
   // debug
@@ -4272,10 +4272,10 @@ static __isl_give isl_schedule_node *mark_outer_permutable(
 	scale = gen->options->scale_tile_loops;
 	node = gpu_create_kernel(gen, node, scale, sizes);
 
-  // debug
-  isl_printer_print_schedule_node(printer, node);
-  printf("\n");
-  // debug
+//  // debug
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
+//  // debug
 	isl_multi_val_free(sizes);
 	free(tile_size);
 
@@ -5869,12 +5869,12 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 			p = print_cpu(p, scop, options);
 		isl_schedule_free(schedule);
 	} else {
-//    // debug
-//    isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
-//    isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-//    isl_printer_print_schedule(printer, schedule);
-//    printf("\n");
-//    // debug
+    // debug
+    isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+    isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+    isl_printer_print_schedule(printer, schedule);
+    printf("\n");
+    // debug
 		schedule = map_to_device(gen, schedule);
 //    // debug
 //    isl_printer_print_schedule(printer, schedule);
@@ -6657,8 +6657,8 @@ __isl_give isl_schedule_node *polysa_create_kernel(struct gpu_gen *gen,
   node = gpu_tree_move_up_to_kernel(node);
 
   // debug
-  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
 //  isl_printer_print_schedule_node(printer, node);
 //  printf("\n");
 //  // debug
@@ -6695,8 +6695,8 @@ __isl_give isl_schedule_node *polysa_create_kernel(struct gpu_gen *gen,
     isl_union_pw_multi_aff_pullback_union_pw_multi_aff(
               kernel->copy_schedule, contraction);
   // debug
-  isl_printer_print_union_pw_multi_aff(printer, kernel->copy_schedule);
-  printf("\n");
+//  isl_printer_print_union_pw_multi_aff(printer, kernel->copy_schedule);
+//  printf("\n");
   // debug
 
   node = gpu_tree_move_up_to_kernel(node);
@@ -6791,10 +6791,10 @@ static __isl_give isl_schedule_node *mark_systolizable(
 	node = isl_schedule_node_parent(node);
 
   // debug
-  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-  isl_printer_print_schedule_node(printer, node);
-  printf("\n");
+//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
   // debug
 
 	scale = gen->options->scale_tile_loops;
@@ -6807,9 +6807,9 @@ static __isl_give isl_schedule_node *mark_systolizable(
 //  node = isl_schedule_node_child(node, 0);
 //  node = isl_schedule_node_child(node, 0);
 
-  isl_printer_print_schedule_node(printer, node);
-  printf("\n");
-  isl_printer_free(printer);
+//  isl_printer_print_schedule_node(printer, node);
+//  printf("\n");
+//  isl_printer_free(printer);
 //
 //  enum isl_schedule_node_type type = isl_schedule_node_get_type(node);
 //  switch(type) {

@@ -555,8 +555,10 @@ static __isl_give isl_mat *get_acc_mat_from_tagged_acc(__isl_keep isl_map *map)
       }
       isl_val_free(mat_val);
     }
-    if (!isl_val_is_one(sum))
+    if (!isl_val_is_one(sum)) {
+      isl_val_free(sum);
       continue;
+    }
     for (int col = 0; col < isl_basic_map_dim(bmap, isl_dim_in); col++) {
       isl_mat_set_element_val(acc_mat, index, col, isl_val_neg(isl_mat_get_element_val(eq_mat, row, col + isl_basic_map_dim(bmap, isl_dim_out))));
     }
@@ -678,23 +680,30 @@ static isl_stat build_rar_dep(__isl_take isl_map *map, void *user) {
     return isl_stat_ok;
   }
 
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_map_get_ctx(map), stdout);
+//  p = isl_printer_print_map(p, map);
+//  printf("\n");
+//  // debug
+
   /* Take the access function and compute the null space */
   isl_mat *acc_mat = get_acc_mat_from_tagged_acc(map); 
   isl_mat *acc_null_mat = isl_mat_right_kernel(acc_mat);
   int nsol = isl_mat_cols(acc_null_mat);
-  assert(nsol > 0);
+  // assert(nsol > 0);
 
+  if (nsol > 0) {
   /* Build the rar dependence.
    * TODO: temporary solutiuon, we will construnct the rar dep
    * using the first independent solution.
    */
-  isl_vec *sol = isl_vec_alloc(isl_map_get_ctx(map), isl_mat_rows(acc_null_mat));
-  for (int row = 0; row < isl_mat_rows(acc_null_mat); row++) {
-    sol = isl_vec_set_element_val(sol, row, isl_mat_get_element_val(acc_null_mat, row, 0));
-  }
-  isl_map *tagged_dep_rar = construct_dep_rar(sol, map);
-  isl_vec_free(sol);
-  isl_mat_free(acc_null_mat);
+    isl_vec *sol = isl_vec_alloc(isl_map_get_ctx(map), isl_mat_rows(acc_null_mat));
+    for (int row = 0; row < isl_mat_rows(acc_null_mat); row++) {
+      sol = isl_vec_set_element_val(sol, row, isl_mat_get_element_val(acc_null_mat, row, 0));
+    }
+    isl_map *tagged_dep_rar = construct_dep_rar(sol, map);
+    isl_vec_free(sol);
+    isl_mat_free(acc_null_mat);
 
 //  // debug
 //  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(tagged_dep_rar), stdout);
@@ -705,7 +714,7 @@ static isl_stat build_rar_dep(__isl_take isl_map *map, void *user) {
 //  printf("\n");
 //  // debug
 
-  ps->tagged_dep_rar = isl_union_map_union(ps->tagged_dep_rar, isl_union_map_from_map(tagged_dep_rar));
+    ps->tagged_dep_rar = isl_union_map_union(ps->tagged_dep_rar, isl_union_map_from_map(tagged_dep_rar));
 //  // debug
 //  isl_printer_print_union_map(printer, ps->tagged_dep_rar);
 //  printf("\n");
@@ -751,6 +760,10 @@ static isl_stat build_rar_dep(__isl_take isl_map *map, void *user) {
 //////  isl_printer_print_id(printer, id);
 ////  printf("\n");
 //  // debug
+
+  } else {
+    isl_mat_free(acc_null_mat);
+  }
 
   isl_map_free(map);
   return isl_stat_ok;

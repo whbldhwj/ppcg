@@ -25,11 +25,11 @@ W(c0, c1, c2, c3) = 0;
 W(c0, c1, c2, c3) = select(-1 * c1 + c2 == 0, W[c2][c3], select(c1 + -1 * c2 + -1 >= 0, W(c0, c1 - 1, c2, c3), W(c0, c1, c2, c3)));
 Z(c0, c1, c2, c3) = 0;
 Z(c0, c1, c2, c3) = select((c3 == 0) && (c2 == 0), 0, Z(c0, c1, c2, c3));
-Z(c0, c1, c2, c3) = select(c3 + -1 >= 0, (Z(c0, c1, c2, c3) + (X(c0, c1, c2, c3) * W(c0, c1, c2, c3))), Z(c0, c1, c2, c3));
-Z(c0, c1, c2, c3) = select((c3 == 0) && (c2 + -1 >= 0), (Z(c0, c1 - 1, c2 - 1, c3) + (X(c0, c1, c2, c3) * W(c0, c1, c2, c3))), Z(c0, c1, c2, c3));
-Z(c0, c1, c2, c3) = select((c3 == 0) && (c2 == 0), (Z(c0, c1, c2, c3 - 1) + (X(c0, c1, c2, c3) * W(c0, c1, c2, c3))), Z(c0, c1, c2, c3));
+Z(c0, c1, c2, c3) = select(c3 + -1 >= 0, (Z(c0, c1, c2, c3 - 1) + (X(c0, c1, c2, c3) * W(c0, c1, c2, c3))), Z(c0, c1, c2, c3));
+Z(c0, c1, c2, c3) = select((c3 == 0) && (c2 + -1 >= 0), (Z(c0, c1 - 1, c2 - 1, c3 - -2) + (X(c0, c1, c2, c3) * W(c0, c1, c2, c3))), Z(c0, c1, c2, c3));
+Z(c0, c1, c2, c3) = select((c3 == 0) && (c2 == 0), (Z(c0, c1, c2, c3) + (X(c0, c1, c2, c3) * W(c0, c1, c2, c3))), Z(c0, c1, c2, c3));
 Z_drain(c0, c1, c2, c3) = 0;
-Z_drain(c0, c1, c2, c3) = select(c3 + -2 == 0, Z(c0, c1, c2, c3), Z_drain(c0, c1, c2, c3));
+Z_drain(c0, c1, c2, c3) = select((c3 + -2 == 0) && (c2 + -2 == 0), Z(c0, c1, c2, c3), Z_drain(c0, c1, c2, c3));
 
 // Space-time transformation
 Var tloop0, tloop1, sloop0;

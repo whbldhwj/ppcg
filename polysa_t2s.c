@@ -131,6 +131,39 @@ static isl_bool update_seq_band(__isl_keep isl_schedule_node *node, void *user)
   return isl_bool_true;
 }
 
+static __isl_give isl_vec *t2s_peel_off_scalar_dims_vec(__isl_take isl_vec *vec, __isl_keep isl_schedule *schedule)
+{
+  isl_schedule_node *root = isl_schedule_get_root(schedule);
+  isl_union_map *full_sched = isl_schedule_node_get_subtree_schedule_union_map(root);
+  isl_set *sched_range = isl_set_from_union_set(isl_union_map_range(full_sched));
+  int sched_depth = isl_set_dim(sched_range, isl_dim_set);
+  isl_set_free(sched_range);
+  isl_schedule_node_free(root);
+  isl_ctx *ctx = isl_vec_get_ctx(vec);
+
+  enum isl_schedule_node_type *type_depth = isl_calloc_array(isl_schedule_get_ctx(schedule), 
+      enum isl_schedule_node_type, sched_depth);
+  for (int i = 0; i < sched_depth; i++) {
+    type_depth[i] = -1;
+  }
+
+  isl_schedule_foreach_schedule_node_top_down(
+      schedule, &update_seq_band, type_depth);
+
+  isl_vec *new_vec = isl_vec_alloc(isl_vec_get_ctx(vec), 0);
+  for (int i = 0; i < sched_depth; i++) {
+    if (type_depth[i] != isl_schedule_node_sequence) {
+      isl_vec *vec_i = isl_vec_alloc(ctx, 1);
+      vec_i = isl_vec_set_element_val(vec_i, 0, isl_vec_get_element_val(vec, i));
+      new_vec = isl_vec_concat(new_vec, vec_i);
+    }
+  }
+
+  free(type_depth);
+  isl_vec_free(vec);
+  return new_vec;
+}
+
 static __isl_give isl_set *t2s_peel_off_scalar_dims(__isl_take isl_set *set, __isl_keep isl_schedule *schedule)
 {
   isl_schedule_node *root = isl_schedule_get_root(schedule);
@@ -2209,21 +2242,26 @@ static int t2s_drain_URE_access(__isl_keep pet_expr *expr, void *user)
   struct polysa_dep *dep;
   int n;
   isl_ctx *ctx = data->ctx;
-  isl_set *writeout_domain = NULL;
+  isl_set *writeout_domain = isl_set_copy(stmt_data->stmt_anchor_domain);
+  int is_drain = 0;
 
   for (n = 0; n < data->ndeps; n++) {
     dep = data->deps[n];
     if (dep->src == id && dep->type == POLYSA_DEP_WAW) {
-      break;
+      isl_set *dep_src_domain = isl_set_copy(dep->src_sched_domain);
+
+      /* Generate the writeout domain */
+      writeout_domain = isl_set_subtract(writeout_domain, dep_src_domain);
+      is_drain = 1;
     }
   }
 
-  if (n != data->ndeps) {
-    isl_set *stmt_domain = isl_set_copy(stmt_data->stmt_anchor_domain);
-    isl_set *dep_src_domain = isl_set_copy(dep->src_sched_domain);
-
-    /* Generate the writeout domain */
-    isl_set *writeout_domain = isl_set_subtract(stmt_domain, dep_src_domain);
+  if (isl_set_is_empty(writeout_domain) || !is_drain) {
+    isl_set_free(writeout_domain);
+    isl_id_free(id);
+    isl_multi_pw_aff_free(index);
+    return 0;
+  } else {
     isl_set *anchor_domain = isl_set_copy(data->anchor_domain);
     anchor_domain = isl_set_set_tuple_name(anchor_domain, isl_set_get_tuple_name(writeout_domain));
     writeout_domain = isl_set_gist(writeout_domain, anchor_domain);
@@ -2232,14 +2270,6 @@ static int t2s_drain_URE_access(__isl_keep pet_expr *expr, void *user)
 //    writeout_domain = isl_set_project_out(writeout_domain,
 //        isl_dim_set, data->iter_num, isl_set_dim(writeout_domain, isl_dim_set) - data->iter_num);
     writeout_domain = t2s_peel_off_scalar_dims(writeout_domain, data->schedule);
-
-    if (isl_set_is_empty(writeout_domain)) {
-      isl_set_free(writeout_domain);
-      isl_id_free(id);
-      isl_multi_pw_aff_free(index);
-
-      return 0;
-    }
 
     /* Set up the iterator names. */
     writeout_domain = t2s_set_set_iters(writeout_domain);
@@ -2625,8 +2655,14 @@ static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, 
     isl_basic_map *bmap_dep_i = isl_basic_map_from_map(untagged_dep_i);
     // disvec = get_dep_dis_at_node(bmap_dep_i, band);
     disvec = get_dep_dis_at_schedule(bmap_dep_i, schedule);
+    /* The generated dependece distance vector contains the scalar dim, 
+     * we will need to peel them off. */
+    disvec = t2s_peel_off_scalar_dims_vec(disvec, schedule); 
+
 //    // debug
 //    isl_printer *p = isl_printer_to_file(data->ctx, stdout);
+//    p = isl_printer_print_basic_map(p, p_dep_i->isl_dep);
+//    printf("\n");
 //    p = isl_printer_print_vec(p, disvec);
 //    printf("\n");
 //    isl_printer_free(p);
@@ -2687,6 +2723,10 @@ static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, 
     isl_basic_map *bmap_dep_i = isl_basic_map_from_map(untagged_dep_i);
     // disvec = get_dep_dis_at_node(bmap_dep_i, band);
     disvec = get_dep_dis_at_schedule(bmap_dep_i, schedule);
+    /* The generated dependece distance vector contains the scalar dim, 
+     * we will need to peel them off. */
+    disvec = t2s_peel_off_scalar_dims_vec(disvec, schedule); 
+    
     isl_basic_map_free(bmap_dep_i);
 
     isl_space *space = isl_basic_map_get_space(dep_i);
@@ -2738,6 +2778,10 @@ static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, 
     isl_basic_map *bmap_dep_i = isl_basic_map_from_map(untagged_dep_i);
     // disvec = get_dep_dis_at_node(bmap_dep_i, band);
     disvec = get_dep_dis_at_schedule(bmap_dep_i, schedule);
+    /* The generated dependece distance vector contains the scalar dim, 
+     * we will need to peel them off. */
+    disvec = t2s_peel_off_scalar_dims_vec(disvec, schedule); 
+    
     isl_basic_map_free(bmap_dep_i);
 
     isl_space *space = isl_basic_map_get_space(dep_i);
@@ -3971,6 +4015,10 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
   p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
   p_debug = isl_printer_print_schedule(p_debug, schedule);
   printf("\n");
+//  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_flow);
+//  printf("\n");
+//  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_waw);
+//  printf("\n");
   isl_printer_free(p_debug);
   // debug
     

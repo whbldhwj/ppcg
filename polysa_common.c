@@ -496,13 +496,25 @@ __isl_give isl_vec *get_dep_dis_at_schedule(__isl_keep isl_basic_map *dep, __isl
       isl_dim_set, isl_dim_div, isl_dim_param, isl_dim_cst);
 
   dep_dis_mpa = isl_multi_pw_aff_intersect_domain(dep_dis_mpa, isl_set_from_basic_set(isl_basic_set_copy(dep_bset)));
-  isl_vec *dep_dis = isl_vec_zero(ctx, iter_num);
+//  // debug
+//  p = isl_printer_print_multi_pw_aff(p, dep_dis_mpa);
+//  printf("\n");
+//  // debug
+
+  isl_space *space = isl_multi_pw_aff_get_space(dep_dis_mpa);
+  isl_vec *dep_dis = isl_vec_zero(ctx, isl_space_dim(space, isl_dim_out));
   for (int i = 0; i < isl_vec_size(dep_dis); i++) {
     isl_pw_aff *pa = isl_multi_pw_aff_get_pw_aff(dep_dis_mpa, i);
     isl_val *val = isl_pw_aff_eval(pa, isl_basic_set_sample_point(isl_basic_set_copy(dep_bset)));
     dep_dis = isl_vec_set_element_val(dep_dis, i, val);
   }
 
+//  // debug
+//  p = isl_printer_print_vec(p, dep_dis);
+//  printf("\n");
+//  // debug
+
+  isl_space_free(space);
   isl_basic_set_free(dep_bset);
   isl_basic_map_free(dep_bmap);
   isl_multi_pw_aff_free(dep_dis_mpa);
@@ -830,6 +842,9 @@ struct polysa_prog **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedule
 struct polysa_prog **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, 
     isl_size dim, isl_size *num_sa)
 {
+  // TODO: add checker if the array can be mapped to async or sync array.
+  // For async array, we need to make sure there is one outermost permutable band outside.
+  // For sync array, we need to make sure there is only one permutable band in the program.
   if (scop->options->sa_type == POLYSA_SA_TYPE_ASYNC) {
     return sa_space_time_transform_at_dim_async(schedule, scop, dim, num_sa);
   } else if (scop->options->sa_type == POLYSA_SA_TYPE_SYNC) {
