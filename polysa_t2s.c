@@ -3938,62 +3938,97 @@ static isl_stat print_t2s_with_schedule(
 }
 
 /* Sequence node and band node are not allowed to appear at the same level. */
-static isl_bool t2s_legal_at_node(__isl_keep isl_schedule_node *node, void *user) {
-  enum isl_schedule_node_type *type_depth = user;
+//static isl_bool t2s_legal_at_node(__isl_keep isl_schedule_node *node, void *user) {
+//  enum isl_schedule_node_type *type_depth = user;
+//  enum isl_schedule_node_type node_type = isl_schedule_node_get_type(node);
+//
+//  /* Calculate the total schedule depth */
+//  int total_band_depth = isl_schedule_node_get_schedule_depth(node);
+//  int total_seq_depth = 0;
+//  isl_schedule_node *node_tmp = isl_schedule_node_copy(node);
+//  while (isl_schedule_node_has_parent(node_tmp)) {
+//    node_tmp = isl_schedule_node_parent(node_tmp);
+//    if (isl_schedule_node_get_type(node_tmp) == isl_schedule_node_sequence)
+//      total_seq_depth += 1;
+//  }
+//  isl_schedule_node_free(node_tmp);
+//
+//  int cur_depth = total_band_depth + total_seq_depth;
+//
+//  if (node_type == isl_schedule_node_band) {
+//    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+//      if (type_depth[cur_depth + i] == -1)
+//        type_depth[cur_depth + i] = node_type;
+//      else {
+//        if (type_depth[cur_depth + i] != node_type)
+//          return isl_bool_false;
+//      }
+//    }
+//  } else if (node_type == isl_schedule_node_sequence) {
+//    if (type_depth[cur_depth] == -1)
+//      type_depth[cur_depth] = node_type;
+//    else if (type_depth[cur_depth] != node_type)
+//      return isl_bool_false;
+//  }
+//
+//  return isl_bool_true;
+//}
+
+static isl_bool no_band_node_as_descendant(__isl_keep isl_schedule_node *node, void *user){
   enum isl_schedule_node_type node_type = isl_schedule_node_get_type(node);
-
-  /* Calculate the total schedule depth */
-  int total_band_depth = isl_schedule_node_get_schedule_depth(node);
-  int total_seq_depth = 0;
-  isl_schedule_node *node_tmp = isl_schedule_node_copy(node);
-  while (isl_schedule_node_has_parent(node_tmp)) {
-    node_tmp = isl_schedule_node_parent(node_tmp);
-    if (isl_schedule_node_get_type(node_tmp) == isl_schedule_node_sequence)
-      total_seq_depth += 1;
-  }
-  isl_schedule_node_free(node_tmp);
-
-  int cur_depth = total_band_depth + total_seq_depth;
-
   if (node_type == isl_schedule_node_band) {
-    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
-      if (type_depth[cur_depth + i] == -1)
-        type_depth[cur_depth + i] = node_type;
-      else {
-        if (type_depth[cur_depth + i] != node_type)
-          return isl_bool_false;
-      }
-    }
-  } else if (node_type == isl_schedule_node_sequence) {
-    if (type_depth[cur_depth] == -1)
-      type_depth[cur_depth] = node_type;
-    else if (type_depth[cur_depth] != node_type)
-      return isl_bool_false;
+    return isl_bool_false;
+  } else {
+    return isl_bool_true;
   }
-
-  return isl_bool_true;
 }
 
-/* Check if all the sibling nodes at the same level are of the same node type. */
-static isl_bool t2s_legality_check(__isl_keep isl_schedule *schedule) {
-  isl_schedule_node *root = isl_schedule_get_root(schedule);
-  /* Get the schedule depth. */
-  isl_union_map *full_sched = isl_schedule_node_get_subtree_schedule_union_map(root);
-  isl_set *sched_range = isl_set_from_union_set(isl_union_map_range(full_sched));
-  int sched_depth = isl_set_dim(sched_range, isl_dim_set);
-  isl_set_free(sched_range);
-
-  enum isl_schedule_node_type *type_depth = isl_calloc_array(isl_schedule_get_ctx(schedule),
-      enum isl_schedule_node_type, sched_depth);
-  for (int i = 0; i < sched_depth; i++) {
-    type_depth[i] = -1;
+/* No band node is allowed after the sequence or set node. */
+static isl_bool t2s_legal_at_node(__isl_keep isl_schedule_node *node, void *user) {
+  enum isl_schedule_node_type node_type = isl_schedule_node_get_type(node);
+  if (node_type == isl_schedule_node_sequence || node_type == isl_schedule_node_set) {
+    isl_bool no_band = isl_schedule_node_every_descendant(node, 
+        &no_band_node_as_descendant, NULL);
+    if (!no_band)
+      return isl_bool_false;
+    else
+      return isl_bool_true;
+  } else {
+    return isl_bool_true;
   }
+}
 
+/* Check if all the sibling nodes at the same level are of the same node type. 
+ * // TODO: check if there is only nested permuted band in the program.
+ */
+static isl_bool t2s_legality_check(__isl_keep isl_schedule *schedule) {
+//  /* Check if all the sibling/cousion nodes at the same level are of the same node type. */
+//  isl_schedule_node *root = isl_schedule_get_root(schedule);
+//  /* Get the schedule depth. */
+//  isl_union_map *full_sched = isl_schedule_node_get_subtree_schedule_union_map(root);
+//  isl_set *sched_range = isl_set_from_union_set(isl_union_map_range(full_sched));
+//  int sched_depth = isl_set_dim(sched_range, isl_dim_set);
+//  isl_set_free(sched_range);
+//
+//  enum isl_schedule_node_type *type_depth = isl_calloc_array(isl_schedule_get_ctx(schedule),
+//      enum isl_schedule_node_type, sched_depth);
+//  for (int i = 0; i < sched_depth; i++) {
+//    type_depth[i] = -1;
+//  }
+//
+//  isl_bool is_legal = isl_schedule_node_every_descendant(root,
+//      &t2s_legal_at_node, type_depth);
+//
+//  isl_schedule_node_free(root);
+//  free(type_depth);
+
+  /* Check if there is only one nested permuted band in the program.
+   * This is achieved by examining if there is any band node following the sequence or set node. 
+   */
+  isl_schedule_node *root = isl_schedule_get_root(schedule);
   isl_bool is_legal = isl_schedule_node_every_descendant(root,
-      &t2s_legal_at_node, type_depth);
-
+      &t2s_legal_at_node, NULL);
   isl_schedule_node_free(root);
-  free(type_depth);
 
   return is_legal;
 }

@@ -54,6 +54,7 @@ isl_bool uniform_dep_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
 isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop);
 struct polysa_prog **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop, isl_size *num_sa);
 __isl_give isl_schedule_node *get_outermost_permutable_node(__isl_keep isl_schedule *schedule);
+__isl_give isl_schedule_node *get_innermost_permutable_node(__isl_keep isl_schedule *schedule);
 isl_bool is_permutable_node_update(__isl_keep isl_schedule_node *node, void *user);
 isl_stat sa_pe_optimize(struct polysa_prog *sa);
 struct polysa_prog *sa_candidates_smart_pick(struct polysa_prog **sa_list, __isl_keep isl_size num_sa);

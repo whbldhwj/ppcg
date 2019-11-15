@@ -85,30 +85,55 @@ static isl_bool is_permutable_node(__isl_keep isl_schedule_node *node)
 }
 
 /* Examines if the node is a permutable band node. If so,
- * compare and update the outermost node.
+ * since the schedule tree is visited top-down,
+ * return such a node immediately.
  */
-isl_bool is_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)
+isl_bool is_outermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)
 {
   isl_schedule_node **t_node = (isl_schedule_node **)(user);
   if (!node)
     return isl_bool_error;
 
   if (is_permutable_node(node) == isl_bool_true) {
-    if (*t_node == NULL)
-      *t_node = isl_schedule_node_copy(node);
-    else {
-      if (isl_schedule_node_get_tree_depth(node) < isl_schedule_node_get_tree_depth(*t_node)) {
-        isl_schedule_node_free(*t_node);
-        *t_node = isl_schedule_node_copy(node);
-      } else if (isl_schedule_node_get_tree_depth(node) == isl_schedule_node_get_tree_depth(*t_node)) {
-        if (isl_schedule_node_get_child_position(node) < isl_schedule_node_get_child_position(*t_node)) {
-          isl_schedule_node_free(*t_node);
-          *t_node = isl_schedule_node_copy(node);
-        }
-      }
-    }
+    *t_node = isl_schedule_node_copy(node);
+    return isl_bool_false;
+  } else {
+    return isl_bool_true;
   }
 
+  return isl_bool_true;
+}
+
+static isl_bool no_permutable_node(isl_schedule_node *node, void *user)
+{
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band)
+    return isl_bool_false;
+  else
+    return isl_bool_true;
+}
+
+/* Examines if the node is a permutable band node. If so,
+ * since the schedule tree is visited bottom-up,
+ * return the node immediately.
+ */
+isl_bool is_innermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)
+{
+  isl_schedule_node **t_node = (isl_schedule_node **)(user);
+  if (!node)
+    return isl_bool_error;
+
+  if (is_permutable_node(node) == isl_bool_true) {
+    /* Check if there is any other band below it. */
+    isl_schedule_node *new_node = isl_schedule_node_get_child(node, 0);
+    isl_bool no_inner_band = isl_schedule_node_every_descendant(new_node,
+        &no_permutable_node, NULL);
+    if (no_inner_band) {
+      if (*t_node == NULL)
+        *t_node = isl_schedule_node_copy(node);
+    }
+    isl_schedule_node_free(new_node);
+  }
+  
   return isl_bool_true;
 }
 
@@ -836,15 +861,166 @@ __isl_give isl_schedule *loop_interchange_at_node(__isl_take isl_schedule_node *
 struct polysa_prog **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
     isl_size dim, isl_size *num_sa)
 {
-  return NULL;
+  struct polysa_prog **sas = NULL;  
+
+  /* Select space loop candidates.
+   * Space loops carry dependences with distance less or equal to 1.
+   */
+  isl_schedule_node *band = get_innermost_permutable_node(schedule);
+  isl_size band_w = isl_schedule_node_band_n_member(band);
+  isl_size *is_space_loop = (isl_size *)malloc(band_w * sizeof(isl_size));
+  isl_union_map *dep_flow = scop->dep_flow;
+  isl_union_map *dep_rar = scop->dep_rar;
+  isl_union_map *dep_total = isl_union_map_union(isl_union_map_copy(dep_flow), isl_union_map_copy(dep_rar));
+
+  isl_basic_map_list *deps = isl_union_map_get_basic_map_list(dep_total);
+  isl_size ndeps = isl_union_map_n_basic_map(dep_total);
+
+  for (int h = 0; h < band_w; h++) {
+    int n;
+    for (n = 0; n < ndeps; n++) {
+      isl_basic_map *dep = isl_basic_map_list_get_basic_map(deps, n);
+      isl_vec *dep_dis = get_dep_dis_at_node(dep, band);
+      isl_val *val = isl_vec_get_element_val(dep_dis, h);
+      if (!(isl_val_is_one(val) || isl_val_is_zero(val))) {
+        isl_vec_free(dep_dis);
+        isl_val_free(val);
+        isl_basic_map_free(dep);
+        break;         
+      }
+
+      isl_val_free(val);
+      isl_vec_free(dep_dis);
+      isl_basic_map_free(dep);
+    }
+    is_space_loop[h] = (n == ndeps);
+  }
+
+  /* Perform loop permutation to generate all candidates. */
+  if (dim == 1) {
+    for (int i = 0; i < band_w; i++) {
+      if (is_space_loop[i]) {
+        isl_schedule *new_schedule = isl_schedule_copy(schedule);       
+        /* Make the loop i the innermost loop. */
+        for (int d = i; d < band_w - 1; d++) {
+          isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
+          isl_schedule_free(new_schedule);
+          new_schedule = loop_interchange_at_node(band, d, d + 1);
+        }
+
+        /* Update the hyperplane types. */
+        struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
+        sa->scop = scop;
+        sa->type = POLYSA_SA_TYPE_SYNC;
+
+        /* Update the array dimension. */
+        sa->array_dim = dim;
+        sa->array_part_w = 0;
+        sa->space_w = dim;
+        sa->time_w = band_w - dim;
+
+        /* Add the new variant into the list. */
+        sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
+        sas[*num_sa] = sa;
+        *num_sa = *num_sa + 1;
+      } 
+    }
+  } else if (dim == 2) {
+    for (int i = 0; i < band_w; i++) {
+      if (is_space_loop[i]) {
+        for (int j = i + 1; j < band_w; j++) {
+          if (is_space_loop[j]) {
+            isl_schedule *new_schedule = isl_schedule_copy(schedule);
+            /* Make the loop i, j the innermost loops. */
+            for (int d = i; d < band_w - 1; d++) {
+              isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
+              isl_schedule_free(new_schedule);
+              new_schedule = loop_interchange_at_node(band, d, d + 1);
+            }
+            for (int d = j - 1; d < band_w - 1; d++) {
+              isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
+              isl_schedule_free(new_schedule);
+              new_schedule = loop_interchange_at_node(band, d, d + 1);
+            }
+
+            /* Update the hyperplane types. */
+            struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
+            sa->scop = scop;
+            sa->type = POLYSA_SA_TYPE_SYNC;
+
+            /* Update the array dimension. */
+            sa->array_dim = dim;
+            sa->array_part_w = 0;
+            sa->space_w = dim;
+            sa->time_w = band_w - dim;
+
+            /* Add the new variant into the list. */
+            sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
+            sas[*num_sa] = sa;
+            *num_sa = *num_sa + 1;
+          }
+        }
+      }
+    }
+  } else if (dim == 3) {
+     for (int i = 0; i < band_w; i++) {
+      if (is_space_loop[i]) {
+        for (int j = i + 1; j < band_w; j++) {
+          if (is_space_loop[j]) {
+            for (int k = j + 1; k < band_w; k++) {
+              if (is_space_loop[k]) {
+                isl_schedule *new_schedule = isl_schedule_copy(schedule);
+                /* Make the loop i, j, k the innermost loops. */
+                for (int d = i; d < band_w - 1; d++) {
+                  isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
+                  isl_schedule_free(new_schedule);
+                  new_schedule = loop_interchange_at_node(band, d, d + 1);                    
+                }
+                for (int d = j - 1; d < band_w - 1; d++) {
+                  isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
+                  isl_schedule_free(new_schedule);
+                  new_schedule = loop_interchange_at_node(band, d, d + 1);
+                }
+                for (int d = k - 2; d < band_w - 1; d++) {
+                  isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
+                  isl_schedule_free(new_schedule);
+                  new_schedule = loop_interchange_at_node(band, d, d + 1);
+                }
+    
+                /* Update the hyperplane types. */
+                struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
+                sa->scop = scop;
+                sa->type = POLYSA_SA_TYPE_SYNC;
+
+                /* Update the array dimension. */
+                sa->array_dim = dim;
+                sa->array_part_w = 0;
+                sa->space_w = dim;
+                sa->time_w = band_w - dim;
+    
+                /* Add the new variant into the list. */
+                sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
+                sas[*num_sa] = sa;
+                *num_sa = *num_sa + 1;
+              }
+            }
+          }
+        }
+      }
+    }   
+  }
+
+  isl_basic_map_list_free(deps);
+  isl_union_map_free(dep_total);
+  isl_schedule_node_free(band);
+  free(is_space_loop);
+
+  return sas;
 }
 
 struct polysa_prog **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, 
     isl_size dim, isl_size *num_sa)
 {
-  // TODO: add checker if the array can be mapped to async or sync array.
-  // For async array, we need to make sure there is one outermost permutable band outside.
-  // For sync array, we need to make sure there is only one permutable band in the program.
   if (scop->options->sa_type == POLYSA_SA_TYPE_ASYNC) {
     return sa_space_time_transform_at_dim_async(schedule, scop, dim, num_sa);
   } else if (scop->options->sa_type == POLYSA_SA_TYPE_SYNC) {
@@ -859,8 +1035,22 @@ __isl_give isl_schedule_node *get_outermost_permutable_node(__isl_keep isl_sched
 {
   isl_schedule_node *root = isl_schedule_get_root(schedule);
   isl_schedule_node *t_node = NULL;
-  isl_schedule_node_every_descendant(root,
-      &is_permutable_node_update, &t_node);
+  isl_schedule_node_foreach_descendant_top_down(root,
+      &is_outermost_permutable_node_update, &t_node);
+
+  isl_schedule_node_free(root);
+  return t_node;
+}
+
+/* Extract the innermost permutable band node from the schedule tree.
+ * When there are multiple nodes at the same level, extract the first one.
+ */
+__isl_give isl_schedule_node *get_innermost_permutable_node(__isl_keep isl_schedule *schedule)
+{
+  isl_schedule_node *root = isl_schedule_get_root(schedule);
+  isl_schedule_node *t_node = NULL;
+  isl_schedule_node_foreach_descendant_top_down(root,
+      &is_innermost_permutable_node_update, &t_node);
 
   isl_schedule_node_free(root);
   return t_node;

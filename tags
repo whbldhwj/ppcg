@@ -254,6 +254,7 @@ BUILT_SOURCES	Makefile	/^BUILT_SOURCES = gitversion.h$/;"	m
 BUILT_SOURCES	isl/Makefile	/^BUILT_SOURCES = gitversion.h $(CPP_INTERFACES)$/;"	m
 BUILT_SOURCES	pet/Makefile	/^BUILT_SOURCES = \\$/;"	m
 BinaryOperatorKind2pet_op_type	pet/scan.cc	/^static enum pet_op_type BinaryOperatorKind2pet_op_type(BinaryOperatorKind kind)$/;"	f	file:
+C	t2s_tests/cnn/kernel.h	9;"	d
 CAT	isl/check_reparse_templ.c	2;"	d	file:
 CAT	isl/isl_list_macro.h	2;"	d
 CAT	isl/isl_list_templ.c	/^__isl_give isl_printer *CAT(isl_printer_print_,LIST(EL_BASE))($/;"	f
@@ -268,6 +269,15 @@ CC	isl/doc/Makefile	/^CC = gcc$/;"	m
 CC	isl/imath/Makefile	/^CC=gcc$/;"	m
 CC	isl/interface/Makefile	/^CC = gcc$/;"	m
 CC	pet/Makefile	/^CC = gcc$/;"	m
+CC	t2s_tests/2dconv/Makefile	/^CC=gcc$/;"	m
+CC	t2s_tests/cholesky/Makefile	/^CC=gcc$/;"	m
+CC	t2s_tests/cnn/Makefile	/^CC=gcc$/;"	m
+CC	t2s_tests/covmat/Makefile	/^CC=gcc$/;"	m
+CC	t2s_tests/lu/Makefile	/^CC=gcc$/;"	m
+CC	t2s_tests/mttkrp/Makefile	/^CC=gcc$/;"	m
+CC	t2s_tests/sw/Makefile	/^CC=gcc$/;"	m
+CC	t2s_tests/ttm/Makefile	/^CC=gcc$/;"	m
+CC	t2s_tests/ttmc/Makefile	/^CC=gcc$/;"	m
 CCDEPMODE	Makefile	/^CCDEPMODE = depmode=gcc3$/;"	m
 CCDEPMODE	isl/Makefile	/^CCDEPMODE = depmode=gcc3$/;"	m
 CCDEPMODE	isl/doc/Makefile	/^CCDEPMODE = depmode=gcc3$/;"	m
@@ -282,6 +292,15 @@ CFLAGS	isl/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-
 CFLAGS	isl/doc/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	isl/interface/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	pet/Makefile	/^CFLAGS = -g -O2$/;"	m
+CFLAGS	t2s_tests/2dconv/Makefile	/^CFLAGS=-I. -std=c99$/;"	m
+CFLAGS	t2s_tests/cholesky/Makefile	/^CFLAGS=-I. -std=c99 -lm$/;"	m
+CFLAGS	t2s_tests/cnn/Makefile	/^CFLAGS=-I. -std=c99$/;"	m
+CFLAGS	t2s_tests/covmat/Makefile	/^CFLAGS=-I. -std=c99$/;"	m
+CFLAGS	t2s_tests/lu/Makefile	/^CFLAGS=-I. -std=c99 -lm$/;"	m
+CFLAGS	t2s_tests/mttkrp/Makefile	/^CFLAGS=-I. -std=c99 -g$/;"	m
+CFLAGS	t2s_tests/sw/Makefile	/^CFLAGS=-I. -std=c99 -lm$/;"	m
+CFLAGS	t2s_tests/ttm/Makefile	/^CFLAGS=-I. -std=c99 -g$/;"	m
+CFLAGS	t2s_tests/ttmc/Makefile	/^CFLAGS=-I. -std=c99 -g$/;"	m
 CHECK	isl/imath/gmp_compat.c	39;"	d	file:
 CHECK	isl/imath/gmp_compat.c	41;"	d	file:
 CHECK	isl/imath/imath.c	72;"	d	file:
@@ -432,6 +451,15 @@ DEPDIR	isl/Makefile	/^DEPDIR = .deps$/;"	m
 DEPDIR	isl/doc/Makefile	/^DEPDIR = .deps$/;"	m
 DEPDIR	isl/interface/Makefile	/^DEPDIR = .deps$/;"	m
 DEPDIR	pet/Makefile	/^DEPDIR = .deps$/;"	m
+DEPS	t2s_tests/2dconv/Makefile	/^DEPS=kernel.h$/;"	m
+DEPS	t2s_tests/cholesky/Makefile	/^DEPS = kernel.h$/;"	m
+DEPS	t2s_tests/cnn/Makefile	/^DEPS = kernel.h$/;"	m
+DEPS	t2s_tests/covmat/Makefile	/^DEPS = kernel.h$/;"	m
+DEPS	t2s_tests/lu/Makefile	/^DEPS = kernel.h$/;"	m
+DEPS	t2s_tests/mttkrp/Makefile	/^DEPS = kernel.h$/;"	m
+DEPS	t2s_tests/sw/Makefile	/^DEPS = kernel.h$/;"	m
+DEPS	t2s_tests/ttm/Makefile	/^DEPS = kernel.h$/;"	m
+DEPS	t2s_tests/ttmc/Makefile	/^DEPS = kernel.h$/;"	m
 DESELECTED	isl/isl_vertices.c	23;"	d	file:
 DFLAGS	isl/imath/Makefile	/^DFLAGS=-O3 -funroll-loops -finline-functions$/;"	m
 DFLAGSN	isl/imath/Makefile	/^DFLAGSN=$(DFLAGS)$/;"	m
@@ -897,16 +925,34 @@ FORMAT_AFF	isl/pip.c	49;"	d	file:
 FORMAT_SET	isl/pip.c	48;"	d	file:
 FUNC_S0	t2s.cpp	15;"	d	file:
 FUNC_S0	t2s_tests/2dconv/t2s.cpp	15;"	d	file:
+FUNC_S0	t2s_tests/cnn/t2s.cpp	15;"	d	file:
 FUNC_S0	t2s_tests/gemm/t2s.cpp	15;"	d	file:
+FUNC_S0	t2s_tests/mttkrp/t2s.cpp	15;"	d	file:
+FUNC_S0	t2s_tests/ttm/t2s.cpp	15;"	d	file:
+FUNC_S0	t2s_tests/ttmc/t2s.cpp	15;"	d	file:
 FUNC_S1	t2s.cpp	16;"	d	file:
 FUNC_S1	t2s_tests/2dconv/t2s.cpp	16;"	d	file:
+FUNC_S1	t2s_tests/cnn/t2s.cpp	16;"	d	file:
 FUNC_S1	t2s_tests/gemm/t2s.cpp	16;"	d	file:
+FUNC_S1	t2s_tests/mttkrp/t2s.cpp	16;"	d	file:
+FUNC_S1	t2s_tests/ttm/t2s.cpp	16;"	d	file:
+FUNC_S1	t2s_tests/ttmc/t2s.cpp	16;"	d	file:
 FUNC_S2	t2s.cpp	17;"	d	file:
 FUNC_S2	t2s_tests/2dconv/t2s.cpp	17;"	d	file:
+FUNC_S2	t2s_tests/cnn/t2s.cpp	17;"	d	file:
 FUNC_S2	t2s_tests/gemm/t2s.cpp	17;"	d	file:
+FUNC_S2	t2s_tests/mttkrp/t2s.cpp	17;"	d	file:
+FUNC_S2	t2s_tests/ttm/t2s.cpp	17;"	d	file:
+FUNC_S2	t2s_tests/ttmc/t2s.cpp	17;"	d	file:
 FUNC_S3	t2s.cpp	18;"	d	file:
 FUNC_S3	t2s_tests/2dconv/t2s.cpp	18;"	d	file:
+FUNC_S3	t2s_tests/cnn/t2s.cpp	18;"	d	file:
 FUNC_S3	t2s_tests/gemm/t2s.cpp	18;"	d	file:
+FUNC_S3	t2s_tests/mttkrp/t2s.cpp	18;"	d	file:
+FUNC_S3	t2s_tests/ttm/t2s.cpp	18;"	d	file:
+FUNC_S3	t2s_tests/ttmc/t2s.cpp	18;"	d	file:
+FUNC_S4	t2s_tests/mttkrp/t2s.cpp	19;"	d	file:
+FUNC_S4	t2s_tests/ttmc/t2s.cpp	19;"	d	file:
 Feasibility Check and Detection of Equalities	isl/doc/implementation.tex	/^of the actual dual simplex method with Gomory cuts.$/;"	b
 Further Reading	isl/doc/manual.tex	/^\\input{implementation}$/;"	c
 GBR_LP	isl/basis_reduction_tab.c	100;"	d	file:
@@ -1064,7 +1110,11 @@ HandleTopLevelDeclContinue	pet/config.h	107;"	d
 HandleTopLevelDeclReturn	isl/isl_config.h	135;"	d
 HandleTopLevelDeclReturn	pet/config.h	110;"	d
 I	kernel.h	6;"	d
+I	t2s_tests/cnn/kernel.h	7;"	d
 I	t2s_tests/gemm/kernel.h	6;"	d
+I	t2s_tests/mttkrp/kernel.h	6;"	d
+I	t2s_tests/ttm/kernel.h	6;"	d
+I	t2s_tests/ttmc/kernel.h	6;"	d
 IMATH_DIR	isl/imath/tests/gmp-compat-test/Makefile	/^IMATH_DIR=..\/..$/;"	m
 IMATH_GMP_COMPAT_H_	isl/imath/gmp_compat.h	28;"	d
 IMATH_H_	isl/imath/imath.h	28;"	d
@@ -1580,10 +1630,17 @@ IslObjectPrinter	isl/libisl-gdb.py	/^class IslObjectPrinter:$/;"	c
 IslPrintCommand	isl/libisl-gdb.py	/^class IslPrintCommand (gdb.Command):$/;"	c
 J	kernel.h	7;"	d
 J	t2s_tests/gemm/kernel.h	7;"	d
+J	t2s_tests/mttkrp/kernel.h	7;"	d
+J	t2s_tests/ttm/kernel.h	7;"	d
+J	t2s_tests/ttmc/kernel.h	7;"	d
 K	kernel.h	8;"	d
 K	pet/tests/QR.c	/^int N, K = 256;$/;"	v
 K	t2s_tests/2dconv/kernel.h	8;"	d
+K	t2s_tests/covmat/kernel.h	7;"	d
 K	t2s_tests/gemm/kernel.h	8;"	d
+K	t2s_tests/mttkrp/kernel.h	8;"	d
+K	t2s_tests/ttm/kernel.h	8;"	d
+K	t2s_tests/ttmc/kernel.h	8;"	d
 KEY	isl/isl_flow.c	1880;"	d	file:
 KEY	isl/isl_flow.c	1881;"	d	file:
 KEY	isl/isl_schedule_constraints.c	548;"	d	file:
@@ -1603,6 +1660,9 @@ KEY_ERROR	isl/isl_schedule_constraints.c	551;"	d	file:
 KEY_ERROR	isl/isl_schedule_read.c	55;"	d	file:
 KEY_ERROR	isl/isl_schedule_read.c	56;"	d	file:
 KILLED_LOCALS_H	pet/killed_locals.h	2;"	d
+L	t2s_tests/mttkrp/kernel.h	9;"	d
+L	t2s_tests/ttm/kernel.h	9;"	d
+L	t2s_tests/ttmc/kernel.h	9;"	d
 LAST_TEMP	isl/imath/imath.c	168;"	d	file:
 LD	Makefile	/^LD = \/usr\/bin\/ld -m elf_x86_64$/;"	m
 LD	isl/Makefile	/^LD = \/usr\/bin\/ld -m elf_x86_64$/;"	m
@@ -1699,6 +1759,7 @@ LOCAL_ISL_LA	Makefile	/^LOCAL_ISL_LA = isl\/libisl.la$/;"	m
 LOG_COMPILE	isl/Makefile	/^LOG_COMPILE = $(LOG_COMPILER) $(AM_LOG_FLAGS) $(LOG_FLAGS)$/;"	m
 LOG_DRIVER	isl/Makefile	/^LOG_DRIVER = $(SHELL) $(top_srcdir)\/test-driver$/;"	m
 LOWER_HALF	isl/imath/imath.c	204;"	d	file:
+LOW_INIT_VALUE	t2s_tests/sw/kernel.h	15;"	d
 LTCOMPILE	Makefile	/^LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \\$/;"	m
 LTCOMPILE	isl/Makefile	/^LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \\$/;"	m
 LTCOMPILE	isl/interface/Makefile	/^LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \\$/;"	m
@@ -1724,6 +1785,8 @@ M	isl/isl_tab.h	/^	unsigned M : 1;$/;"	m	struct:isl_tab
 M	pet/tests/conditional_assignment.c	/^int M;$/;"	v
 M	pet/tests/conditional_assignment2.c	/^int M;$/;"	v
 M	pet/tests/data_dependent.c	/^int M;$/;"	v
+M	t2s_tests/sw/kernel.h	6;"	d
+M	t2s_tests/ttmc/kernel.h	10;"	d
 MAKEINFO	Makefile	/^MAKEINFO = ${SHELL} \/curr\/jaywang\/research\/systolic_compile\/ppcg\/ppcg\/missing makeinfo$/;"	m
 MAKEINFO	isl/Makefile	/^MAKEINFO = ${SHELL} \/curr\/jaywang\/research\/systolic_compile\/ppcg\/ppcg\/isl\/missing makeinfo$/;"	m
 MAKEINFO	isl/doc/Makefile	/^MAKEINFO = ${SHELL} \/curr\/jaywang\/research\/systolic_compile\/ppcg\/ppcg\/isl\/missing makeinfo$/;"	m
@@ -1734,10 +1797,13 @@ MANIFEST_TOOL	isl/Makefile	/^MANIFEST_TOOL = :$/;"	m
 MANIFEST_TOOL	isl/doc/Makefile	/^MANIFEST_TOOL = :$/;"	m
 MANIFEST_TOOL	isl/interface/Makefile	/^MANIFEST_TOOL = :$/;"	m
 MANIFEST_TOOL	pet/Makefile	/^MANIFEST_TOOL = :$/;"	m
+MATRIX_MIN_CUTOFF	t2s_tests/sw/kernel.h	14;"	d
 MAX	isl/imath/imath.c	148;"	d	file:
+MAX_CORE_DATA	t2s_tests/sw/kernel.h	16;"	d
 MAX_SINT	isl/imath/tests/gmp-compat-test/gendata.py	/^MAX_SINT="2147483647"$/;"	v
 MAX_SLONG	isl/imath/tests/gmp-compat-test/gendata.py	/^MAX_SLONG="9223372036854775807"$/;"	v
 MAX_SSHORT	isl/imath/tests/gmp-compat-test/gendata.py	/^MAX_SSHORT="32767"$/;"	v
+MAX_STATE_NUM	t2s_tests/sw/kernel.h	13;"	d
 MAX_UINT	isl/imath/tests/gmp-compat-test/gendata.py	/^MAX_UINT="4294967295"$/;"	v
 MAX_ULONG	isl/imath/tests/gmp-compat-test/gendata.py	/^MAX_ULONG="18446744073709551615"$/;"	v
 MAX_USHORT	isl/imath/tests/gmp-compat-test/gendata.py	/^MAX_USHORT="65535"$/;"	v
@@ -1945,6 +2011,10 @@ N	pet/tests/inf2.c	/^int N;$/;"	v
 N	pet/tests/inf4.c	/^int N;$/;"	v
 N	pet/tests/quasi_affine.c	/^int N;$/;"	v
 N	pet/tests/wdp.c	/^int N;$/;"	v
+N	t2s_tests/cholesky/kernel.h	6;"	d
+N	t2s_tests/covmat/kernel.h	6;"	d
+N	t2s_tests/lu/kernel.h	6;"	d
+N	t2s_tests/sw/kernel.h	7;"	d
 NM	Makefile	/^NM = \/usr\/bin\/nm -B$/;"	m
 NM	isl/Makefile	/^NM = \/usr\/bin\/nm -B$/;"	m
 NM	isl/doc/Makefile	/^NM = \/usr\/bin\/nm -B$/;"	m
@@ -1983,6 +2053,16 @@ NRCHECK	isl/imath/imath.c	73;"	d	file:
 NRCHECK	isl/imath/imrat.c	40;"	d	file:
 NUM_REGS	isl/imath/imdrover.c	61;"	d	file:
 Negative Unknowns and Maximization	isl/doc/implementation.tex	/^Recent versions of {\\tt PipLib} also check for such duplicates.$/;"	b
+O	t2s_tests/cnn/kernel.h	6;"	d
+OBJ	t2s_tests/2dconv/Makefile	/^OBJ=kernel.o main.o$/;"	m
+OBJ	t2s_tests/cholesky/Makefile	/^OBJ = kernel.o main.o$/;"	m
+OBJ	t2s_tests/cnn/Makefile	/^OBJ = kernel.o main.o$/;"	m
+OBJ	t2s_tests/covmat/Makefile	/^OBJ = kernel.o main.o$/;"	m
+OBJ	t2s_tests/lu/Makefile	/^OBJ = kernel.o main.o$/;"	m
+OBJ	t2s_tests/mttkrp/Makefile	/^OBJ = kernel.o main.o$/;"	m
+OBJ	t2s_tests/sw/Makefile	/^OBJ = kernel.polysa.o main.o$/;"	m
+OBJ	t2s_tests/ttm/Makefile	/^OBJ = kernel.o main.o$/;"	m
+OBJ	t2s_tests/ttmc/Makefile	/^OBJ = kernel.o main.o$/;"	m
 OBJDUMP	Makefile	/^OBJDUMP = objdump$/;"	m
 OBJDUMP	isl/Makefile	/^OBJDUMP = objdump$/;"	m
 OBJDUMP	isl/doc/Makefile	/^OBJDUMP = objdump$/;"	m
@@ -2208,6 +2288,10 @@ PYTHON_VERSION	isl/interface/Makefile	/^PYTHON_VERSION = 2.7$/;"	m
 PY_LOG_COMPILE	isl/Makefile	/^PY_LOG_COMPILE = $(PY_LOG_COMPILER) $(AM_PY_LOG_FLAGS) $(PY_LOG_FLAGS)$/;"	m
 PY_LOG_COMPILER	isl/Makefile	/^PY_LOG_COMPILER = $(PYTHON)$/;"	m
 PY_LOG_DRIVER	isl/Makefile	/^PY_LOG_DRIVER = $(SHELL) $(top_srcdir)\/test-driver$/;"	m
+P_W_EXTEND	t2s_tests/sw/kernel.h	12;"	d
+P_W_MATCH	t2s_tests/sw/kernel.h	9;"	d
+P_W_MISMATCH	t2s_tests/sw/kernel.h	10;"	d
+P_W_OPEN	t2s_tests/sw/kernel.h	11;"	d
 Parameter Compression	isl/doc/implementation.tex	/^this single-occurrence constraint.$/;"	b
 Parametric Integer Programming	isl/doc/implementation.tex	/^is dropped.$/;"	s
 Partitioning the domains and ranges of $R$	isl/doc/implementation.tex	/^\\end{example}$/;"	b
@@ -2231,6 +2315,7 @@ PragmaValueBoundsHandler	pet/pet.cc	/^	PragmaValueBoundsHandler(isl_ctx *ctx, Se
 PragmaValueBoundsHandler	pet/pet.cc	/^struct PragmaValueBoundsHandler : public PragmaHandler {$/;"	s	file:
 Preprocessing	isl/doc/implementation.tex	/^produce an error if the problem turns out to be unbounded.$/;"	b
 R	t2s_tests/2dconv/kernel.h	6;"	d
+R	t2s_tests/cnn/kernel.h	8;"	d
 RANLIB	Makefile	/^RANLIB = ranlib$/;"	m
 RANLIB	isl/Makefile	/^RANLIB = ranlib$/;"	m
 RANLIB	isl/doc/Makefile	/^RANLIB = ranlib$/;"	m
@@ -4658,6 +4743,7 @@ compute_incremental	isl/isl_transitive_closure.c	/^static __isl_give isl_map *co
 compute_live_out	ppcg.c	/^static void compute_live_out(struct ppcg_scop *ps)$/;"	f	file:
 compute_live_range_reordering_dependences	ppcg.c	/^static void compute_live_range_reordering_dependences(struct ppcg_scop *ps)$/;"	f	file:
 compute_localize	hybrid.c	/^static __isl_give isl_multi_aff *compute_localize($/;"	f	file:
+compute_mag	t2s_tests/lu/main.c	/^data_t compute_mag(data_t a, data_t b) {$/;"	f
 compute_max	isl/isl_sample.c	/^static enum isl_lp_result compute_max(isl_ctx *ctx, struct isl_tab *tab,$/;"	f	file:
 compute_max_coefficient	isl/isl_scheduler.c	/^static isl_stat compute_max_coefficient(isl_ctx *ctx,$/;"	f	file:
 compute_max_row	isl/isl_scheduler.c	/^static isl_stat compute_max_row(struct isl_sched_graph *graph,$/;"	f	file:
@@ -4666,6 +4752,7 @@ compute_maxvar_max_slack	isl/isl_scheduler.c	/^static int compute_maxvar_max_sla
 compute_may_persist	gpu.c	/^static __isl_give isl_union_set *compute_may_persist(struct gpu_prog *prog)$/;"	f	file:
 compute_mem_based_dependences	isl/isl_flow.c	/^static __isl_give isl_flow *compute_mem_based_dependences($/;"	f	file:
 compute_min	isl/isl_sample.c	/^static enum isl_lp_result compute_min(isl_ctx *ctx, struct isl_tab *tab,$/;"	f	file:
+compute_mm	t2s_tests/lu/main.c	/^data_t compute_mm(data_t c, data_t s, data_t *op1, data_t *op2) {$/;"	f
 compute_next_band	isl/isl_scheduler.c	/^static __isl_give isl_schedule_node *compute_next_band($/;"	f	file:
 compute_or_set_properties	gpu.c	/^static __isl_give isl_schedule *compute_or_set_properties(void *user)$/;"	f	file:
 compute_order_dependences	ppcg.c	/^static void compute_order_dependences(struct ppcg_scop *ps)$/;"	f	file:
@@ -5253,7 +5340,15 @@ data	isl/isl_blk.h	/^	isl_int *data;$/;"	m	struct:isl_blk
 data	isl/isl_flow.c	/^	void		*data;$/;"	m	struct:isl_labeled_map	file:
 data_t	kernel.h	/^typedef int data_t;$/;"	t
 data_t	t2s_tests/2dconv/kernel.h	/^typedef float data_t;$/;"	t
+data_t	t2s_tests/cholesky/kernel.h	/^typedef float data_t;$/;"	t
+data_t	t2s_tests/cnn/kernel.h	/^typedef float data_t;$/;"	t
+data_t	t2s_tests/covmat/kernel.h	/^typedef float data_t;$/;"	t
 data_t	t2s_tests/gemm/kernel.h	/^typedef int data_t;$/;"	t
+data_t	t2s_tests/lu/kernel.h	/^typedef float data_t;$/;"	t
+data_t	t2s_tests/mttkrp/kernel.h	/^typedef float data_t;$/;"	t
+data_t	t2s_tests/sw/kernel.h	/^typedef int data_t;$/;"	t
+data_t	t2s_tests/ttm/kernel.h	/^typedef float data_t;$/;"	t
+data_t	t2s_tests/ttmc/kernel.h	/^typedef float data_t;$/;"	t
 datadir	Makefile	/^datadir = ${datarootdir}$/;"	m
 datadir	isl/Makefile	/^datadir = ${datarootdir}$/;"	m
 datadir	isl/doc/Makefile	/^datadir = ${datarootdir}$/;"	m
@@ -5535,8 +5630,22 @@ dsa_kernel	kernel_cpu.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t
 dsa_kernel	kernel_tile.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	t2s_tests/2dconv/kernel.c	/^void dsa_kernel(data_t X[R + K - 1][S + K - 1], data_t W[K][K], data_t Z[R][S]) {$/;"	f
 dsa_kernel	t2s_tests/2dconv/kernel.polysa.c	/^void dsa_kernel(data_t X[R + K - 1][S + K - 1], data_t W[K][K], data_t Z[R][S]) {$/;"	f
+dsa_kernel	t2s_tests/cholesky/kernel.c	/^void dsa_kernel(data_t A[N][N], data_t L[N][N]) {$/;"	f
+dsa_kernel	t2s_tests/cholesky/kernel.polysa.c	/^void dsa_kernel(data_t A[N][N], data_t L[N][N]) {$/;"	f
+dsa_kernel	t2s_tests/cholesky/kernel.ppcg.c	/^void dsa_kernel(data_t A[N][N], data_t L[N][N]) {$/;"	f
+dsa_kernel	t2s_tests/covmat/kernel.c	/^void dsa_kernel(data_t d[N][K], data_t V[K][K]) {$/;"	f
 dsa_kernel	t2s_tests/gemm/kernel.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	t2s_tests/gemm/kernel.polysa.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
+dsa_kernel	t2s_tests/lu/kernel.c	/^void dsa_kernel(data_t A[N][N], data_t L[N][N], data_t U[N][N]) {$/;"	f
+dsa_kernel	t2s_tests/lu/kernel.polysa.c	/^void dsa_kernel(data_t A[N][N], data_t L[N][N], data_t U[N][N]) {$/;"	f
+dsa_kernel	t2s_tests/mttkrp/kernel.c	/^void dsa_kernel(data_t A[I][K][L], data_t B[K][J], data_t C[L][J], data_t D[I][J]){$/;"	f
+dsa_kernel	t2s_tests/sw/kernel.c	/^void dsa_kernel(char alt[M], char ref[N], int H[M + 1][N + 1], int bt[M][N]) {$/;"	f
+dsa_kernel	t2s_tests/sw/kernel.polysa.c	/^void dsa_kernel(char alt[M], char ref[N], int H[M + 1][N + 1], int bt[M][N]) {$/;"	f
+dsa_kernel	t2s_tests/sw/kernel.ppcg.c	/^void dsa_kernel(char alt[M], char ref[N], int H[M + 1][N + 1], int bt[M][N]) {$/;"	f
+dsa_kernel	t2s_tests/sw/kernel_dsa.c	/^void dsa_kernel(char alt[M], char ref[N], int H[M + 1][N + 1], int bt[M][N]) {$/;"	f
+dsa_kernel	t2s_tests/sw/kernel_dsa.polysa.c	/^void dsa_kernel(char alt[M], char ref[N], int H[M + 1][N + 1], int bt[M][N]) {$/;"	f
+dsa_kernel	t2s_tests/ttm/kernel.c	/^void dsa_kernel(data_t A[I][J][L], data_t B[L][K], data_t C[I][J][K]){$/;"	f
+dsa_kernel	t2s_tests/ttmc/kernel.c	/^void dsa_kernel(data_t A[I][L][M], data_t B[L][J], data_t C[M][K], data_t D[I][J][K]){$/;"	f
 dst	grouping.c	/^	struct ppcg_grouping_leaf *dst;$/;"	m	struct:ppcg_merge_leaves_data	typeref:struct:ppcg_merge_leaves_data::ppcg_grouping_leaf	file:
 dst	isl/isl_scheduler.c	/^	int dst;$/;"	m	struct:isl_mark_merge_sccs_data	file:
 dst	isl/isl_scheduler.c	/^	struct isl_sched_node *dst;$/;"	m	struct:isl_sched_edge	typeref:struct:isl_sched_edge::isl_sched_node	file:
@@ -7685,6 +7794,7 @@ get_init	isl/include/isl/cpp-checked.h	/^isl::checked::ast_expr ast_node_for::ge
 get_init	isl/include/isl/cpp.h	/^isl::ast_expr ast_node_for::get_init() const$/;"	f	class:isl::ast_node_for
 get_initial_non_parallel_subtree_filters	gpu.c	/^static __isl_give isl_union_set *get_initial_non_parallel_subtree_filters($/;"	f	file:
 get_initial_non_systolizable_subtree_filters	gpu.c	/^static __isl_give isl_union_set *get_initial_non_systolizable_subtree_filters($/;"	f	file:
+get_innermost_permutable_node	polysa_common.c	/^__isl_give isl_schedule_node *get_innermost_permutable_node(__isl_keep isl_schedule *schedule)$/;"	f
 get_instance_set	pet/interface/pet.py	/^    def get_instance_set(self):$/;"	m	class:scop
 get_int	pet/pet.cc	/^static int get_int(const char *s)$/;"	f	file:
 get_iterator	isl/include/isl/cpp-checked.h	/^isl::checked::ast_expr ast_node_for::get_iterator() const$/;"	f	class:isl::checked::ast_node_for
@@ -8101,6 +8211,10 @@ hull	isl/isl_test.c	/^	const char *hull;$/;"	m	struct:__anon28	file:
 hull	isl/isl_test.c	/^	const char *hull;$/;"	m	struct:__anon29	file:
 hull_hash	isl/isl_coalesce.c	/^	uint32_t hull_hash;$/;"	m	struct:isl_coalesce_info	file:
 hull_table	isl/isl_convex_hull.c	/^	struct isl_hash_table	*hull_table;$/;"	m	struct:sh_data	typeref:struct:sh_data::isl_hash_table	file:
+hw_kernel	t2s_tests/2dconv/kernel.c	/^void hw_kernel(data_t X[R + K - 1][S + K - 1], data_t W[K][K], data_t Z[R][S]) {$/;"	f
+hw_kernel	t2s_tests/2dconv/kernel.polysa.c	/^void hw_kernel(data_t X[R + K - 1][S + K - 1], data_t W[K][K], data_t Z[R][S]) {$/;"	f
+hw_kernel	t2s_tests/cnn/kernel.c	/^void hw_kernel(data_t X[I][R + 2][C + 2], data_t W[O][I][3][3], data_t Z[O][R][C]) {$/;"	f
+hw_kernel	t2s_tests/cnn/kernel.polysa.c	/^void hw_kernel(data_t X[I][R + 2][C + 2], data_t W[O][I][3][3], data_t Z[O][R][C]) {$/;"	f
 hybrid	ppcg_options.h	/^	int hybrid;$/;"	m	struct:ppcg_options
 hybrid_tile_drop_phase_marks	hybrid.c	/^__isl_give isl_schedule_node *hybrid_tile_drop_phase_marks($/;"	f
 hybrid_tile_foreach_phase	hybrid.c	/^__isl_give isl_schedule_node *hybrid_tile_foreach_phase($/;"	f
@@ -8594,6 +8708,7 @@ is_injective	isl/include/isl/cpp-checked.h	/^boolean map::is_injective() const$/
 is_injective	isl/include/isl/cpp-checked.h	/^boolean union_map::is_injective() const$/;"	f	class:isl::checked::union_map
 is_injective	isl/include/isl/cpp.h	/^bool map::is_injective() const$/;"	f	class:isl::map
 is_injective	isl/include/isl/cpp.h	/^bool union_map::is_injective() const$/;"	f	class:isl::union_map
+is_innermost_permutable_node_update	polysa_common.c	/^isl_bool *is_innermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)$/;"	f
 is_int	isl/include/isl/cpp-checked.h	/^boolean val::is_int() const$/;"	f	class:isl::checked::val
 is_int	isl/include/isl/cpp.h	/^bool val::is_int() const$/;"	f	class:isl::val
 is_internal	isl/isl_map.c	/^static isl_bool is_internal(__isl_keep isl_vec *inner,$/;"	f	file:
@@ -8709,6 +8824,7 @@ is_opposite_part	isl/isl_map_simplify.c	/^static int is_opposite_part(__isl_keep
 is_optimal	isl/isl_tab_pip.c	/^static int is_optimal(__isl_keep isl_vec *sol, int n_op)$/;"	f	file:
 is_or	isl/isl_ast.c	/^static int is_or(enum isl_ast_expr_op_type op)$/;"	f	file:
 is_outer_tilable	gpu.c	/^static int is_outer_tilable(__isl_keep isl_schedule_node *node)$/;"	f	file:
+is_outermost_permutable_node_update	polysa_common.c	/^isl_bool is_outermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)$/;"	f
 is_overload	isl/interface/generator.cc	/^bool generator::is_overload(Decl *decl)$/;"	f	class:generator
 is_parallel_except	isl/isl_map_simplify.c	/^static isl_bool is_parallel_except(__isl_keep isl_basic_map *bmap, int i, int j,$/;"	f	file:
 is_parallel_part	isl/isl_map_simplify.c	/^static int is_parallel_part(__isl_keep isl_basic_map *bmap, int i, int j,$/;"	f	file:
@@ -8718,7 +8834,6 @@ is_pencil_kill	pet/tree2scop.c	/^static int is_pencil_kill(__isl_keep pet_tree *
 is_permutable	gpu.c	/^static isl_bool is_permutable(__isl_keep isl_schedule_node *node)$/;"	f	file:
 is_permutable_node	polysa_common.c	/^static isl_bool is_permutable_node(__isl_keep isl_schedule_node *node) $/;"	f	file:
 is_permutable_node_cnt	polysa_common.c	/^isl_bool is_permutable_node_cnt(__isl_keep isl_schedule_node *node, void *user) {$/;"	f
-is_permutable_node_update	polysa_common.c	/^isl_bool is_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)$/;"	f
 is_phase_id	hybrid.c	/^static isl_bool is_phase_id(__isl_keep isl_id *id)$/;"	f	file:
 is_pos	isl/include/isl/cpp-checked.h	/^boolean val::is_pos() const$/;"	f	class:isl::checked::val
 is_pos	isl/include/isl/cpp.h	/^bool val::is_pos() const$/;"	f	class:isl::val
@@ -13002,6 +13117,8 @@ join_initial	isl/isl_map.c	/^static __isl_give isl_basic_map *join_initial(__isl
 keeps	isl/interface/generator.cc	/^bool generator::keeps(Decl *decl)$/;"	f	class:generator
 kernel	gpu.c	/^	struct ppcg_kernel *kernel;$/;"	m	struct:ppcg_at_domain_data	typeref:struct:ppcg_at_domain_data::ppcg_kernel	file:
 kernel	gpu.c	/^	struct ppcg_kernel *kernel;$/;"	m	struct:ppcg_transform_data	typeref:struct:ppcg_transform_data::ppcg_kernel	file:
+kernel	t2s_tests/cnn/kernel.c	/^void kernel(data_t X[I][R + 2][C + 2], data_t W[O][I][3][3], data_t Z[O][R][C]) {$/;"	f
+kernel	t2s_tests/cnn/kernel.polysa.c	/^void kernel(data_t X[I][R + 2][C + 2], data_t W[O][I][3][3], data_t Z[O][R][C]) {$/;"	f
 kernel0	kernel_t2s.cpp	/^void kernel0(int *A, int *B, int *C)$/;"	f
 kernel_c	cuda_common.h	/^	FILE *kernel_c;$/;"	m	struct:cuda_info
 kernel_c	opencl.c	/^	FILE *kernel_c;$/;"	m	struct:opencl_info	file:
@@ -13297,8 +13414,25 @@ main	pet/tests/unsigned2.c	/^int main()$/;"	f
 main	pet/tests/unsigned3.c	/^int main()$/;"	f
 main	ppcg.c	/^int main(int argc, char **argv)$/;"	f
 main	t2s.cpp	/^int main(void) {$/;"	f
+main	t2s_tests/2dconv/main.c	/^int main(){$/;"	f
 main	t2s_tests/2dconv/t2s.cpp	/^int main(void) {$/;"	f
+main	t2s_tests/cholesky/main.c	/^int main(){$/;"	f
+main	t2s_tests/cnn/main.c	/^int main(){$/;"	f
+main	t2s_tests/cnn/t2s.cpp	/^int main(void) {$/;"	f
+main	t2s_tests/covmat/main.c	/^int main(){$/;"	f
+main	t2s_tests/covmat/main.polysa.c	/^int main(){$/;"	f
 main	t2s_tests/gemm/t2s.cpp	/^int main(void) {$/;"	f
+main	t2s_tests/lu/main.c	/^int main(){$/;"	f
+main	t2s_tests/mttkrp/main.c	/^int main(){$/;"	f
+main	t2s_tests/mttkrp/main.polysa.c	/^int main(){$/;"	f
+main	t2s_tests/mttkrp/t2s.cpp	/^int main(void) {$/;"	f
+main	t2s_tests/sw/main.c	/^int main(){$/;"	f
+main	t2s_tests/ttm/main.c	/^int main(){$/;"	f
+main	t2s_tests/ttm/main.polysa.c	/^int main(){$/;"	f
+main	t2s_tests/ttm/t2s.cpp	/^int main(void) {$/;"	f
+main	t2s_tests/ttmc/main.c	/^int main(){$/;"	f
+main	t2s_tests/ttmc/main.polysa.c	/^int main(){$/;"	f
+main	t2s_tests/ttmc/t2s.cpp	/^int main(void) {$/;"	f
 main	tests/call.c	/^int main()$/;"	f
 main	tests/call2.c	/^int main()$/;"	f
 main	tests/call3.c	/^int main()$/;"	f
@@ -13589,6 +13723,7 @@ max	isl/pip.c	/^	int max;$/;"	m	struct:isl_scan_pip	file:
 max	opencl.c	26;"	d	file:
 max	pet/tree.h	/^			int max;$/;"	m	struct:pet_tree::__anon88::__anon89
 max	print.c	/^	const char *max;$/;"	m	struct:ppcg_macros	file:
+max	t2s_tests/sw/kernel.h	18;"	d
 max_col	isl/isl_mat_private.h	/^	unsigned max_col;$/;"	m	struct:isl_mat
 max_con	isl/isl_tab.h	/^	unsigned max_con;$/;"	m	struct:isl_tab
 max_constraint	isl/isl_convex_hull.c	/^struct max_constraint {$/;"	s	file:
@@ -14288,6 +14423,9 @@ nested	isl/isl_space_private.h	/^	isl_space *nested[2];$/;"	m	struct:isl_space
 nested_access	pet/expr.c	/^static __isl_give isl_pw_aff *nested_access(__isl_keep pet_expr *expr,$/;"	f	file:
 new_implication	pet/scop.c	/^static struct pet_implication *new_implication(__isl_take isl_map *map,$/;"	f	file:
 new_independence	pet/scop.c	/^static struct pet_independence *new_independence($/;"	f	file:
+new_kernel	t2s_tests/cholesky/kernel.c	/^void new_kernel(data_t p[N], data_t A[N][N]) {$/;"	f
+new_kernel	t2s_tests/cholesky/kernel.polysa.c	/^void new_kernel(data_t p[N], data_t A[N][N]) {$/;"	f
+new_kernel	t2s_tests/cholesky/kernel.ppcg.c	/^void new_kernel(data_t p[N], data_t A[N][N]) {$/;"	f
 next	gpu.h	/^	struct gpu_stmt_access *next;$/;"	m	struct:gpu_stmt_access	typeref:struct:gpu_stmt_access::gpu_stmt_access
 next	gpu_group.c	/^static __isl_give isl_map *next(__isl_take isl_space *domain_space, int pos)$/;"	f	file:
 next	isl/isl_input.c	/^	struct variable		*next;$/;"	m	struct:variable	typeref:struct:variable::variable	file:
@@ -14314,6 +14452,7 @@ next_token	isl/isl_input.c	/^static struct isl_token *next_token(__isl_keep isl_
 next_token	isl/isl_stream.c	/^static struct isl_token *next_token(__isl_keep isl_stream *s, int same_line)$/;"	f	file:
 next_type	isl/isl_stream_private.h	/^	enum isl_token_type	 next_type;$/;"	m	struct:isl_stream	typeref:enum:isl_stream::isl_token_type
 no	isl/isl_hash.c	/^static int no(const void *entry, const void *val)$/;"	f	file:
+no_band_node_as_descendant	polysa_t2s.c	/^static isl_bool no_band_node_as_descendant(__isl_keep isl_schedule_node *node, void *user){$/;"	f	file:
 no_merge	isl/isl_scheduler.c	/^	int no_merge;$/;"	m	struct:isl_sched_edge	file:
 no_sol_in_strict	isl/isl_tab_pip.c	/^static void no_sol_in_strict(struct isl_sol *sol,$/;"	f	file:
 node	isl/include/isl/cpp-checked.h	/^isl::checked::ast_node ast_node_mark::node() const$/;"	f	class:isl::checked::ast_node_mark
@@ -15778,11 +15917,15 @@ ppcg_macros_default	print.c	/^struct ppcg_macros ppcg_macros_default = {$/;"	v	t
 ppcg_macros_free	print.c	/^static void ppcg_macros_free(void *user)$/;"	f	file:
 ppcg_max	print.c	/^const char *ppcg_max = "ppcg_max";$/;"	v
 ppcg_max	t2s_tests/2dconv/kernel.polysa.c	7;"	d	file:
+ppcg_max	t2s_tests/sw/kernel_dsa.polysa.c	29;"	d	file:
 ppcg_max_printed	print.c	/^static const char *ppcg_max_printed = "ppcg_max_printed";$/;"	v	file:
 ppcg_may_persist_data	gpu.c	/^struct ppcg_may_persist_data {$/;"	s	file:
 ppcg_merge_leaves_data	grouping.c	/^struct ppcg_merge_leaves_data {$/;"	s	file:
 ppcg_min	print.c	/^const char *ppcg_min = "ppcg_min";$/;"	v
 ppcg_min	t2s_tests/2dconv/kernel.polysa.c	6;"	d	file:
+ppcg_min	t2s_tests/cholesky/kernel.polysa.c	92;"	d	file:
+ppcg_min	t2s_tests/lu/kernel.polysa.c	12;"	d	file:
+ppcg_min	t2s_tests/sw/kernel_dsa.polysa.c	28;"	d	file:
 ppcg_min_printed	print.c	/^static const char *ppcg_min_printed = "ppcg_min_printed";$/;"	v	file:
 ppcg_multi_val_from_int	util.c	/^__isl_give isl_multi_val *ppcg_multi_val_from_int(__isl_take isl_space *space,$/;"	f
 ppcg_multi_val_from_int_list	util.c	/^__isl_give isl_multi_val *ppcg_multi_val_from_int_list($/;"	f
@@ -16019,6 +16162,9 @@ print_ls_term_c	isl/isl_output.c	/^static __isl_give isl_printer *print_ls_term_
 print_macro	print.c	/^static isl_stat print_macro(enum isl_ast_op_type type, void *user)$/;"	f	file:
 print_map_body	isl/isl_output.c	/^static isl_stat print_map_body(__isl_take isl_map *map, void *user)$/;"	f	file:
 print_mat	polysa_common.c	/^void print_mat(FILE *fp, __isl_keep isl_mat *mat) $/;"	f
+print_mat	t2s_tests/cholesky/main.c	/^data_t print_mat(data_t* mat, int row, int col) {$/;"	f
+print_mat	t2s_tests/lu/main.c	/^data_t print_mat(data_t* mat, int row, int col) {$/;"	f
+print_mat	t2s_tests/sw/main.c	/^void print_mat(data_t* mat, int row, int col) {$/;"	f
 print_max	print.c	/^static __isl_give isl_printer *print_max(__isl_take isl_printer *p)$/;"	f	file:
 print_method	isl/interface/python.cc	/^void python_generator::print_method(const isl_class &clazz,$/;"	f	class:python_generator
 print_method_arguments	isl/interface/python.cc	/^void python_generator::print_method_arguments(int first, int n_arg)$/;"	f	class:python_generator
@@ -17900,6 +18046,7 @@ t2s_iters	polysa_vsa.h	/^  char **t2s_iters;$/;"	m	struct:polysa_vsa
 t2s_legal_at_node	polysa_t2s.c	/^static isl_bool t2s_legal_at_node(__isl_keep isl_schedule_node *node, void *user) {$/;"	f	file:
 t2s_legality_check	polysa_t2s.c	/^static isl_bool t2s_legality_check(__isl_keep isl_schedule *schedule) {$/;"	f	file:
 t2s_peel_off_scalar_dims	polysa_t2s.c	/^static __isl_give isl_set *t2s_peel_off_scalar_dims(__isl_take isl_set *set, __isl_keep isl_schedule *schedule)$/;"	f	file:
+t2s_peel_off_scalar_dims_vec	polysa_t2s.c	/^static __isl_give isl_vec *t2s_peel_off_scalar_dims_vec(__isl_take isl_vec *vec, __isl_keep isl_schedule *schedule)$/;"	f	file:
 t2s_populate_array_references	polysa_t2s.c	/^static int t2s_populate_array_references(struct t2s_array_info *info, struct t2s_array_ref_group **groups, struct t2s_data *data) $/;"	f	file:
 t2s_rar_URE_access	polysa_t2s.c	/^static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)$/;"	f	file:
 t2s_set_array_groups	polysa_t2s.c	/^static void t2s_set_array_groups(struct t2s_array_info *array, int n, struct t2s_array_ref_group **groups) $/;"	f	file:
