@@ -57,6 +57,7 @@ __isl_give isl_schedule_node *get_outermost_permutable_node(__isl_keep isl_sched
 __isl_give isl_schedule_node *get_innermost_permutable_node(__isl_keep isl_schedule *schedule);
 isl_bool is_permutable_node_update(__isl_keep isl_schedule_node *node, void *user);
 isl_stat sa_pe_optimize(struct polysa_prog *sa);
+isl_stat sa_loop_init(struct polysa_prog *sa);
 struct polysa_prog *sa_candidates_smart_pick(struct polysa_prog **sa_list, __isl_keep isl_size num_sa);
 struct polysa_prog **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, isl_size dim, isl_size *num_sa);
 struct polysa_prog **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, isl_size dim, isl_size *num_sa);
@@ -65,11 +66,9 @@ __isl_give isl_schedule *loop_interchange_at_node(__isl_take isl_schedule_node *
 isl_stat sa_latency_hiding_optimize(struct polysa_prog *sa);
 isl_stat sa_SIMD_vectorization_optimize(struct polysa_prog *sa);
 isl_stat sa_array_partitioning_optimize(struct polysa_prog *sa);
-
 void *polysa_prog_free(struct polysa_prog *sa);
 struct polysa_prog *polysa_prog_copy(struct polysa_prog *sa);
 struct polysa_prog *polysa_prog_from_schedule(__isl_take isl_schedule *schedule);
-
 void *polysa_acc_free(struct polysa_acc *acc);
 
 /* Utils */

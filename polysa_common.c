@@ -295,7 +295,7 @@ void print_mat(FILE *fp, __isl_keep isl_mat *mat)
   isl_printer_free(printer);
 }
 
-/* Apply the scheudle on the dependence and check if every dimension is a constant. 
+/* Apply the schedule on the dependence and check if every dimension is a constant. 
  * Dep in the form of S1[]->S2[].
  */
 isl_bool is_dep_uniform(__isl_take isl_basic_map *bmap, void *user)
@@ -1130,6 +1130,42 @@ struct polysa_prog *sa_candidates_smart_pick(struct polysa_prog **sa_list, __isl
   return sa_opt;
 }
 
+/* Initialize the space_time and pe_opt to polysa_loop_default for all band nodes. */
+static __isl_give isl_schedule_node *init_band_node_sa_properties(__isl_take isl_schedule_node *node, void *user) 
+{
+  if (!node)
+    return NULL;
+
+  struct polysa_prog *sa = user;
+
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    int band_w = isl_schedule_node_band_n_member(node);
+    /* Initialize the SA properties. */
+    for (int i = 0; i < band_w; i++) {
+      node = isl_schedule_node_band_member_set_space_time(node, i, polysa_loop_default);
+      node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_default);
+    }
+  }
+
+  return node;
+}
+
+/* Initialize the fields of time_space and pe_opt for each band node in the schedule tree. */
+isl_stat sa_loop_init(struct polysa_prog *sa)
+{
+  isl_schedule *schedule = sa->schedule;
+  isl_schedule_node *root = isl_schedule_get_root(schedule);
+  root = isl_schedule_node_map_descendant_bottom_up(root, 
+      &init_band_node_sa_properties, sa);
+
+  schedule = isl_schedule_node_get_schedule(root);
+  isl_schedule_node_free(root);
+  isl_schedule_free(sa->schedule);
+  sa->schedule = schedule;
+
+  return isl_stat_ok;
+}
+
 /* Apply PE optimization including:
  * - latency hiding
  * - SIMD vectorization
@@ -1137,30 +1173,70 @@ struct polysa_prog *sa_candidates_smart_pick(struct polysa_prog **sa_list, __isl
  */
 isl_stat sa_pe_optimize(struct polysa_prog *sa)
 {
+  /* Initialize the polysa_loop_types. */
+  sa_loop_init(sa);
+  /* Latency hiding. */
   sa_latency_hiding_optimize(sa);
+  /* SIMD vectorization. */
   sa_SIMD_vectorization_optimize(sa);
+  /* Array partitioning. */
   sa_array_partitioning_optimize(sa);
 }
 
-/* Apply latency hiding. */
+static isl_schedule_node *detect_latency_hiding_loop(__isl_take isl_schedule_node *node, void *user)
+{
+  struct polysa_prog *sa = user;
+
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+      if (isl_schedule_node_band_member_get_coincident(node, i)) {
+        node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_latency);
+      }
+    }
+  }
+
+  return node;
+}
+
+/* Apply latency hiding. 
+ * Go through all the loops, if there is any parallel loop (considering only RAW), 
+ * such a loop will be identified as latency hiding loop candidate. Such loops will be
+ * tiled. The point loops will be permuted as the innermost time loops.
+ */
 isl_stat sa_latency_hiding_optimize(struct polysa_prog *sa)
 {
   printf("[PolySA] Apply latency hiding.\n");
+  isl_schedule *schedule = sa->schedule;
+  /* Detect all candidate loops. */
+  schedule = isl_schedule_map_schedule_node_bottom_up(
+      schedule, &detect_latency_hiding_loop, sa);
+  // debug
+  isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  p = isl_printer_print_schedule(p, schedule);
+  printf("\n");
+  isl_printer_free(p);
+  // debug
 
   return isl_stat_ok;
 }
 
-/* Apply SIMD vectorization. */
+/* Apply SIMD vectorization. 
+ * Go through all the loops, if there is any vectorizable loop (parallel or reduction loop
+ * with stride-0/1 access), such a loop will be identified as SIMD loop candidate. We will rank
+ * the loops by heuristics and pick up one loop to be tiled. The point loops will be permuated 
+ * as the innermost loops to be unrolled.
+ */
 isl_stat sa_SIMD_vectorization_optimize(struct polysa_prog *sa)
 {
   printf("[PolySA] Apply SIMD vectorization.\n");
+  isl_schedule *schedule = sa->schedule; 
 
   return isl_stat_ok;
 }
 
-/* Apply array partitioning. 
- * Apply loop tiling on the outermost permutable loops (ignore point loops for 
- * latency hiding and SIMD vectorization). 
+/* Apply array partitioning.
+ * Apply loop tiling on the band that contains the space loops
  * Reorganize the array partitioning loops and place them following the
  * ascending order of the dependence distances. 
  */
@@ -1224,7 +1300,7 @@ void *polysa_prog_free(struct polysa_prog *sa)
 /* Copy a new polysa_sa struct. */
 struct polysa_prog *polysa_prog_copy(struct polysa_prog *sa) {
   struct polysa_prog *sa_dup = (struct polysa_prog *)malloc(sizeof(struct polysa_prog));
-
+  sa_dup->ctx = sa->ctx;
   sa_dup->schedule = isl_schedule_copy(sa->schedule);
   sa_dup->scop = sa->scop;
   sa_dup->array_dim = sa->array_dim;

@@ -288,7 +288,7 @@ CCLD	isl/Makefile	/^CCLD = $(CC)$/;"	m
 CCLD	isl/interface/Makefile	/^CCLD = $(CC)$/;"	m
 CCLD	pet/Makefile	/^CCLD = $(CC)$/;"	m
 CFLAGS	Makefile	/^CFLAGS = -g$/;"	m
-CFLAGS	isl/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
+CFLAGS	isl/Makefile	/^CFLAGS = -g -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	isl/doc/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	isl/interface/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	pet/Makefile	/^CFLAGS = -g -O2$/;"	m
@@ -394,7 +394,7 @@ CXXDEPMODE	isl/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
 CXXDEPMODE	isl/doc/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
 CXXDEPMODE	isl/interface/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
 CXXDEPMODE	pet/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
-CXXFLAGS	isl/Makefile	/^CXXFLAGS = -g -O2$/;"	m
+CXXFLAGS	isl/Makefile	/^CXXFLAGS = -g$/;"	m
 CXXFLAGS	isl/doc/Makefile	/^CXXFLAGS = -g -O2$/;"	m
 CXXFLAGS	isl/interface/Makefile	/^CXXFLAGS = -g -O2$/;"	m
 CXXFLAGS	pet/Makefile	/^CXXFLAGS = -g -O2$/;"	m
@@ -5454,6 +5454,7 @@ detect_equalities	isl/include/isl/cpp.h	/^isl::union_map union_map::detect_equal
 detect_equalities	isl/include/isl/cpp.h	/^isl::union_set union_set::detect_equalities() const$/;"	f	class:isl::union_set
 detect_equalities	isl/isl_tab_pip.c	/^	int (*detect_equalities)(struct isl_context *context,$/;"	m	struct:isl_context_op	file:
 detect_groups	grouping.c	/^static isl_bool detect_groups(__isl_keep isl_schedule_node *node, void *user)$/;"	f	file:
+detect_latency_hiding_loop	polysa_common.c	/^static isl_bool detect_latency_hiding_loop(__isl_keep isl_schedule_node *node, void *user)$/;"	f	file:
 detect_nonnegative_parameters	isl/isl_tab_pip.c	/^	struct isl_tab *(*detect_nonnegative_parameters)($/;"	m	struct:isl_context_op	typeref:struct:isl_context_op::detect_nonnegative_parameters	file:
 detect_sccs	isl/isl_scheduler.c	/^static isl_stat detect_sccs(isl_ctx *ctx, struct isl_sched_graph *graph)$/;"	f	file:
 detect_stride	isl/isl_stride.c	/^static isl_stat detect_stride(__isl_take isl_constraint *c, void *user)$/;"	f	file:
@@ -5635,7 +5636,7 @@ dsa_kernel	t2s_tests/cholesky/kernel.polysa.c	/^void dsa_kernel(data_t A[N][N], 
 dsa_kernel	t2s_tests/cholesky/kernel.ppcg.c	/^void dsa_kernel(data_t A[N][N], data_t L[N][N]) {$/;"	f
 dsa_kernel	t2s_tests/covmat/kernel.c	/^void dsa_kernel(data_t d[N][K], data_t V[K][K]) {$/;"	f
 dsa_kernel	t2s_tests/gemm/kernel.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
-dsa_kernel	t2s_tests/gemm/kernel.polysa.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
+dsa_kernel	t2s_tests/gemm/kernel_tile.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	t2s_tests/lu/kernel.c	/^void dsa_kernel(data_t A[N][N], data_t L[N][N], data_t U[N][N]) {$/;"	f
 dsa_kernel	t2s_tests/lu/kernel.polysa.c	/^void dsa_kernel(data_t A[N][N], data_t L[N][N], data_t U[N][N]) {$/;"	f
 dsa_kernel	t2s_tests/mttkrp/kernel.c	/^void dsa_kernel(data_t A[I][K][L], data_t B[K][J], data_t C[L][J], data_t D[I][J]){$/;"	f
@@ -8407,6 +8408,7 @@ init	isl/include/isl/cpp.h	/^isl::ast_expr ast_node_for::init() const$/;"	f	clas
 init	isl/isl_ast_private.h	/^			isl_ast_expr *init;$/;"	m	struct:isl_ast_node::__anon72::__anon75
 init	pet/tree.h	/^			pet_expr *init;$/;"	m	struct:pet_tree::__anon88::__anon90
 init	pet/tree.h	/^			pet_expr *init;$/;"	m	struct:pet_tree::__anon88::__anon92
+init_band_node_sa_properties	polysa_common.c	/^static __isl_give isl_schedule_node *init_band_node_sa_properties(__isl_take isl_schedule_node *node, void *user) $/;"	f	file:
 init_device	cuda.c	/^static __isl_give isl_printer *init_device(__isl_take isl_printer *p,$/;"	f	file:
 init_device	opencl.c	/^static __isl_give isl_printer *init_device(__isl_take isl_printer *p,$/;"	f	file:
 init_groups	isl/isl_factorization.c	/^static int init_groups(struct isl_factor_groups *g, __isl_keep isl_mat *H)$/;"	f	file:
@@ -8708,7 +8710,7 @@ is_injective	isl/include/isl/cpp-checked.h	/^boolean map::is_injective() const$/
 is_injective	isl/include/isl/cpp-checked.h	/^boolean union_map::is_injective() const$/;"	f	class:isl::checked::union_map
 is_injective	isl/include/isl/cpp.h	/^bool map::is_injective() const$/;"	f	class:isl::map
 is_injective	isl/include/isl/cpp.h	/^bool union_map::is_injective() const$/;"	f	class:isl::union_map
-is_innermost_permutable_node_update	polysa_common.c	/^isl_bool *is_innermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)$/;"	f
+is_innermost_permutable_node_update	polysa_common.c	/^isl_bool is_innermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)$/;"	f
 is_int	isl/include/isl/cpp-checked.h	/^boolean val::is_int() const$/;"	f	class:isl::checked::val
 is_int	isl/include/isl/cpp.h	/^bool val::is_int() const$/;"	f	class:isl::val
 is_internal	isl/isl_map.c	/^static isl_bool is_internal(__isl_keep isl_vec *inner,$/;"	f	file:
@@ -9408,36 +9410,36 @@ isl_ast_node_to_C_str	isl/isl_ast.c	/^__isl_give char *isl_ast_node_to_C_str(__i
 isl_ast_node_type	isl/include/isl/ast_type.h	/^enum isl_ast_node_type {$/;"	g
 isl_ast_node_user	isl/include/isl/ast_type.h	/^	isl_ast_node_user$/;"	e	enum:isl_ast_node_type
 isl_ast_node_user_get_expr	isl/isl_ast.c	/^__isl_give isl_ast_expr *isl_ast_node_user_get_expr($/;"	f
-isl_ast_op_access	isl/include/isl/ast_type.h	71;"	d
-isl_ast_op_add	isl/include/isl/ast_type.h	55;"	d
-isl_ast_op_address_of	isl/include/isl/ast_type.h	73;"	d
-isl_ast_op_and	isl/include/isl/ast_type.h	48;"	d
-isl_ast_op_and_then	isl/include/isl/ast_type.h	49;"	d
-isl_ast_op_call	isl/include/isl/ast_type.h	70;"	d
-isl_ast_op_cond	isl/include/isl/ast_type.h	63;"	d
-isl_ast_op_div	isl/include/isl/ast_type.h	58;"	d
-isl_ast_op_eq	isl/include/isl/ast_type.h	65;"	d
-isl_ast_op_error	isl/include/isl/ast_type.h	47;"	d
-isl_ast_op_fdiv_q	isl/include/isl/ast_type.h	59;"	d
-isl_ast_op_ge	isl/include/isl/ast_type.h	68;"	d
-isl_ast_op_gt	isl/include/isl/ast_type.h	69;"	d
-isl_ast_op_le	isl/include/isl/ast_type.h	66;"	d
-isl_ast_op_lt	isl/include/isl/ast_type.h	67;"	d
-isl_ast_op_max	isl/include/isl/ast_type.h	52;"	d
-isl_ast_op_member	isl/include/isl/ast_type.h	72;"	d
-isl_ast_op_min	isl/include/isl/ast_type.h	53;"	d
-isl_ast_op_minus	isl/include/isl/ast_type.h	54;"	d
-isl_ast_op_mul	isl/include/isl/ast_type.h	57;"	d
-isl_ast_op_or	isl/include/isl/ast_type.h	50;"	d
-isl_ast_op_or_else	isl/include/isl/ast_type.h	51;"	d
-isl_ast_op_pdiv_q	isl/include/isl/ast_type.h	60;"	d
-isl_ast_op_pdiv_r	isl/include/isl/ast_type.h	61;"	d
-isl_ast_op_select	isl/include/isl/ast_type.h	64;"	d
-isl_ast_op_sub	isl/include/isl/ast_type.h	56;"	d
-isl_ast_op_type	isl/include/isl/ast_type.h	46;"	d
+isl_ast_op_access	isl/include/isl/ast_type.h	83;"	d
+isl_ast_op_add	isl/include/isl/ast_type.h	67;"	d
+isl_ast_op_address_of	isl/include/isl/ast_type.h	85;"	d
+isl_ast_op_and	isl/include/isl/ast_type.h	60;"	d
+isl_ast_op_and_then	isl/include/isl/ast_type.h	61;"	d
+isl_ast_op_call	isl/include/isl/ast_type.h	82;"	d
+isl_ast_op_cond	isl/include/isl/ast_type.h	75;"	d
+isl_ast_op_div	isl/include/isl/ast_type.h	70;"	d
+isl_ast_op_eq	isl/include/isl/ast_type.h	77;"	d
+isl_ast_op_error	isl/include/isl/ast_type.h	59;"	d
+isl_ast_op_fdiv_q	isl/include/isl/ast_type.h	71;"	d
+isl_ast_op_ge	isl/include/isl/ast_type.h	80;"	d
+isl_ast_op_gt	isl/include/isl/ast_type.h	81;"	d
+isl_ast_op_le	isl/include/isl/ast_type.h	78;"	d
+isl_ast_op_lt	isl/include/isl/ast_type.h	79;"	d
+isl_ast_op_max	isl/include/isl/ast_type.h	64;"	d
+isl_ast_op_member	isl/include/isl/ast_type.h	84;"	d
+isl_ast_op_min	isl/include/isl/ast_type.h	65;"	d
+isl_ast_op_minus	isl/include/isl/ast_type.h	66;"	d
+isl_ast_op_mul	isl/include/isl/ast_type.h	69;"	d
+isl_ast_op_or	isl/include/isl/ast_type.h	62;"	d
+isl_ast_op_or_else	isl/include/isl/ast_type.h	63;"	d
+isl_ast_op_pdiv_q	isl/include/isl/ast_type.h	72;"	d
+isl_ast_op_pdiv_r	isl/include/isl/ast_type.h	73;"	d
+isl_ast_op_select	isl/include/isl/ast_type.h	76;"	d
+isl_ast_op_sub	isl/include/isl/ast_type.h	68;"	d
+isl_ast_op_type	isl/include/isl/ast_type.h	58;"	d
 isl_ast_op_type_print_macro	isl/isl_ast.c	/^__isl_give isl_printer *isl_ast_op_type_print_macro($/;"	f
 isl_ast_op_type_set_print_name	isl/isl_ast.c	/^__isl_give isl_printer *isl_ast_op_type_set_print_name($/;"	f
-isl_ast_op_zdiv_r	isl/include/isl/ast_type.h	62;"	d
+isl_ast_op_zdiv_r	isl/include/isl/ast_type.h	74;"	d
 isl_ast_print_options	isl/include/isl/ast_type.h	/^typedef struct isl_ast_print_options isl_ast_print_options;$/;"	t	typeref:struct:isl_ast_print_options
 isl_ast_print_options	isl/isl_ast_private.h	/^struct isl_ast_print_options {$/;"	s
 isl_ast_print_options_alloc	isl/isl_ast.c	/^__isl_give isl_ast_print_options *isl_ast_print_options_alloc(isl_ctx *ctx)$/;"	f
@@ -11576,9 +11578,13 @@ isl_schedule_band_is_anchored	isl/isl_schedule_band.c	/^int isl_schedule_band_is
 isl_schedule_band_member_get_ast_loop_type	isl/isl_schedule_band.c	/^enum isl_ast_loop_type isl_schedule_band_member_get_ast_loop_type($/;"	f
 isl_schedule_band_member_get_coincident	isl/isl_schedule_band.c	/^isl_bool isl_schedule_band_member_get_coincident($/;"	f
 isl_schedule_band_member_get_isolate_ast_loop_type	isl/isl_schedule_band.c	/^enum isl_ast_loop_type isl_schedule_band_member_get_isolate_ast_loop_type($/;"	f
+isl_schedule_band_member_get_pe_opt	isl/isl_schedule_band.c	/^enum polysa_loop_type isl_schedule_band_member_get_pe_opt($/;"	f
+isl_schedule_band_member_get_space_time	isl/isl_schedule_band.c	/^enum polysa_loop_type isl_schedule_band_member_get_space_time($/;"	f
 isl_schedule_band_member_set_ast_loop_type	isl/isl_schedule_band.c	/^__isl_give isl_schedule_band *isl_schedule_band_member_set_ast_loop_type($/;"	f
 isl_schedule_band_member_set_coincident	isl/isl_schedule_band.c	/^__isl_give isl_schedule_band *isl_schedule_band_member_set_coincident($/;"	f
 isl_schedule_band_member_set_isolate_ast_loop_type	isl/isl_schedule_band.c	/^isl_schedule_band_member_set_isolate_ast_loop_type($/;"	f
+isl_schedule_band_member_set_pe_opt	isl/isl_schedule_band.c	/^__isl_give isl_schedule_band *isl_schedule_band_member_set_pe_opt($/;"	f
+isl_schedule_band_member_set_space_time	isl/isl_schedule_band.c	/^__isl_give isl_schedule_band *isl_schedule_band_member_set_space_time($/;"	f
 isl_schedule_band_mod	isl/isl_schedule_band.c	/^__isl_give isl_schedule_band *isl_schedule_band_mod($/;"	f
 isl_schedule_band_n_member	isl/isl_schedule_band.c	/^isl_size isl_schedule_band_n_member(__isl_keep isl_schedule_band *band)$/;"	f
 isl_schedule_band_plain_is_equal	isl/isl_schedule_band.c	/^isl_bool isl_schedule_band_plain_is_equal(__isl_keep isl_schedule_band *band1,$/;"	f
@@ -11688,9 +11694,13 @@ isl_schedule_node_band_gist	isl/isl_schedule_node.c	/^__isl_give isl_schedule_no
 isl_schedule_node_band_member_get_ast_loop_type	isl/isl_schedule_node.c	/^enum isl_ast_loop_type isl_schedule_node_band_member_get_ast_loop_type($/;"	f
 isl_schedule_node_band_member_get_coincident	isl/isl_schedule_node.c	/^isl_bool isl_schedule_node_band_member_get_coincident($/;"	f
 isl_schedule_node_band_member_get_isolate_ast_loop_type	isl/isl_schedule_node.c	/^enum isl_ast_loop_type isl_schedule_node_band_member_get_isolate_ast_loop_type($/;"	f
+isl_schedule_node_band_member_get_pe_opt	isl/isl_schedule_node.c	/^enum polysa_loop_type isl_schedule_node_band_member_get_pe_opt($/;"	f
+isl_schedule_node_band_member_get_space_time	isl/isl_schedule_node.c	/^enum polysa_loop_type isl_schedule_node_band_member_get_space_time($/;"	f
 isl_schedule_node_band_member_set_ast_loop_type	isl/isl_schedule_node.c	/^__isl_give isl_schedule_node *isl_schedule_node_band_member_set_ast_loop_type($/;"	f
 isl_schedule_node_band_member_set_coincident	isl/isl_schedule_node.c	/^__isl_give isl_schedule_node *isl_schedule_node_band_member_set_coincident($/;"	f
 isl_schedule_node_band_member_set_isolate_ast_loop_type	isl/isl_schedule_node.c	/^isl_schedule_node_band_member_set_isolate_ast_loop_type($/;"	f
+isl_schedule_node_band_member_set_pe_opt	isl/isl_schedule_node.c	/^__isl_give isl_schedule_node *isl_schedule_node_band_member_set_pe_opt($/;"	f
+isl_schedule_node_band_member_set_space_time	isl/isl_schedule_node.c	/^__isl_give isl_schedule_node *isl_schedule_node_band_member_set_space_time($/;"	f
 isl_schedule_node_band_mod	isl/isl_schedule_node.c	/^__isl_give isl_schedule_node *isl_schedule_node_band_mod($/;"	f
 isl_schedule_node_band_n_member	isl/isl_schedule_node.c	/^isl_size isl_schedule_node_band_n_member(__isl_keep isl_schedule_node *node)$/;"	f
 isl_schedule_node_band_scale	isl/isl_schedule_node.c	/^__isl_give isl_schedule_node *isl_schedule_node_band_scale($/;"	f
@@ -11828,9 +11838,13 @@ isl_schedule_tree_band_intersect_domain	isl/isl_schedule_tree.c	/^__isl_give isl
 isl_schedule_tree_band_member_get_ast_loop_type	isl/isl_schedule_tree.c	/^enum isl_ast_loop_type isl_schedule_tree_band_member_get_ast_loop_type($/;"	f
 isl_schedule_tree_band_member_get_coincident	isl/isl_schedule_tree.c	/^isl_bool isl_schedule_tree_band_member_get_coincident($/;"	f
 isl_schedule_tree_band_member_get_isolate_ast_loop_type	isl/isl_schedule_tree.c	/^enum isl_ast_loop_type isl_schedule_tree_band_member_get_isolate_ast_loop_type($/;"	f
+isl_schedule_tree_band_member_get_pe_opt	isl/isl_schedule_tree.c	/^enum polysa_loop_type isl_schedule_tree_band_member_get_pe_opt($/;"	f
+isl_schedule_tree_band_member_get_space_time	isl/isl_schedule_tree.c	/^enum polysa_loop_type isl_schedule_tree_band_member_get_space_time($/;"	f
 isl_schedule_tree_band_member_set_ast_loop_type	isl/isl_schedule_tree.c	/^__isl_give isl_schedule_tree *isl_schedule_tree_band_member_set_ast_loop_type($/;"	f
 isl_schedule_tree_band_member_set_coincident	isl/isl_schedule_tree.c	/^__isl_give isl_schedule_tree *isl_schedule_tree_band_member_set_coincident($/;"	f
 isl_schedule_tree_band_member_set_isolate_ast_loop_type	isl/isl_schedule_tree.c	/^isl_schedule_tree_band_member_set_isolate_ast_loop_type($/;"	f
+isl_schedule_tree_band_member_set_pe_opt	isl/isl_schedule_tree.c	/^__isl_give isl_schedule_tree *isl_schedule_tree_band_member_set_pe_opt($/;"	f
+isl_schedule_tree_band_member_set_space_time	isl/isl_schedule_tree.c	/^__isl_give isl_schedule_tree *isl_schedule_tree_band_member_set_space_time($/;"	f
 isl_schedule_tree_band_mod	isl/isl_schedule_tree.c	/^__isl_give isl_schedule_tree *isl_schedule_tree_band_mod($/;"	f
 isl_schedule_tree_band_n_member	isl/isl_schedule_tree.c	/^isl_size isl_schedule_tree_band_n_member(__isl_keep isl_schedule_tree *tree)$/;"	f
 isl_schedule_tree_band_scale	isl/isl_schedule_tree.c	/^__isl_give isl_schedule_tree *isl_schedule_tree_band_scale($/;"	f
@@ -13763,6 +13777,10 @@ mem_insert	isl/imath/examples/imcalc.c	/^static mp_result mem_insert(cstate_t *s
 mem_recall	isl/imath/examples/imcalc.c	/^static mp_result mem_recall(cstate_t *sp, const char *name, mp_int value)$/;"	f	file:
 member_get_coincident	isl/include/isl/cpp-checked.h	/^boolean schedule_node_band::member_get_coincident(int pos) const$/;"	f	class:isl::checked::schedule_node_band
 member_get_coincident	isl/include/isl/cpp.h	/^bool schedule_node_band::member_get_coincident(int pos) const$/;"	f	class:isl::schedule_node_band
+member_get_pe_opt	isl/include/isl/cpp-checked.h	/^enum polysa_loop_type schedule_node_band::member_get_pe_opt(int pos) const$/;"	f	class:isl::checked::schedule_node_band
+member_get_pe_opt	isl/include/isl/cpp.h	/^enum polysa_loop_type schedule_node_band::member_get_pe_opt(int pos) const$/;"	f	class:isl::schedule_node_band
+member_get_space_time	isl/include/isl/cpp-checked.h	/^enum polysa_loop_type schedule_node_band::member_get_space_time(int pos) const$/;"	f	class:isl::checked::schedule_node_band
+member_get_space_time	isl/include/isl/cpp.h	/^enum polysa_loop_type schedule_node_band::member_get_space_time(int pos) const$/;"	f	class:isl::schedule_node_band
 member_set_ast_loop_atomic	isl/include/isl/cpp-checked.h	/^schedule_node_band schedule_node_band::member_set_ast_loop_atomic(int pos) const$/;"	f	class:isl::checked::schedule_node_band
 member_set_ast_loop_atomic	isl/include/isl/cpp.h	/^schedule_node_band schedule_node_band::member_set_ast_loop_atomic(int pos) const$/;"	f	class:isl::schedule_node_band
 member_set_ast_loop_default	isl/include/isl/cpp-checked.h	/^schedule_node_band schedule_node_band::member_set_ast_loop_default(int pos) const$/;"	f	class:isl::checked::schedule_node_band
@@ -13773,6 +13791,10 @@ member_set_ast_loop_unroll	isl/include/isl/cpp-checked.h	/^schedule_node_band sc
 member_set_ast_loop_unroll	isl/include/isl/cpp.h	/^schedule_node_band schedule_node_band::member_set_ast_loop_unroll(int pos) const$/;"	f	class:isl::schedule_node_band
 member_set_coincident	isl/include/isl/cpp-checked.h	/^schedule_node_band schedule_node_band::member_set_coincident(int pos, int coincident) const$/;"	f	class:isl::checked::schedule_node_band
 member_set_coincident	isl/include/isl/cpp.h	/^schedule_node_band schedule_node_band::member_set_coincident(int pos, int coincident) const$/;"	f	class:isl::schedule_node_band
+member_set_pe_opt	isl/include/isl/cpp-checked.h	/^schedule_node_band schedule_node_band::member_set_pe_opt(int pos, enum polysa_loop_type loop_type) const$/;"	f	class:isl::checked::schedule_node_band
+member_set_pe_opt	isl/include/isl/cpp.h	/^schedule_node_band schedule_node_band::member_set_pe_opt(int pos, enum polysa_loop_type loop_type) const$/;"	f	class:isl::schedule_node_band
+member_set_space_time	isl/include/isl/cpp-checked.h	/^schedule_node_band schedule_node_band::member_set_space_time(int pos, enum polysa_loop_type loop_type) const$/;"	f	class:isl::checked::schedule_node_band
+member_set_space_time	isl/include/isl/cpp.h	/^schedule_node_band schedule_node_band::member_set_space_time(int pos, enum polysa_loop_type loop_type) const$/;"	f	class:isl::schedule_node_band
 merge	grouping.c	/^	int merge;$/;"	m	struct:ppcg_merge_leaves_data	file:
 merge	isl/isl_scheduler.c	/^static isl_stat merge(isl_ctx *ctx, struct isl_clustering *c,$/;"	f	file:
 merge	isl/isl_transitive_closure.c	/^static int merge(isl_set **set, int *group, __isl_take isl_set *dom, int pos)$/;"	f	file:
@@ -14454,6 +14476,7 @@ next_type	isl/isl_stream_private.h	/^	enum isl_token_type	 next_type;$/;"	m	stru
 no	isl/isl_hash.c	/^static int no(const void *entry, const void *val)$/;"	f	file:
 no_band_node_as_descendant	polysa_t2s.c	/^static isl_bool no_band_node_as_descendant(__isl_keep isl_schedule_node *node, void *user){$/;"	f	file:
 no_merge	isl/isl_scheduler.c	/^	int no_merge;$/;"	m	struct:isl_sched_edge	file:
+no_permutable_node	polysa_common.c	/^static isl_bool no_permutable_node(isl_schedule_node *node, void *user)$/;"	f	file:
 no_sol_in_strict	isl/isl_tab_pip.c	/^static void no_sol_in_strict(struct isl_sol *sol,$/;"	f	file:
 node	isl/include/isl/cpp-checked.h	/^isl::checked::ast_node ast_node_mark::node() const$/;"	f	class:isl::checked::ast_node_mark
 node	isl/include/isl/cpp.h	/^isl::ast_node ast_node_mark::node() const$/;"	f	class:isl::ast_node_mark
@@ -15085,6 +15108,7 @@ pdfdir	isl/Makefile	/^pdfdir = ${docdir}$/;"	m
 pdfdir	isl/doc/Makefile	/^pdfdir = ${docdir}$/;"	m
 pdfdir	isl/interface/Makefile	/^pdfdir = ${docdir}$/;"	m
 pdfdir	pet/Makefile	/^pdfdir = ${docdir}$/;"	m
+pe_opt	isl/isl_schedule_band.h	/^  enum polysa_loop_type *pe_opt;$/;"	m	struct:isl_schedule_band	typeref:enum:isl_schedule_band::polysa_loop_type
 peek_basic_set	isl/isl_tab_pip.c	/^	struct isl_basic_set *(*peek_basic_set)(struct isl_context *context);$/;"	m	struct:isl_context_op	typeref:struct:isl_context_op::peek_basic_set	file:
 peek_tab	isl/isl_tab_pip.c	/^	struct isl_tab *(*peek_tab)(struct isl_context *context);$/;"	m	struct:isl_context_op	typeref:struct:isl_context_op::peek_tab	file:
 pencil	pet/expr.c	/^	int pencil;$/;"	m	struct:affine_builtin_decl	file:
@@ -15796,6 +15820,14 @@ polysa_generate_wrap	gpu.c	/^static __isl_give isl_printer *polysa_generate_wrap
 polysa_iter	polysa_common.h	/^struct polysa_iter {$/;"	s
 polysa_iter_free	polysa_common.c	/^__isl_null struct polysa_iter *polysa_iter_free(struct polysa_iter *iter) {$/;"	f
 polysa_kernel	gpu.h	/^struct polysa_kernel {$/;"	s
+polysa_loop_array_part	isl/include/isl/ast_type.h	/^  polysa_loop_array_part$/;"	e	enum:polysa_loop_type
+polysa_loop_default	isl/include/isl/ast_type.h	/^  polysa_loop_default = 0,$/;"	e	enum:polysa_loop_type
+polysa_loop_error	isl/include/isl/ast_type.h	/^  polysa_loop_error = -1,$/;"	e	enum:polysa_loop_type
+polysa_loop_latency	isl/include/isl/ast_type.h	/^  polysa_loop_latency,$/;"	e	enum:polysa_loop_type
+polysa_loop_simd	isl/include/isl/ast_type.h	/^  polysa_loop_simd,$/;"	e	enum:polysa_loop_type
+polysa_loop_space	isl/include/isl/ast_type.h	/^  polysa_loop_space,$/;"	e	enum:polysa_loop_type
+polysa_loop_time	isl/include/isl/ast_type.h	/^  polysa_loop_time,$/;"	e	enum:polysa_loop_type
+polysa_loop_type	isl/include/isl/ast_type.h	/^enum polysa_loop_type {$/;"	g
 polysa_map_to_device	gpu.c	/^__isl_give isl_schedule *polysa_map_to_device(struct gpu_gen *gen,$/;"	f
 polysa_mark_kernels	gpu.c	/^static __isl_give isl_schedule_node *polysa_mark_kernels(struct gpu_gen *gen,$/;"	f	file:
 polysa_prog	polysa_common.h	/^struct polysa_prog {$/;"	s
@@ -17108,6 +17140,7 @@ sa_array_partitioning_optimize	polysa_common.c	/^isl_stat sa_array_partitioning_
 sa_candidates_smart_pick	polysa_common.c	/^struct polysa_prog *sa_candidates_smart_pick(struct polysa_prog **sa_list, __isl_keep isl_size num_sa)$/;"	f
 sa_latency_hiding_optimize	polysa_common.c	/^isl_stat sa_latency_hiding_optimize(struct polysa_prog *sa)$/;"	f
 sa_legality_check	polysa_common.c	/^isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop) {$/;"	f
+sa_loop_init	polysa_common.c	/^isl_stat sa_loop_init(struct polysa_prog *sa)$/;"	f
 sa_pe_optimize	polysa_common.c	/^isl_stat sa_pe_optimize(struct polysa_prog *sa)$/;"	f
 sa_space_time_transform	polysa_common.c	/^struct polysa_prog **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop,$/;"	f
 sa_space_time_transform_at_dim	polysa_common.c	/^struct polysa_prog **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, $/;"	f
@@ -17817,6 +17850,7 @@ space_set_dim_name	isl/isl_input.c	/^static __isl_give isl_space *space_set_dim_
 space_shift	hybrid.c	/^	isl_multi_aff *space_shift;$/;"	m	struct:ppcg_ht_phase	file:
 space_sizes	hybrid.c	/^	isl_multi_val *space_sizes;$/;"	m	struct:ppcg_ht_tiling	file:
 space_tile	hybrid.c	/^	isl_multi_aff *space_tile;$/;"	m	struct:ppcg_ht_phase	file:
+space_time	isl/isl_schedule_band.h	/^  enum polysa_loop_type *space_time; $/;"	m	struct:isl_schedule_band	typeref:enum:isl_schedule_band::polysa_loop_type
 space_w	polysa_common.h	/^  int space_w;$/;"	m	struct:polysa_prog
 space_w	polysa_vsa.h	/^  int space_w;$/;"	m	struct:polysa_vsa
 specializer	isl/isl_scheduler.c	/^static __isl_give isl_map *specializer(struct isl_sched_node *src,$/;"	f	file:

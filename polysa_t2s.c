@@ -4071,6 +4071,9 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
       printf("[PolySA] %d systolic arrays generated.\n", num_sa);
     }
 
+    // TODO: All the SA candidates keep the same schedule tree. We need to duplicate them to 
+    // seperate the transformation performed on each array.
+
     /* Pick up one systolic array to preceed based on heuristics. */
     struct polysa_prog *sa_opt = sa_candidates_smart_pick(sa_candidates, num_sa);
 
