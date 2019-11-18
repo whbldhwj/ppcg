@@ -23,10 +23,10 @@ void hw_kernel(data_t X[R + K - 1][S + K - 1], data_t W[K][K], data_t Z[R][S]) {
     for (int c1 = 0; c1 <= 33; c1++)
       for (int c2 = 0; c2 <= 2; c2++)
         for (int c3 = 0; c3 <= 2; c3++) {
-          printf("%d %d %d %d\n", c0, c1, c2, c3);
-          if (c0 == 24 && c1 == 1 && c2 == 2 && c3 == 1) {
-            printf("here\n");
-          }
+//          printf("%d %d %d %d\n", c0, c1, c2, c3);
+//          if (c0 == 24 && c1 == 1 && c2 == 2 && c3 == 1) {
+//            printf("here\n");
+//          }
           if (((c2 == 0) && (-1 * c1 + 30 >= 0)) || (-1 * c1 + c2 + 31 == 0)) {
             X_ext[c0][c1][c2][c3] = X[c1][c0 + c3];
           } else if ((-1 * c1 + c2 + 30 >= 0) && (c2 + -1 >= 0)) {

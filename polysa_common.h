@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <isl/aff.h>
+#include <isl/id.h>
 #include <isl/ctx.h>
 #include <isl/flow.h>
 #include <isl/map.h>
@@ -34,7 +35,16 @@ struct polysa_prog {
   int space_w;
   int time_w;
 
-  int type; // 0 - async 1 - sync 
+  int type; // POLYSA_SA_TYPE_ASYNC | POLYSA_SA_TYPE_SYNC
+
+  /* User specified (array_part/latency_hiding/simd) sizes for each kernel. */
+  isl_union_map *sizes;
+
+  /* Effectively used (array_part/latency_hiding/simd) sizes for each kernel. */
+  isl_union_map *used_sizes;
+
+  /* Identifier of the kernel. */
+  int kernel_id;
 };
 
 struct polysa_acc {

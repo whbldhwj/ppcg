@@ -2009,6 +2009,16 @@ static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
     isl_set *stmt_domain = isl_set_copy(stmt_data->stmt_anchor_domain);
     isl_set *dep_dest_domain = isl_set_copy(dep->dest_sched_domain);
 
+//    // debug
+//    isl_printer *p_debug = isl_printer_to_file(data->ctx, stdout);
+//    p_debug = isl_printer_print_set(p_debug, stmt_domain);
+//    printf("\n");
+//    p_debug = isl_printer_print_basic_map(p_debug, dep->isl_dep);
+//    printf("\n");
+//    p_debug = isl_printer_print_set(p_debug, dep_dest_domain);
+//    printf("\n");
+//    // debug
+
     /* Generate the init domain */
     isl_set *init_domain = isl_set_subtract(stmt_domain, isl_set_copy(dep_dest_domain));
 
@@ -2018,10 +2028,6 @@ static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
     isl_set *reuse_domain = isl_set_gist(dep_dest_domain, anchor_domain);
     
     /* Peel off the scalar dimensions */
-//    init_domain = isl_set_project_out(init_domain,
-//        isl_dim_set, data->iter_num, isl_set_dim(init_domain, isl_dim_set) - data->iter_num);
-//    reuse_domain = isl_set_project_out(reuse_domain,
-//        isl_dim_set, data->iter_num, isl_set_dim(reuse_domain, isl_dim_set) - data->iter_num);
     init_domain = t2s_peel_off_scalar_dims(init_domain, data->schedule);
     reuse_domain = t2s_peel_off_scalar_dims(reuse_domain, data->schedule);
       
@@ -2635,7 +2641,22 @@ static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, 
   struct polysa_dep *p_dep_i;
   isl_vec *disvec;
 
-  band = get_outermost_permutable_node(schedule);
+//  // debug
+//  isl_printer *p = isl_printer_to_file(data->ctx, stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule(p, schedule);
+//  printf("\n");
+//  // debug
+  if (data->scop->options->t2s_tile && data->scop->options->t2s_tile_phase == 1) {
+    band = isl_schedule_get_root(schedule);
+    band = isl_schedule_node_child(band, 0);
+  } else {
+    band = get_outermost_permutable_node(schedule);
+  }
+//  // debug
+//  p = isl_printer_print_schedule_node(p, band);
+//  printf("\n");
+//  // debug
   dep_flow = data->scop->tagged_dep_flow;
   dep_rar = data->scop->tagged_dep_rar;
   dep_waw = data->scop->tagged_dep_waw;
@@ -2741,12 +2762,28 @@ static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, 
     isl_set *src_domain = isl_map_domain(isl_map_copy(untagged_dep_i));
     isl_set *dest_domain = isl_map_range(untagged_dep_i);
 
+//    // debug
+//    isl_printer *p = isl_printer_to_file(data->ctx, stdout);
+//    p = isl_printer_print_set(p, src_domain);
+//    printf("\n");
+//    // debug
+
     isl_union_map *sched = isl_schedule_node_get_subtree_schedule_union_map(band);
+//    // debug
+//    p = isl_printer_print_union_map(p, sched);
+//    printf("\n");
+//    // debug
+
     isl_union_map *sched_src = isl_union_map_intersect_domain(isl_union_map_copy(sched), isl_union_set_from_set(isl_set_copy(src_domain)));
     isl_union_map *sched_dest = isl_union_map_intersect_domain(sched, isl_union_set_from_set(isl_set_copy(dest_domain)));
     
     p_dep_i->src_sched_domain = isl_set_from_union_set(isl_union_map_range(sched_src));
     p_dep_i->dest_sched_domain = isl_set_from_union_set(isl_union_map_range(sched_dest));
+
+//    // debug
+//    p = isl_printer_print_set(p, p_dep_i->src_sched_domain);
+//    printf("\n");
+//    // debug
 
     /* Add the tuple name */
     p_dep_i->src_sched_domain = isl_set_set_tuple_name(p_dep_i->src_sched_domain, isl_set_get_tuple_name(src_domain));
@@ -3851,11 +3888,13 @@ static isl_stat print_t2s_with_schedule(
   isl_space *stmt_space;
   isl_ctx *ctx;
   isl_schedule *schedule;
+  int t2s_tile_second_phase;
 
   schedule = prog->schedule;
   ctx = isl_schedule_get_ctx(schedule);
   data = isl_calloc_type(ctx, struct t2s_data);
   data = t2s_data_init(data);
+  t2s_tile_second_phase = (scop->options->t2s_tile && scop->options->t2s_tile_phase == 1);
 
   data->ctx = ctx;
   data->scop = scop;
@@ -3910,9 +3949,17 @@ static isl_stat print_t2s_with_schedule(
   data->t2s_stmt_num = 0;
   data->t2s_stmt_text = NULL;
   schedule = gen_stmt_text_wrap(schedule, data);
-
+  
   /* Generate time-space transformation. */
-  gen_t2s_space_time(data);
+  if (!t2s_tile_second_phase) {
+    gen_t2s_space_time(data);
+  } else {
+    data->p = isl_printer_start_line(data->p);
+    data->p = isl_printer_print_str(data->p, "// Space-time transformation (Fill in manually)");
+    data->p = isl_printer_end_line(data->p);
+    data->p = isl_printer_start_line(data->p);
+    data->p = isl_printer_end_line(data->p);
+  }
 
   data->p = isl_printer_start_line(data->p);
   data->p = isl_printer_print_str(data->p, "// PE optimization (Fill in manually)");
@@ -3987,19 +4034,25 @@ static isl_bool no_band_node_as_descendant(__isl_keep isl_schedule_node *node, v
 static isl_bool t2s_legal_at_node(__isl_keep isl_schedule_node *node, void *user) {
   enum isl_schedule_node_type node_type = isl_schedule_node_get_type(node);
   if (node_type == isl_schedule_node_sequence || node_type == isl_schedule_node_set) {
-    isl_bool no_band = isl_schedule_node_every_descendant(node, 
-        &no_band_node_as_descendant, NULL);
-    if (!no_band)
+    int n_node_has_band = 0;
+    for (int n = 0; n < isl_schedule_node_n_children(node); n++) {
+      node = isl_schedule_node_child(node, n);
+      isl_bool no_band = isl_schedule_node_every_descendant(node, 
+          &no_band_node_as_descendant, NULL);
+      if (!no_band) 
+        n_node_has_band++;  
+    }
+    if (n_node_has_band > 2) {
       return isl_bool_false;
-    else
+    } else {
       return isl_bool_true;
+    }
   } else {
     return isl_bool_true;
   }
 }
 
-/* Check if all the sibling nodes at the same level are of the same node type. 
- * // TODO: check if there is only nested permuted band in the program.
+/* Check if there is only nested permuted band in the program.
  */
 static isl_bool t2s_legality_check(__isl_keep isl_schedule *schedule) {
 //  /* Check if all the sibling/cousion nodes at the same level are of the same node type. */
@@ -4037,12 +4090,24 @@ static isl_bool t2s_legality_check(__isl_keep isl_schedule *schedule) {
  *
  * First obtain a schedule for "scop" and then print code for "scop"
  * using that schedule.
+ *
+ * To generate T2S code from the tiled design, there are two phases.
+ * In the first phase, a tiled CPU program is generated w/o T2S program.
+ * In the second phase, the tiled CPU program is taken in and the T2S program
+ * with tiled UREs are generated.
  */
 static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 	struct ppcg_scop *scop, struct ppcg_options *options)
 {
 	isl_schedule *schedule;
+  int t2s_tile_second_phase = (options->t2s_tile && options->t2s_tile_phase == 1);
+  int t2s_tile_first_phase = (options->t2s_tile && options->t2s_tile_phase == 0);
 
+  if (t2s_tile_second_phase) {
+    /* In the second phase, the reschedule is disabled so that the 
+     * original schedule from the program is used. */
+    options->reschedule = 0;
+  }
 	schedule = get_schedule(scop, options);
 
   // debug
@@ -4050,52 +4115,72 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
   p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
   p_debug = isl_printer_print_schedule(p_debug, schedule);
   printf("\n");
-//  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_flow);
-//  printf("\n");
+  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_flow);
+  printf("\n");
 //  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_waw);
 //  printf("\n");
+  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_rar);
+  printf("\n");
   isl_printer_free(p_debug);
   // debug
+   
+  if (!t2s_tile_second_phase) {
+    /*  Check if the program is legal to be mapped to systolic array. */
+    isl_bool is_legal = sa_legality_check(schedule, scop);
+    if (is_legal != isl_bool_true) {
+      printf("[PolySA] Illegal to be transformed to systolic array.\n");
+    }
     
-  /*  Check if the program is legal to be mapped to systolic array. */
-  isl_bool is_legal = sa_legality_check(schedule, scop);
-  if (is_legal != isl_bool_true) {
-    printf("[PolySA] Illegal to be transformed to systolic array.\n");
-  }
+    if (is_legal) {
+      /* Generate systolic arrays using space-time mapping. */
+      isl_size num_sa = 0;
+      struct polysa_prog **sa_candidates = sa_space_time_transform(schedule, scop, &num_sa);
+      if (num_sa > 0) {
+        printf("[PolySA] %d systolic arrays generated.\n", num_sa);
+      }
+  
+      // TODO: All the SA candidates keep the same schedule tree. We need to duplicate them to 
+      // seperate the transformation performed on each array.
+  
+      /* Pick up one systolic array to preceed based on heuristics. */
+      struct polysa_prog *sa_opt = sa_candidates_smart_pick(sa_candidates, num_sa);
+  
+      if (t2s_tile_first_phase) {
+        /* Apply PE optimization. */
+        sa_pe_optimize(sa_opt);
+      }
+  
+  //    // debug
+  //    // isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(sa_opt->schedule), stdout);
+  //    p_debug = isl_printer_print_schedule(p_debug, sa_opt->schedule);
+  //    printf("\n");
+  //    // debug
+ 
+      if (!t2s_tile_first_phase) {
+        /* Generate T2S program. */
+        isl_bool is_t2s_legal = t2s_legality_check(sa_opt->schedule);
+        if (is_t2s_legal) {
+          print_t2s_with_schedule(sa_opt, scop);
+        } else {
+          printf("[PolySA] Illegal to be transformed to T2S program.\n");
+        }
+      }
 
-  if (is_legal) {
-    /* Generate systolic arrays using space-time mapping. */
-    isl_size num_sa = 0;
-    struct polysa_prog **sa_candidates = sa_space_time_transform(schedule, scop, &num_sa);
-    if (num_sa > 0) {
-      printf("[PolySA] %d systolic arrays generated.\n", num_sa);
+      schedule = isl_schedule_copy(sa_opt->schedule);  
+      polysa_prog_free(sa_opt);
     }
+  } else {
+    struct polysa_prog *sa = polysa_prog_from_schedule(schedule);
+    sa->scop = scop;
+    // TODO: sa->type
+    // TODO: sa->array_dim
+    // TODO: sa->array_part_w
+    // TODO: sa->space_w
+    // TODO: sa->time_w
 
-    // TODO: All the SA candidates keep the same schedule tree. We need to duplicate them to 
-    // seperate the transformation performed on each array.
-
-    /* Pick up one systolic array to preceed based on heuristics. */
-    struct polysa_prog *sa_opt = sa_candidates_smart_pick(sa_candidates, num_sa);
-
-    /* Apply PE optimization. */
-    sa_pe_optimize(sa_opt);
-
-//    // debug
-//    // isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(sa_opt->schedule), stdout);
-//    p_debug = isl_printer_print_schedule(p_debug, sa_opt->schedule);
-//    printf("\n");
-//    // debug
-
-    /* Generate T2S program. */
-    isl_bool is_t2s_legal = t2s_legality_check(sa_opt->schedule);
-    if (is_t2s_legal) {
-      print_t2s_with_schedule(sa_opt, scop);
-    } else {
-      printf("[PolySA] Illegal to be transformed to T2S program.\n");
-    }
-    schedule = isl_schedule_copy(sa_opt->schedule);
-
-    polysa_prog_free(sa_opt);
+    print_t2s_with_schedule(sa, scop);
+    schedule = isl_schedule_copy(sa->schedule);
+    polysa_prog_free(sa);
   }
 
   /* Generate the transformed CPU program. */

@@ -68,6 +68,7 @@ ISL_ARG_BOOL(struct ppcg_debug_options, dump_sizes, 0,
 	"dump-sizes", 0,
 	"dump effectively used per kernel tile, grid and block sizes")
 ISL_ARG_BOOL(struct ppcg_debug_options, verbose, 'v', "verbose", 0, NULL)
+ISL_ARG_BOOL(struct ppcg_debug_options, polysa_verbose, 0, "polysa_verbose", 1, NULL)
 ISL_ARGS_END
 
 ISL_ARGS_START(struct ppcg_options, ppcg_opencl_options_args)
@@ -115,18 +116,28 @@ ISL_ARG_STR(struct ppcg_options, sizes, 0, "sizes", "sizes", NULL,
 	"Per kernel tile, grid and block sizes")
 ISL_ARG_INT(struct ppcg_options, max_shared_memory, 0,
 	"max-shared-memory", "size", 8192, "maximal amount of shared memory")
-ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
-  "Generate systolic arrays using PolySA")
-ISL_ARG_INT(struct ppcg_options, max_sa_dim, 0,
-  "max-sa-dim", "dim", 2, "maximal systolic array dimension")
 ISL_ARG_BOOL(struct ppcg_options, openmp, 0, "openmp", 0,
 	"Generate OpenMP macros (only for C target)")
 ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, target, 0, "target", target,
 	&set_target, PPCG_TARGET_CUDA, PPCG_TARGET_CUDA,
 	"the target to generate code for")
+/* PolySA Extended */
+ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
+  "Generate systolic arrays using PolySA")
+ISL_ARG_INT(struct ppcg_options, max_sa_dim, 0,
+  "max-sa-dim", "dim", 2, "maximal systolic array dimension")
 ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, sa_type, 0, "sa-type", sa_type,
   NULL, POLYSA_SA_TYPE_ASYNC, POLYSA_SA_TYPE_ASYNC,
   "systolic array type")
+ISL_ARG_INT(struct ppcg_options, sa_tile_size, 0, "sa-tile-size", "size", 8, 
+  "Default tile size in PE optmization")
+ISL_ARG_STR(struct ppcg_options, sa_sizes, 0, "sa-sizes", "sizes", NULL,
+	"Per kernel PE optimization tile sizes")
+ISL_ARG_BOOL(struct ppcg_options, t2s_tile, 0, "t2s-tile", 0,
+  "Generate T2S code from tiled code")
+ISL_ARG_INT(struct ppcg_options, t2s_tile_phase, 0,
+  "t2s-tile-phase", "phase", 0, "T2S tiled URE codegen phase")
+/* PolySA Extended */
 ISL_ARG_BOOL(struct ppcg_options, linearize_device_arrays, 0,
 	"linearize-device-arrays", 1,
 	"linearize all device arrays, even those of fixed size")

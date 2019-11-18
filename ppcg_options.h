@@ -10,6 +10,9 @@ struct ppcg_debug_options {
 	int dump_final_schedule;
 	int dump_sizes;
 	int verbose;
+  /* PolySA Extended */
+  int polysa_verbose;
+  /* PolySA Extended */
 };
 
 struct ppcg_options {
@@ -48,6 +51,7 @@ struct ppcg_options {
 	/* The target we generate code for. */
 	int target;
 
+  /* PolySA Extended */
   /* Generate systolic array using PolySA. */
   int polysa;
 
@@ -56,6 +60,19 @@ struct ppcg_options {
 
   /* Systolic array type. */
   int sa_type;
+
+  /* Universal tile size. */
+  int sa_tile_size;
+
+  /* Tile sizes for PE optimization. */
+  char *sa_sizes;
+
+  /* Generate T2S code from tiled program. */
+  int t2s_tile;
+
+  /* Phases of T2S codegen for tiled program. */
+  int t2s_tile_phase; 
+  /* PolySA Extended */
 
 	/* Generate OpenMP macros (C target only). */
 	int openmp;

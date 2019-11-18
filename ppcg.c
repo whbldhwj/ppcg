@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <isl/ctx.h>
 #include <isl/space.h>
 #include <isl/id.h>
@@ -614,7 +615,11 @@ static __isl_give isl_map *construct_dep_rar(__isl_keep isl_vec *sol, __isl_keep
   isl_space *space = isl_map_get_space(map);
 //  // debug
 //  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(map), stdout);
-//  isl_printer_print_space(printer, space);
+//  printer = isl_printer_print_space(printer, space);
+//  printf("\n");
+//  printer = isl_printer_print_map(printer, map);
+//  printf("\n");
+//  printer = isl_printer_print_vec(printer, sol);
 //  printf("\n");
 //  // debug
 
@@ -670,6 +675,52 @@ static __isl_give isl_map *construct_dep_rar(__isl_keep isl_vec *sol, __isl_keep
   return dep_map;
 }
 
+/* Dependence distance with smaller coefficients are preferred. 
+ * Besides, dependence distance with non-zero components at innermost loops 
+ * are preferred.
+ * A score is computed by sum(abs(ele_of_dep) * 2^(dep_len - loop_depth)).
+ * A solution with the lowest score is selected.
+ * At the second phase of tiled T2S code generation, 
+ * the coefficient at space loop dimensions should be no less than zero.
+ * For now, we will set any dependence vector with negative coefficient with a negative
+ * score -1.
+ */
+static int rar_sol_smart_pick(__isl_keep isl_mat *mat, struct ppcg_scop *ps) {
+  int score[isl_mat_cols(mat)];
+  int depth = isl_mat_rows(mat);
+  int pick_idx = -1;
+  int min_score = 0;
+
+  for (int c = 0; c < isl_mat_cols(mat); c++) {
+    score[c] = 0; 
+    for (int r = 0; r < isl_mat_rows(mat); r++) {
+      isl_val *val = isl_mat_get_element_val(mat, r, c);
+      long val_int = isl_val_get_num_si(val);
+      score[c] += abs(val_int) * pow(2, (depth - 1 - r));    
+      isl_val_free(val);
+      if (ps->options->t2s_tile && ps->options->t2s_tile_phase == 1) {
+        if (val_int < 0) {
+          score[c] = -1;
+          break;
+        }
+      }
+    }
+    if (score[c] >= 0) {
+      if (pick_idx == -1) {
+        pick_idx = c;
+        min_score = score[c];
+      } else {
+        if (min_score > score[c]) {
+          pick_idx = c;
+          min_score = score[c];
+        }
+      }
+    }
+  }
+
+  return pick_idx;
+}
+
 static isl_stat build_rar_dep(__isl_take isl_map *map, void *user) {
   struct ppcg_scop *ps = (struct ppcg_scop *)(user);
   /* Examine if the read access is an external access. */
@@ -688,31 +739,42 @@ static isl_stat build_rar_dep(__isl_take isl_map *map, void *user) {
 
   /* Take the access function and compute the null space */
   isl_mat *acc_mat = get_acc_mat_from_tagged_acc(map); 
+//  // debug
+//  print_mat(stdout, acc_mat);
+//  // debug
   isl_mat *acc_null_mat = isl_mat_right_kernel(acc_mat);
   int nsol = isl_mat_cols(acc_null_mat);
   // assert(nsol > 0);
+  
+//  // debug
+//  print_mat(stdout, acc_null_mat);
+//  // debug
 
   if (nsol > 0) {
   /* Build the rar dependence.
-   * TODO: temporary solutiuon, we will construnct the rar dep
-   * using the first independent solution.
+   * TODO: temporary solution, we will construnct the rar dep
+   * using one independent solution based on hueristics.
    */
+    int col = rar_sol_smart_pick(acc_null_mat, ps);
+    assert(col >= 0);
+    // col = 0;
+
     isl_vec *sol = isl_vec_alloc(isl_map_get_ctx(map), isl_mat_rows(acc_null_mat));
     for (int row = 0; row < isl_mat_rows(acc_null_mat); row++) {
-      sol = isl_vec_set_element_val(sol, row, isl_mat_get_element_val(acc_null_mat, row, 0));
+      sol = isl_vec_set_element_val(sol, row, isl_mat_get_element_val(acc_null_mat, row, col));
     }
     isl_map *tagged_dep_rar = construct_dep_rar(sol, map);
     isl_vec_free(sol);
     isl_mat_free(acc_null_mat);
 
-//  // debug
-//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(tagged_dep_rar), stdout);
-//  isl_printer_print_map(printer, tagged_dep_rar);
-//  printf("\n");
-//
-//  isl_printer_print_union_map(printer, ps->tagged_dep_rar);
-//  printf("\n");
-//  // debug
+//    // debug
+//    isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(tagged_dep_rar), stdout);
+//    isl_printer_print_map(printer, tagged_dep_rar);
+//    printf("\n");
+//  
+//    isl_printer_print_union_map(printer, ps->tagged_dep_rar);
+//    printf("\n");
+//    // debug
 
     ps->tagged_dep_rar = isl_union_map_union(ps->tagged_dep_rar, isl_union_map_from_map(tagged_dep_rar));
 //  // debug

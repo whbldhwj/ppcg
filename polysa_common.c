@@ -397,6 +397,14 @@ isl_bool is_dep_uniform_wrap(__isl_keep isl_map *map, void *user)
   for (int i = 0; i < isl_map_n_basic_map(map); i++) {
     is_uniform = is_dep_uniform(isl_basic_map_list_get_basic_map(bmap_list, i), user);
     if (is_uniform != isl_bool_true) {
+      isl_basic_map *dep_i = isl_basic_map_list_get_basic_map(bmap_list, i);
+      /* Print out the non-uniform dependence. */
+      isl_printer *p = isl_printer_to_file(isl_map_get_ctx(map), stdout);
+      p = isl_printer_print_basic_map(p, dep_i);
+      printf("\n");
+      isl_printer_free(p);
+      isl_basic_map_free(dep_i);
+
       isl_basic_map_list_free(bmap_list);
       return isl_bool_false;
     }
@@ -1166,6 +1174,13 @@ isl_stat sa_loop_init(struct polysa_prog *sa)
   return isl_stat_ok;
 }
 
+static __isl_give isl_union_map *extract_sizes_from_str(isl_ctx *ctx, const char *str)
+{
+  if (!str)
+    return NULL;
+  return isl_union_map_read_from_str(ctx, str);
+}
+
 /* Apply PE optimization including:
  * - latency hiding
  * - SIMD vectorization
@@ -1173,14 +1188,20 @@ isl_stat sa_loop_init(struct polysa_prog *sa)
  */
 isl_stat sa_pe_optimize(struct polysa_prog *sa)
 {
+  /* Prepartion before starting the optimization. */
   /* Initialize the polysa_loop_types. */
   sa_loop_init(sa);
+  /* Extract the tile sizes. */
+  sa->sizes = extract_sizes_from_str(sa->ctx, sa->scop->options->sa_sizes);
+  /* Set the kernel id. */
+  sa->kernel_id = 0;
+
+  /* Array partitioning. */
+  sa_array_partitioning_optimize(sa);
   /* Latency hiding. */
   sa_latency_hiding_optimize(sa);
   /* SIMD vectorization. */
   sa_SIMD_vectorization_optimize(sa);
-  /* Array partitioning. */
-  sa_array_partitioning_optimize(sa);
 }
 
 static isl_schedule_node *detect_latency_hiding_loop(__isl_take isl_schedule_node *node, void *user)
@@ -1217,6 +1238,8 @@ isl_stat sa_latency_hiding_optimize(struct polysa_prog *sa)
   printf("\n");
   isl_printer_free(p);
   // debug
+  /* Apply latency hiding on the candidate loops. */
+  /* First extract the tile sizes from the user specification. */
 
   return isl_stat_ok;
 }
@@ -1235,6 +1258,243 @@ isl_stat sa_SIMD_vectorization_optimize(struct polysa_prog *sa)
   return isl_stat_ok;
 }
 
+/* Internal data structure for extract_size_of_type.
+ * "type" specifies the name of the space that we want to extract.
+ * "res" is used to store the subset of that space.
+ */
+struct polysa_extract_size_data {
+	const char *type;
+	isl_set *res;
+};
+
+/* This function is called for each set in a union_set.
+ * If the name of the set matches data->type, we store the
+ * set in data->res.
+ */
+static isl_stat extract_size_of_type(__isl_take isl_set *size, void *user)
+{
+  struct polysa_extract_size_data *data = user;
+  const char *name;
+
+  name = isl_set_get_tuple_name(size);
+  if (name && !strcmp(name, data->type)) {
+    data->res = size;
+    return isl_stat_error;
+  }
+
+  isl_set_free(size);
+  return isl_stat_ok;
+}
+
+/* Given a union map { kernel[i] -> *[...] },
+ * return the range in the space called "type" for the kernel with 
+ * sequence number "id".
+ */
+static __isl_give isl_set *extract_sa_sizes(__isl_keep isl_union_map *sizes,
+    const char *type, int id)
+{
+  isl_space *space;
+  isl_set *dom;
+  isl_union_set *local_sizes;
+  struct polysa_extract_size_data data = { type, NULL};
+
+  if (!sizes)
+    return NULL;
+
+  space = isl_union_map_get_space(sizes);
+  space = isl_space_set_from_params(space);
+  space = isl_space_add_dims(space, isl_dim_set, 1);
+  space = isl_space_set_tuple_name(space, isl_dim_set, "kernel");
+  dom = isl_set_universe(space);
+  dom = isl_set_fix_si(dom, isl_dim_set, 0, id);
+
+  local_sizes = isl_union_set_apply(isl_union_set_from_set(dom),
+      isl_union_map_copy(sizes));
+  isl_union_set_foreach_set(local_sizes, &extract_size_of_type, &data);
+  isl_union_set_free(local_sizes);
+  return data.res;
+}
+
+/* Given a singleton set, extract the *len elements of the single integer tuple
+ * into *sizes. 
+ *
+ * If the element value is "-1", the loop at the same position is not tiled.
+ *  
+ * If "set" is NULL, then the "sizes" array is not updated.
+ */
+static isl_stat read_sa_sizes_from_set(__isl_take isl_set *set, int *sizes, int *len)
+{
+  int i;
+  int dim;
+
+  if (!set)
+    return isl_stat_ok;
+
+  dim = isl_set_dim(set, isl_dim_set);
+  if (dim < *len)
+    isl_die(isl_set_get_ctx(set), isl_error_invalid, 
+        "fewer sa_sizes than required", return isl_stat_error);
+
+  for (i = 0; i < *len; ++i) {
+    isl_val *v;
+
+    v = isl_set_plain_get_val_if_fixed(set, isl_dim_set, i);
+    if (!v)
+      goto error;
+    sizes[i] = isl_val_get_num_si(v);
+    isl_val_free(v);
+  }
+
+  isl_set_free(set);
+  return isl_stat_ok;
+error:
+  isl_set_free(set);
+  return isl_stat_error;
+}
+
+/* Add the map { kernel[id] -> type[sizes] } to gen->used-sizes 
+ * if the option debug->dump_sa_sizes is set.
+ */
+static void set_sa_used_sizes(struct polysa_prog *sa, const char *type, int id,
+    int *sizes, int len)
+{
+// TODO
+}
+
+/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
+ * defaulting to option->sa_tile_size in each dimension.
+ * *tile_len contains the maximum number of tile sizes needed.
+ * Update *tile_len to the number of specified tile sizes, if any, and 
+ * return a pointer to the tile sizes (or NULL on error).
+ * And the effectively used sizes to sa->used_sizes.
+ */
+static int *read_array_part_tile_sizes(struct polysa_prog *sa, int *tile_len)
+{
+  int n;
+  int *tile_size;
+  isl_set *size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < *tile_len; ++n)
+    tile_size[n] = sa->scop->options->sa_tile_size;
+  
+  size = extract_sa_sizes(sa->sizes, "array_part", sa->kernel_id);
+  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
+    goto error;
+  set_sa_used_sizes(sa, "array_part", sa->kernel_id, tile_size, *tile_len);
+
+  return tile_size;
+error:
+  free(tile_size);
+  return NULL;
+}
+
+static __isl_give isl_multi_val *multi_val_from_int_list(
+  __isl_take isl_space *space, int *list)
+{
+  int i, n;
+  isl_ctx *ctx;
+  isl_multi_val *mv;
+
+  if (!space) 
+    return NULL;
+
+  ctx = isl_space_get_ctx(space);
+  n = isl_space_dim(space, isl_dim_set);
+  mv = isl_multi_val_zero(space);
+  for (i = 0; i < n; ++i) {
+    isl_val *v;
+
+    v = isl_val_int_from_si(ctx, list[i]);
+    mv = isl_multi_val_set_val(mv, i, v);
+  }
+
+  return mv;
+}
+
+static __isl_give isl_multi_val *construct_band_tile_sizes(
+  __isl_keep isl_schedule_node *node, int *tile_size)
+{
+  isl_space *space;
+
+  if (!node)
+    return NULL;
+
+  space = isl_schedule_node_band_get_space(node);
+  return multi_val_from_int_list(space, tile_size);
+}
+
+/* Tile "band" with tile size specified by "sizes".
+ */
+static __isl_give isl_schedule_node *tile_band(
+  __isl_take isl_schedule_node *node, __isl_take isl_multi_val *sizes)
+{
+  isl_ctx *ctx = isl_schedule_node_get_ctx(node);
+  int scale_tile;
+  int shift_point;
+
+  scale_tile = isl_options_get_tile_scale_tile_loops(ctx);
+  isl_options_set_tile_scale_tile_loops(ctx, 0);
+  shift_point = isl_options_get_tile_shift_point_loops(ctx);
+  isl_options_set_tile_shift_point_loops(ctx, 1);
+
+  node = isl_schedule_node_band_tile(node, sizes);
+
+  isl_options_set_tile_scale_tile_loops(ctx, scale_tile);
+  isl_options_set_tile_shift_point_loops(ctx, shift_point);
+  
+  return node;
+}
+
+/* Tile "band" with tile size specified by "sizes".
+ *
+ * If the tile size at the given position, is "-1", the loop
+ * will not be tiled. Two band nodes are generated. The first band
+ * contains the tile loops and the untiled loops. The second band
+ * contains the point loops.
+ */
+__isl_give isl_schedule_node *polysa_tile_band(
+  __isl_take isl_schedule_node *node, __isl_keep int *sizes)    
+{
+  int full_tile = 1;
+  int n;
+
+  /* Examine of the band needs to be completedly tiled. */
+  n = isl_schedule_node_band_n_member(node);
+  for (int i = 0; i < n; i++) {
+    if (sizes[i] == -1) {
+      full_tile = 0;
+      break;
+    }
+  }
+
+  if (full_tile) {
+    isl_multi_val *tile_sizes;
+    tile_sizes = construct_band_tile_sizes(node, sizes);
+    node = tile_band(node, isl_multi_val_copy(tile_sizes));
+    isl_multi_val_free(tile_sizes);
+  } else {
+
+  }
+
+  return node;
+}
+
+/* Reset the pe_opt properties of all the band opts back to default. */
+static __isl_give isl_schedule_node *clear_pe_opt_prop(
+  __isl_take isl_schedule_node *node, void *user)
+{
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+      node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_default);
+    }
+  }
+
+  return node;
+}
+
 /* Apply array partitioning.
  * Apply loop tiling on the band that contains the space loops
  * Reorganize the array partitioning loops and place them following the
@@ -1242,49 +1502,83 @@ isl_stat sa_SIMD_vectorization_optimize(struct polysa_prog *sa)
  */
 isl_stat sa_array_partitioning_optimize(struct polysa_prog *sa)
 {
-//  int tile_len;
-//  int tile_size;
-//
+  int tile_len;
+  isl_schedule *schedule;
+  int *tile_size;
+  isl_id *id;
+
   printf("[PolySA] Apply array partitioning.\n");
-//  isl_schedule_node *band = get_outermost_permutable_node(sa->schedule);
-//
-//  tile_size = read_tile_sizes(, &tile_len);
-//  if (!tile_size) {
-//    isl_schedule_node_free(band);
-//    return isl_stat_ok;
-//  }
-// 
-//  isl_schedule_node_band_tile(node, sizes);
-//  tile_ban
-//
-//  isl_schedule_free(sa->schedule);
-//  sa->schedule = loop_tiling_at_node(band, );
+  /* Fetch the band that contains the space loops. */
+  isl_schedule_node *node;
+  if (sa->type == POLYSA_SA_TYPE_SYNC) {
+    node = get_innermost_permutable_node(sa->schedule);
+  } else if (sa->type == POLYSA_SA_TYPE_ASYNC){
+    node = get_outermost_permutable_node(sa->schedule);
+  } else {
+    isl_die(sa->ctx, isl_error_invalid,
+    "no supported sa type", return isl_stat_error);
+  }
+
+  /* Mark the loop properties. */
+  for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+    node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_array_part);
+  }
+  schedule = isl_schedule_node_get_schedule(node);
+
+  if (sa->scop->options->debug->polysa_verbose) {
+    /* Display the candidate loops. */
+    isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
+    p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+    p = isl_printer_print_schedule(p, schedule);
+    printf("\n");
+    isl_printer_free(p);
+  }
+  isl_schedule_free(schedule);
+  
+  /* Tile the band. */
+  tile_len = isl_schedule_node_band_n_member(node);
+  tile_size = read_array_part_tile_sizes(sa, &tile_len);
+  if (!tile_size) {
+    isl_schedule_node_free(node);
+    return isl_stat_error;
+  }
+  node = polysa_tile_band(node, tile_size);
+
+  /* Add the array marker */
+  node = isl_schedule_node_child(node, 0);
+  id = isl_id_alloc(sa->ctx, "array", NULL);
+  node = isl_schedule_node_insert_mark(node, id);
+  node = isl_schedule_node_parent(node);
+
+  // debug
+  isl_printer *p_debug = isl_printer_to_file(sa->ctx, stdout);
+  p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
+  p_debug = isl_printer_print_schedule_node(p_debug, node);
+  printf("\n");
+  isl_printer_free(p_debug);
+  // debug
+
+  /* Clean up the band pe_opt properties. */
+  schedule = isl_schedule_node_get_schedule(node);
+  isl_schedule_node_free(node);
+  schedule = isl_schedule_map_schedule_node_bottom_up(
+      schedule, &clear_pe_opt_prop, NULL);
+
+  isl_schedule_free(sa->schedule);
+  sa->schedule = schedule;
+
+  // debug
+  p_debug = isl_printer_to_file(sa->ctx, stdout);
+  p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
+  p_debug = isl_printer_print_schedule(p_debug, schedule);
+  printf("\n");
+  isl_printer_free(p_debug);
+  // debug
+
+  /* Clean up. */
+  free(tile_size);
 
   return isl_stat_ok;
-}
-
-/* Tile "band" with tile size specified by "sizes".
- * The tile loop scaling is turned off, and the point loop 
- * shifting is turned on.
- */
-static __isl_give isl_schedule_node *tile_band(
-	__isl_take isl_schedule_node *node, __isl_take isl_multi_val *sizes)
-{
-	isl_ctx *ctx = isl_schedule_node_get_ctx(node);
-	int scale_tile;
-	int shift_point;
-
-	scale_tile = isl_options_get_tile_scale_tile_loops(ctx);
-	isl_options_set_tile_scale_tile_loops(ctx, 0);
-	shift_point = isl_options_get_tile_shift_point_loops(ctx);
-	isl_options_set_tile_shift_point_loops(ctx, 1);
-
-	node = isl_schedule_node_band_tile(node, sizes);
-
-	isl_options_set_tile_scale_tile_loops(ctx, scale_tile);
-	isl_options_set_tile_shift_point_loops(ctx, shift_point);
-
-	return node;
 }
 
 /* Free the polysa_sa struct. */
@@ -1292,7 +1586,9 @@ void *polysa_prog_free(struct polysa_prog *sa)
 {
   if (!sa)
     return NULL;
-  isl_schedule_free(sa->schedule);  
+  isl_schedule_free(sa->schedule); 
+  isl_union_map_free(sa->sizes);
+  isl_union_map_free(sa->used_sizes);
   free(sa);
   return NULL;
 }
@@ -1308,6 +1604,9 @@ struct polysa_prog *polysa_prog_copy(struct polysa_prog *sa) {
   sa_dup->space_w = sa->space_w;
   sa_dup->time_w = sa->time_w;
   sa_dup->type = sa->type;
+  sa_dup->sizes = isl_union_map_copy(sa->sizes);
+  sa_dup->used_sizes = isl_union_map_copy(sa->used_sizes);
+  sa_dup->kernel_id = sa->kernel_id;
 
   return sa_dup;
 }
@@ -1323,6 +1622,9 @@ struct polysa_prog *polysa_prog_from_schedule(__isl_take isl_schedule *schedule)
   sa->space_w = 0;
   sa->time_w = 0;
   sa->type = 0;
+  sa->sizes = NULL;
+  sa->used_sizes = NULL;
+  sa->kernel_id = 0;
 
   return sa;
 }
@@ -1342,7 +1644,9 @@ struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop)
 
   prog->ctx = ctx;
   prog->scop = scop;
-  
+  prog->schedule = NULL;
+  prog->sizes = NULL;
+  prog->used_sizes = NULL;
 }
 
 void *polysa_acc_free(struct polysa_acc *acc) {
