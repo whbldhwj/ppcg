@@ -16,6 +16,7 @@
 #include <isl/schedule_node.h>
 
 #include "ppcg.h"
+#include "polysa_tree.h"
 
 struct polysa_iter {
   char *name;
@@ -45,6 +46,11 @@ struct polysa_prog {
 
   /* Identifier of the kernel. */
   int kernel_id;
+
+  /* The spaces of teh statement domains that form the core computation of the 
+   * kernel. 
+   */
+  isl_union_set *core;
 };
 
 struct polysa_acc {

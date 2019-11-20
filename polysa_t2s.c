@@ -1324,12 +1324,25 @@ isl_bool gen_t2s_stmt(__isl_take struct polysa_dep **dep_stmt_pair, struct ppcg_
     }
   }
 
+//  // debug
+//  isl_printer *p = isl_printer_to_file(data->ctx, stdout);
+//  p = isl_printer_print_set(p, data->anchor_domain);
+//  printf("\n");
+//  p = isl_printer_print_set(p, union_domain);
+//  printf("\n");
+//  // debug
+
   /* Simplify the domain. */
   isl_set *anchor_domain = isl_set_copy(data->anchor_domain);
   isl_space *space = isl_set_get_space(union_domain);
   anchor_domain = isl_set_set_tuple_name(anchor_domain, isl_space_get_tuple_name(space, isl_dim_set));
   union_domain = isl_set_gist(union_domain, anchor_domain);
   isl_space_free(space);
+
+//  // debug
+//  p = isl_printer_print_set(p, union_domain);
+//  printf("\n");
+//  // debug
 
   /* Peel off the scalar dimensions. */
 //  union_domain = isl_set_project_out(union_domain,
@@ -1884,6 +1897,12 @@ static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node 
   isl_set_list_free(stmt_domain_list);
   isl_id_free(id);
 
+//  // debug
+//  isl_printer *p = isl_printer_to_file(data->ctx, stdout);
+//  p = isl_printer_print_set(p, stmt_data->stmt_anchor_domain);
+//  printf("\n");
+//  // debug
+
   data->stmt_data = stmt_data;
   /* Extract the ref2expr for each access. */
   extract_t2s_stmt_access(stmt, data);
@@ -1898,9 +1917,8 @@ static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node 
     p_str = pet_stmt_print_body(stmt_i->stmt, p_str, stmt_i->ref2expr);
 //    // debug
 //    isl_printer *p_debug = isl_printer_to_file(data->ctx, stdout);
-//    p_debug = isl_printer_print_id_to_ast_expr(p_debug, stmt_i->ref2expr);
+//    p_debug = isl_printer_print_set(p_debug, data->stmt_data->stmt_domain[i]);
 //    printf("\n");
-//
 //    // debug
     char *stmt_text = isl_printer_get_str(p_str);
     stmt_text = c_to_t2s_stmt(stmt_text, isl_set_copy(data->stmt_data->stmt_domain[i]), data->iter_num);
@@ -4115,12 +4133,12 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
   p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
   p_debug = isl_printer_print_schedule(p_debug, schedule);
   printf("\n");
-  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_flow);
-  printf("\n");
+//  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_flow);
+//  printf("\n");
 //  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_waw);
 //  printf("\n");
-  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_rar);
-  printf("\n");
+//  p_debug = isl_printer_print_union_map(p_debug, scop->tagged_dep_rar);
+//  printf("\n");
   isl_printer_free(p_debug);
   // debug
    

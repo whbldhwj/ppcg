@@ -1,5 +1,48 @@
 #include "polysa_common.h"
 
+struct polysa_node_band_prop {
+  int permutable;
+  int *coincident;
+  enum polysa_loop_type *pe_opt;
+  enum polysa_loop_type *space_time;
+  int n_member;
+  isl_multi_union_pw_aff *mupa;
+};
+
+static struct polysa_node_band_prop *extract_node_band_prop(__isl_keep isl_schedule_node *node){
+  struct polysa_node_band_prop *prop = isl_calloc_type(isl_schedule_node_get_ctx(node), 
+      struct polysa_node_band_prop);
+  prop->mupa = isl_schedule_node_band_get_partial_schedule(node);
+  prop->n_member = isl_schedule_node_band_n_member(node);
+  prop->coincident = isl_calloc_array(isl_schedule_node_get_ctx(node), int, prop->n_member);
+  for (int i = 0; i < prop->n_member; i++) {
+    prop->coincident[i] = isl_schedule_node_band_member_get_coincident(node, i);
+  }
+  prop->permutable = isl_schedule_node_band_get_permutable(node);
+  prop->space_time = isl_calloc_array(isl_schedule_node_get_ctx(node), 
+      enum polysa_loop_type, prop->n_member);
+  prop->pe_opt = isl_calloc_array(isl_schedule_node_get_ctx(node),
+      enum polysa_loop_type, prop->n_member);
+  for (int i = 0; i < prop->n_member; i++) {
+    prop->space_time[i] = isl_schedule_node_band_member_get_space_time(node, i);
+    prop->pe_opt[i] = isl_schedule_node_band_member_get_pe_opt(node, i);
+  }
+
+  return prop;
+}
+
+static struct polysa_node_band_prop *polysa_node_band_prop_free(__isl_take struct polysa_node_band_prop *prop)
+{
+  isl_multi_union_pw_aff_free(prop->mupa);
+  free(prop->coincident);
+  free(prop->space_time);
+  free(prop->pe_opt);
+
+  free(prop);
+
+  return NULL;
+}
+
 static isl_stat concat_basic_map(__isl_take isl_map *el, void *user) 
 {
   isl_basic_map_list **bmap_list = (isl_basic_map_list **)(user);
@@ -837,18 +880,33 @@ __isl_give isl_schedule *loop_interchange_at_node(__isl_take isl_schedule_node *
   new_sc = isl_multi_union_pw_aff_set_union_pw_aff(new_sc, level2, isl_multi_union_pw_aff_get_union_pw_aff(sc, level1));
 
   /* Insert a new schedule node with the new schedule. */
-  isl_bool *coincident = (isl_bool *)malloc(isl_schedule_node_band_n_member(node) * sizeof(isl_bool));
-  for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
-    coincident[i] = isl_schedule_node_band_member_get_coincident(node, i);
-  }
+  struct polysa_node_band_prop *prop = extract_node_band_prop(node);
+
+//  isl_bool *coincident = (isl_bool *)malloc(isl_schedule_node_band_n_member(node) * sizeof(isl_bool));
+//  for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+//    coincident[i] = isl_schedule_node_band_member_get_coincident(node, i);
+//  }
   node = isl_schedule_node_insert_partial_schedule(node, new_sc);
  
   /* Update the properties of the new node. */
   node = isl_schedule_node_band_set_permutable(node, 1);
   for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
-    node = isl_schedule_node_band_member_set_coincident(node, i, coincident[i]);
+    node = isl_schedule_node_band_member_set_coincident(node, i, prop->coincident[i]);
   }
-  free(coincident);
+  node = isl_schedule_node_band_member_set_coincident(node, level1, prop->coincident[level2]);
+  node = isl_schedule_node_band_member_set_coincident(node, level2, prop->coincident[level1]);
+  for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+    node = isl_schedule_node_band_member_set_pe_opt(node, i, prop->pe_opt[i]);
+  }
+  node = isl_schedule_node_band_member_set_pe_opt(node, level1, prop->pe_opt[level2]);
+  node = isl_schedule_node_band_member_set_pe_opt(node, level2, prop->pe_opt[level1]);
+  for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+    node = isl_schedule_node_band_member_set_space_time(node, i, prop->space_time[i]);
+  }
+  node = isl_schedule_node_band_member_set_space_time(node, level1, prop->space_time[level2]);
+  node = isl_schedule_node_band_member_set_space_time(node, level2, prop->space_time[level1]);
+
+  polysa_node_band_prop_free(prop); 
 
   /* Delete the old node after the current node */
   node = isl_schedule_node_child(node, 0);
@@ -1129,7 +1187,7 @@ struct polysa_prog **sa_space_time_transform(__isl_take isl_schedule *schedule, 
 struct polysa_prog *sa_candidates_smart_pick(struct polysa_prog **sa_list, __isl_keep isl_size num_sa)
 {
   assert(num_sa > 0);
-  struct polysa_prog *sa_opt = polysa_prog_copy(sa_list[0]);
+  struct polysa_prog *sa_opt = polysa_prog_copy(sa_list[3]);
     
   for (int i = 0; i < num_sa; i++)
     polysa_prog_free(sa_list[i]);
@@ -1150,7 +1208,7 @@ static __isl_give isl_schedule_node *init_band_node_sa_properties(__isl_take isl
     int band_w = isl_schedule_node_band_n_member(node);
     /* Initialize the SA properties. */
     for (int i = 0; i < band_w; i++) {
-      node = isl_schedule_node_band_member_set_space_time(node, i, polysa_loop_default);
+      node = isl_schedule_node_band_member_set_space_time(node, i, polysa_loop_time);
       node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_default);
     }
   }
@@ -1174,6 +1232,32 @@ isl_stat sa_loop_init(struct polysa_prog *sa)
   return isl_stat_ok;
 }
 
+/* Set up the space_time properties. As all the loops are initialized to be the time loop,
+ * only the space loops are to be set.
+ */
+isl_stat sa_space_time_loop_setup(struct polysa_prog *sa) 
+{
+  isl_schedule_node *node;
+  if (sa->type == POLYSA_SA_TYPE_SYNC) {
+    node = get_innermost_permutable_node(sa->schedule);
+    for (int i = isl_schedule_node_band_n_member(node) - sa->space_w; i < isl_schedule_node_band_n_member(node); i++) {
+      node = isl_schedule_node_band_member_set_space_time(node, i, polysa_loop_space);      
+    }
+  } else if (sa->type == POLYSA_SA_TYPE_ASYNC) {
+    node = get_outermost_permutable_node(sa->schedule);
+    for (int i = 0; i < sa->space_w; i++) {
+      node = isl_schedule_node_band_member_set_space_time(node, i, polysa_loop_space);
+    }
+  }
+
+  isl_schedule *schedule = isl_schedule_node_get_schedule(node);
+  isl_schedule_node_free(node);
+  isl_schedule_free(sa->schedule);
+  sa->schedule = schedule;
+
+  return isl_stat_ok;
+}
+
 static __isl_give isl_union_map *extract_sizes_from_str(isl_ctx *ctx, const char *str)
 {
   if (!str)
@@ -1191,10 +1275,17 @@ isl_stat sa_pe_optimize(struct polysa_prog *sa)
   /* Prepartion before starting the optimization. */
   /* Initialize the polysa_loop_types. */
   sa_loop_init(sa);
+  /* Set up the space_time properties. */
+  sa_space_time_loop_setup(sa);
   /* Extract the tile sizes. */
   sa->sizes = extract_sizes_from_str(sa->ctx, sa->scop->options->sa_sizes);
   /* Set the kernel id. */
   sa->kernel_id = 0;
+  /* Set the core */
+  isl_schedule_node *root = isl_schedule_get_root(sa->schedule);
+  isl_union_set *domain = isl_schedule_node_get_domain(root);
+  sa->core = isl_union_set_universe(domain);
+  isl_schedule_node_free(root);
 
   /* Array partitioning. */
   sa_array_partitioning_optimize(sa);
@@ -1202,46 +1293,6 @@ isl_stat sa_pe_optimize(struct polysa_prog *sa)
   sa_latency_hiding_optimize(sa);
   /* SIMD vectorization. */
   sa_SIMD_vectorization_optimize(sa);
-}
-
-static isl_schedule_node *detect_latency_hiding_loop(__isl_take isl_schedule_node *node, void *user)
-{
-  struct polysa_prog *sa = user;
-
-  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
-    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
-      if (isl_schedule_node_band_member_get_coincident(node, i)) {
-        node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_latency);
-      }
-    }
-  }
-
-  return node;
-}
-
-/* Apply latency hiding. 
- * Go through all the loops, if there is any parallel loop (considering only RAW), 
- * such a loop will be identified as latency hiding loop candidate. Such loops will be
- * tiled. The point loops will be permuted as the innermost time loops.
- */
-isl_stat sa_latency_hiding_optimize(struct polysa_prog *sa)
-{
-  printf("[PolySA] Apply latency hiding.\n");
-  isl_schedule *schedule = sa->schedule;
-  /* Detect all candidate loops. */
-  schedule = isl_schedule_map_schedule_node_bottom_up(
-      schedule, &detect_latency_hiding_loop, sa);
-  // debug
-  isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
-  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-  p = isl_printer_print_schedule(p, schedule);
-  printf("\n");
-  isl_printer_free(p);
-  // debug
-  /* Apply latency hiding on the candidate loops. */
-  /* First extract the tile sizes from the user specification. */
-
-  return isl_stat_ok;
 }
 
 /* Apply SIMD vectorization. 
@@ -1474,9 +1525,13 @@ __isl_give isl_schedule_node *polysa_tile_band(
     isl_multi_val *tile_sizes;
     tile_sizes = construct_band_tile_sizes(node, sizes);
     node = tile_band(node, isl_multi_val_copy(tile_sizes));
+    /* Reset the space_time in the tile band */
+    for (int i = 0; i < n; i++) {
+      node = isl_schedule_node_band_member_set_space_time(node, i, polysa_loop_time);
+    }
     isl_multi_val_free(tile_sizes);
   } else {
-
+    // TODO: tile on demand
   }
 
   return node;
@@ -1519,6 +1574,14 @@ isl_stat sa_array_partitioning_optimize(struct polysa_prog *sa)
     "no supported sa type", return isl_stat_error);
   }
 
+//  // debug
+//  isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
+//  isl_multi_union_pw_aff *mupa = isl_schedule_node_band_get_partial_schedule(node);
+//  isl_space *space = isl_multi_union_pw_aff_get_space(mupa);
+//  p = isl_printer_print_space(p, space);
+//  printf("\n");
+//  // debug
+
   /* Mark the loop properties. */
   for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
     node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_array_part);
@@ -1550,13 +1613,13 @@ isl_stat sa_array_partitioning_optimize(struct polysa_prog *sa)
   node = isl_schedule_node_insert_mark(node, id);
   node = isl_schedule_node_parent(node);
 
-  // debug
-  isl_printer *p_debug = isl_printer_to_file(sa->ctx, stdout);
-  p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
-  p_debug = isl_printer_print_schedule_node(p_debug, node);
-  printf("\n");
-  isl_printer_free(p_debug);
-  // debug
+//  // debug
+//  isl_printer *p_debug = isl_printer_to_file(sa->ctx, stdout);
+//  p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
+//  p_debug = isl_printer_print_schedule_node(p_debug, node);
+//  printf("\n");
+//  isl_printer_free(p_debug);
+//  // debug
 
   /* Clean up the band pe_opt properties. */
   schedule = isl_schedule_node_get_schedule(node);
@@ -1567,16 +1630,623 @@ isl_stat sa_array_partitioning_optimize(struct polysa_prog *sa)
   isl_schedule_free(sa->schedule);
   sa->schedule = schedule;
 
-  // debug
-  p_debug = isl_printer_to_file(sa->ctx, stdout);
-  p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
-  p_debug = isl_printer_print_schedule(p_debug, schedule);
-  printf("\n");
-  isl_printer_free(p_debug);
-  // debug
+//  // debug
+//  p_debug = isl_printer_to_file(sa->ctx, stdout);
+//  p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
+//  p_debug = isl_printer_print_schedule(p_debug, schedule);
+//  printf("\n");
+//  isl_printer_free(p_debug);
+//  // debug
 
   /* Clean up. */
   free(tile_size);
+
+  return isl_stat_ok;
+}
+
+/* Mark parallel loop as latency_hiding candidate loop. 
+ */
+static isl_schedule_node *detect_latency_hiding_loop(__isl_take isl_schedule_node *node, void *user)
+{
+  struct polysa_prog *sa = user;
+
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+      if (isl_schedule_node_band_member_get_coincident(node, i)) {
+        node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_latency);
+      }
+    }
+  }
+
+  return node;
+}
+
+static isl_bool count_latency_hiding_loop(__isl_keep isl_schedule_node *node, void *user)
+{
+  int *cnt = user;
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    int n = isl_schedule_node_band_n_member(node);
+    for (int i = 0; i < n; i++) {
+      if (isl_schedule_node_band_member_get_pe_opt(node, i) == polysa_loop_latency) 
+        *cnt = *cnt + 1;
+    }
+  } 
+  
+  return isl_bool_true;
+}
+
+/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
+ * defaulting to option->sa_tile_size in each dimension.
+ * *tile_len contains the maximum number of tile sizes needed.
+ * Update *tile_len to the number of specified tile sizes, if any, and
+ * return a pointer to the tile sizes (or NULL on error).
+ * And store the effectively used sizes to sa->used_sizes.
+ */
+static int *read_latency_tile_sizes(struct polysa_prog *sa, int *tile_len)
+{
+  int n;
+  int *tile_size;
+  isl_set *size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < *tile_len; n++)
+    tile_size[n] = sa->scop->options->sa_tile_size / 2;
+
+  size = extract_sa_sizes(sa->sizes, "latency", sa->kernel_id);
+  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
+    goto error;
+  set_sa_used_sizes(sa, "latency", sa->kernel_id, tile_size, *tile_len);
+
+  return tile_size;
+error:
+  free(tile_size);
+  return NULL;
+}
+
+/* Internal structure for loop tiling in PE optimization.
+ */
+struct polysa_pe_opt_tile_data {
+  int n_tiled_loop;
+  int n_touched_loop;
+  int tile_len;
+  int *tile_size;
+  struct polysa_prog *sa;
+};
+
+/* Except partial schedule, restore the rest band node properties. */
+static __isl_give isl_schedule_node *restore_node_band_prop(__isl_take isl_schedule_node *node, 
+  __isl_take struct polysa_node_band_prop *prop) {
+  node = isl_schedule_node_band_set_permutable(node, prop->permutable);
+  for (int i = 0; i < prop->n_member; i++) {
+    node = isl_schedule_node_band_member_set_coincident(node, i, prop->coincident[i]);
+  }
+  for (int i = 0; i < prop->n_member; i++) {
+    node = isl_schedule_node_band_member_set_space_time(node, i, prop->space_time[i]);
+    node = isl_schedule_node_band_member_set_pe_opt(node, i, prop->pe_opt[i]);
+  }
+
+  free(prop->coincident);
+  free(prop->pe_opt);
+  free(prop->space_time);
+  isl_multi_union_pw_aff_free(prop->mupa);
+  free(prop);
+
+  return node;
+}
+
+/* Given two nested nodes,
+ * N1
+ * |
+ * N2
+ * Interchange the two nodes to
+ * N2
+ * |
+ * N1
+ * return a pointer to node N2.
+ */
+static __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_node *node)
+{
+  if (isl_schedule_node_n_children(node) == 0 || isl_schedule_node_n_children(node) > 1) {
+    return node;
+  }
+
+  /* Save the current node. */
+  struct polysa_node_band_prop *prop = extract_node_band_prop(node);
+
+  /* Delete the current node. */
+  node = isl_schedule_node_delete(node);
+
+  /* Insert the old node. */
+  node = isl_schedule_node_child(node, 0);
+  node = isl_schedule_node_insert_partial_schedule(node, isl_multi_union_pw_aff_copy(prop->mupa));
+
+  /* Restore the node properties. */
+  node = restore_node_band_prop(node, prop);
+  
+  node = isl_schedule_node_parent(node);
+
+  return node;
+}
+
+static isl_stat unionize_pw_aff_space(__isl_take isl_pw_aff *pa, void *user)
+{
+  isl_space *space = user;
+  isl_space *space_i = isl_pw_aff_get_space(pa);
+  
+
+  isl_pw_aff_free(pa);
+}
+
+/* Given two nested nodes,
+ * N1
+ * |
+ * N2
+ * Merge them into one node.
+ * N
+ * return a pointer to N.
+ */
+static __isl_give isl_schedule_node *polysa_node_merge(__isl_take isl_schedule_node *node)
+{
+  if (isl_schedule_node_n_children(node) == 0 || isl_schedule_node_n_children(node) > 1)
+    return node;
+  isl_schedule_node *parent = node;
+  isl_schedule_node *child = isl_schedule_node_child(isl_schedule_node_copy(node), 0);
+  if (isl_schedule_node_get_type(parent) != isl_schedule_node_band ||
+      isl_schedule_node_get_type(child) != isl_schedule_node_band) 
+    return node;
+
+  /* Save the node properties. */
+  struct polysa_node_band_prop *parent_prop = extract_node_band_prop(parent);
+  struct polysa_node_band_prop *child_prop = extract_node_band_prop(child);
+
+  /* Merge the partial schedules of two nodes. */
+  isl_union_pw_aff_list *upa_list = isl_union_pw_aff_list_alloc(
+    isl_schedule_node_get_ctx(node), 0);
+  isl_space *parent_space = isl_multi_union_pw_aff_get_space(parent_prop->mupa);
+  isl_space *child_space = isl_multi_union_pw_aff_get_space(child_prop->mupa);
+
+  for (int i = 0; i < parent_prop->n_member; i++) {
+    isl_union_pw_aff *upa = isl_multi_union_pw_aff_get_union_pw_aff(parent_prop->mupa, i);
+    upa_list = isl_union_pw_aff_list_add(
+      upa_list, upa);
+  }
+  for (int i = 0; i < child_prop->n_member; i++) {
+    isl_union_pw_aff *upa = isl_multi_union_pw_aff_get_union_pw_aff(child_prop->mupa, i);
+    upa_list = isl_union_pw_aff_list_add(
+      upa_list, upa);
+  }
+
+  isl_space *mupa_space = isl_space_add_dims(parent_space, isl_dim_set, isl_space_dim(child_space, isl_dim_set));
+  isl_space_free(child_space);
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//  p = isl_printer_print_multi_union_pw_aff(p, parent_prop->mupa);
+//  printf("\n");
+//  p = isl_printer_print_multi_union_pw_aff(p, child_prop->mupa);
+//  printf("\n");
+////  p = isl_printer_print_union_pw_aff_list(p, upa_list);
+////  printf("\n");
+//  p = isl_printer_print_space(p, mupa_space);
+//  printf("\n");
+//  // debug
+
+  isl_multi_union_pw_aff *mupa = isl_multi_union_pw_aff_from_union_pw_aff_list(
+    mupa_space,
+    upa_list);
+
+  /* Insert one new node. */
+  node = isl_schedule_node_insert_partial_schedule(node, mupa);
+  
+  /* Restore the node properties. */  
+  node = isl_schedule_node_band_set_permutable(node, 1);
+  for (int i = 0; i < parent_prop->n_member; i++) {
+    node = isl_schedule_node_band_member_set_coincident(node, i, parent_prop->coincident[i]);
+  }
+  for (int i = 0; i < parent_prop->n_member; i++) {
+    node = isl_schedule_node_band_member_set_space_time(node, i, parent_prop->space_time[i]);
+    node = isl_schedule_node_band_member_set_pe_opt(node, i, parent_prop->pe_opt[i]);
+  }
+  for (int i = 0; i < child_prop->n_member; i++) {
+    node = isl_schedule_node_band_member_set_coincident(node, i + parent_prop->n_member, child_prop->coincident[i]);
+  }
+  for (int i = 0; i < child_prop->n_member; i++) {
+    node = isl_schedule_node_band_member_set_space_time(node, i + parent_prop->n_member, child_prop->space_time[i]);
+    node = isl_schedule_node_band_member_set_pe_opt(node, i + parent_prop->n_member, child_prop->pe_opt[i]);
+  }
+
+  /* Delete the old nodes. */
+  node = isl_schedule_node_child(node, 0);
+  node = isl_schedule_node_delete(node);
+  node = isl_schedule_node_delete(node);
+  node = isl_schedule_node_parent(node);
+
+  free(parent_prop->coincident);
+  free(parent_prop->pe_opt);
+  free(parent_prop->space_time);
+  isl_multi_union_pw_aff_free(parent_prop->mupa);
+  free(parent_prop);
+
+  free(child_prop->coincident);
+  free(child_prop->pe_opt);
+  free(child_prop->space_time);
+  isl_multi_union_pw_aff_free(child_prop->mupa);
+  free(child_prop);
+
+  isl_schedule_node_free(child);
+
+//  // debug
+//  p = isl_printer_print_multi_union_pw_aff(p, mupa);
+//  printf("\n");
+//  // debug
+
+  return node;
+}
+
+/* Tile the loop at the "pos" position of the band with the size "tile_size".
+ * The original band
+ * B
+ * is first splitted to
+ * B1
+ * |
+ * p
+ * |
+ * B2
+ * The loop p is tiled, and four band nodes are generated.
+ * B1
+ * |
+ * p_tile
+ * |
+ * B2
+ * |
+ * p_point
+ * The first three bands are then merged together.
+ * B'
+ * |
+ * p_point
+ * A pointer to B' is returned.
+ */
+static __isl_give isl_schedule_node *polysa_node_band_tile_loop(
+  __isl_take isl_schedule_node *node, int tile_size, int pos)
+{
+  isl_multi_val *tile_sizes;
+  int n = isl_schedule_node_band_n_member(node);
+  int size[1];
+
+  size[0] = tile_size;
+  node = isl_schedule_node_band_split(node, pos);
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+  node = isl_schedule_node_child(node, 0);
+  node = isl_schedule_node_band_split(node, 1);
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+
+  tile_sizes = construct_band_tile_sizes(node, size);
+//  // debug
+//  p = isl_printer_print_multi_val(p, tile_sizes);
+//  printf("\n");
+//  // debug
+  node = tile_band(node, isl_multi_val_copy(tile_sizes));
+  isl_multi_val_free(tile_sizes);
+
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+
+  /* Swap the order of the point band and the next band. */
+  node = isl_schedule_node_child(node, 0);
+  node = polysa_node_interchange(node);
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+    
+  /* Merge the first three bands. */
+  node = isl_schedule_node_parent(node);
+  node = polysa_node_merge(node);
+  node = isl_schedule_node_parent(node);
+  node = polysa_node_merge(node);
+
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  isl_printer_free(p);
+//  // debug
+
+  return node;
+}
+
+/* Examine if the node is the last band node, if so, add a "latency" mark before the node. */
+static __isl_give isl_schedule_node *add_latency_mark(__isl_take isl_schedule_node *node,
+  void *user) {
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+//    // debug
+//    isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//    p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//    p = isl_printer_print_schedule_node(p, node);
+//    printf("\n");
+//    // debug
+    node = isl_schedule_node_child(node, 0);
+    isl_bool no_inner_band = isl_schedule_node_every_descendant(node,
+        &no_permutable_node, NULL);
+    node = isl_schedule_node_parent(node);
+    if (no_inner_band) {
+      /* Insert the "latency" mark. */
+      isl_id *id = isl_id_alloc(isl_schedule_node_get_ctx(node), "latency", NULL);
+//      // debug
+//      isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//      p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//      p = isl_printer_print_schedule_node(p, node);
+//      printf("\n");
+//      // debug
+      node = isl_schedule_node_insert_mark(node, id);
+    }
+  }
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+
+  return node;
+}
+
+/* Examine if the node contains any space loops. */
+static isl_bool node_has_space(__isl_keep isl_schedule_node *node) {
+  if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
+    return isl_bool_true;
+
+  int n = isl_schedule_node_band_n_member(node);
+  for (int i = 0; i < n; i++) {
+    if (isl_schedule_node_band_member_get_space_time(node, i) == polysa_loop_space) {
+      return isl_bool_true;
+    }
+  }
+
+  return isl_bool_false;
+}
+
+/* Move the current node which represents the latency hiding loop to the below the last time 
+ * loop. 
+ * If the array is async, then sink the node to the bottom.
+ * If the array is sync, then lift it up and insert as the last loop in the time band.
+ */
+static __isl_give isl_schedule_node *polysa_node_band_sink_time(__isl_take isl_schedule_node *node, struct polysa_prog *sa) {
+  if (sa->type == POLYSA_SA_TYPE_ASYNC) {
+    node = isl_schedule_node_band_sink(node);
+    /* Add the "latency" mark. */
+    node = isl_schedule_node_map_descendant_bottom_up(
+      node, &add_latency_mark, NULL);
+  } else if (sa->type == POLYSA_SA_TYPE_SYNC) {
+    /* Move up to the node that contains the space loop */
+//    while(!node_has_space(node)) {
+//      node = isl_schedule_node_parent(node);
+//    }
+    node = isl_schedule_node_parent(node);  
+
+    /* Find the position of the first space loop. */
+    int n_member = isl_schedule_node_band_n_member(node);
+    int space_pos;
+    for (int i = 0; i < n_member; i++) {
+      if (isl_schedule_node_band_member_get_space_time(node, i) == polysa_loop_space) {
+        space_pos = i;
+        break;
+      }
+    }
+    if (space_pos == 0) {
+      /* Interchange the current node with the child node. */
+      node = polysa_node_interchange(node);
+      /* Insert the "latency" mark. */
+      isl_id *id = isl_id_alloc(sa->ctx, "latency", NULL);
+      node = isl_schedule_node_insert_mark(node, id);
+      node = isl_schedule_node_child(node, 0);
+      node = isl_schedule_node_child(node, 0);
+    } else {
+      node = isl_schedule_node_band_split(node, space_pos);
+      node = isl_schedule_node_child(node, 0);
+      /* Interchange the current node with the child node. */
+      node = polysa_node_interchange(node);
+      /* Insert the "latency" mark. */
+      isl_id *id = isl_id_alloc(sa->ctx, "latency", NULL);
+      node = isl_schedule_node_insert_mark(node, id);
+      node = isl_schedule_node_child(node, 0);
+      node = isl_schedule_node_child(node, 0);
+    }
+  }
+
+  return node;
+}
+
+/* Given each node band, tile the candidate loop and permute it innermost in the time
+ * loop band. If the tile size is -1, the candidate loop is skipped.
+ * For each point loop, a "latency" mark is added.
+ */
+static __isl_give isl_schedule_node *polysa_latency_tile_band_loop(
+  __isl_take isl_schedule_node *node, void *user)
+{
+  struct polysa_pe_opt_tile_data *data = user;
+  if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
+    return node;
+
+  int n;
+  isl_id *id;
+  n = isl_schedule_node_band_n_member(node);
+
+  for (int i = n - 1; i >= 0; i--) {
+    if (isl_schedule_node_band_member_get_pe_opt(node, i) == polysa_loop_latency) {      
+      int loop_tile_size = data->tile_size[data->tile_len - data->n_touched_loop - 1];
+      (data->n_touched_loop)++;
+      if (loop_tile_size > 0) {
+        /* Tile the current loop and permute it to be the innermost time loop. */
+
+//        // debug
+//        isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//        p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//        p = isl_printer_print_schedule_node(p, node);
+//        printf("\n");
+//        // debug
+
+//        /* Insert the "anchor" mark. */
+//        id = isl_id_alloc(data->sa->ctx, "anchor", NULL);
+//        node = isl_schedule_node_insert_mark(node, id);
+//        node = isl_schedule_node_child(node, 0);
+
+        /* Tile the loop in the band at "i"th position with the size "loop_tile_size".
+         * The returned node points at the tile loop. */
+        node = polysa_node_band_tile_loop(node, loop_tile_size, i); 
+
+//        // debug
+//        p = isl_printer_print_schedule_node(p, node);
+//        printf("\n");
+//        // debug
+
+        /* Reset the candidate loop in the tile loop the pe_opt property to default. */
+        node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_default);
+        /* Reset the point loop space_time property to time loop. */
+        node = isl_schedule_node_child(node, 0);
+        node = isl_schedule_node_band_member_set_space_time(node, 0, polysa_loop_time);
+        /* Reset the point loop pe_opt property to default .*/
+        node = isl_schedule_node_band_member_set_pe_opt(node, 0, polysa_loop_default);
+
+        /* Move the single loop node to the bottom of the time band. */
+        node = polysa_node_band_sink_time(node, data->sa); 
+        
+//        // debug
+//        p = isl_printer_print_schedule_node(p, node);
+//        printf("\n");
+//        // debug
+
+//        /* Move up to the "anchor" mark. */
+//        node = polysa_tree_move_up_to_anchor(node);
+//
+//        /* Delete the "anchor" mark */
+//        node = isl_schedule_node_delete(node);
+
+//        // debug
+//        p = isl_printer_print_schedule_node(p, node);
+//        printf("\n");
+//        // debug
+
+        (data->n_tiled_loop)++;
+        return node;
+      }
+    }
+  }
+
+  return node;
+}
+
+static __isl_give isl_schedule_node *polysa_latency_tile_loop(__isl_take isl_schedule_node *node, struct polysa_prog *sa)
+{
+  /* Count the candidate loop number. */
+  int tile_len = 0;
+  isl_schedule_node_foreach_descendant_top_down(
+      node, &count_latency_hiding_loop, &tile_len);
+  // printf("%d\n", tile_len);
+
+  /* Read the tile sizes. */
+  int *tile_size;
+  tile_size = read_latency_tile_sizes(sa, &tile_len);
+
+  /* Tile the loop. */
+  struct polysa_pe_opt_tile_data tile_data = {0, 0, tile_len, tile_size, sa};
+  while (tile_data.n_touched_loop != tile_len) {
+    node = isl_schedule_node_map_descendant_bottom_up(
+      node, &polysa_latency_tile_band_loop, &tile_data);
+  }
+
+  free(tile_size);
+  return node;
+}
+
+// TODO
+isl_bool is_innermost_time_loop_parallel(__isl_keep isl_schedule_node *node, void *user)
+{
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    node = isl_schedule_node_child(isl_schedule_node_copy(node), 0);
+    isl_bool no_inner_band = isl_schedule_node_every_descendant(node,
+        &no_permutable_node, NULL);
+    if (!no_inner_band) {
+      node = isl_schedule_node_parent(node);
+      if (isl_schedule_node_band_member_get_coincident(node, isl_schedule_node_band_n_member(node) - 1) == 0) {
+        isl_schedule_node_free(node);
+        return isl_bool_false;
+      } else {
+        isl_schedule_node_free(node);
+        return isl_bool_true;
+      }
+    }
+    isl_schedule_node_free(node);
+  } 
+
+  return isl_bool_true;
+}
+
+/* Apply latency hiding. 
+ * Go through all the loops, if there is any parallel loop (considering only RAW), 
+ * such a loop will be identified as latency hiding loop candidate. Such loops will be
+ * tiled. The point loops will be permuted as the innermost time loops.
+ */
+isl_stat sa_latency_hiding_optimize(struct polysa_prog *sa)
+{
+  isl_schedule *schedule = sa->schedule;
+  isl_schedule_node *node = isl_schedule_get_root(schedule);
+  
+//  /* Detect if the innermost time loop carries RAW dependency. */
+//  isl_bool no_opt = isl_schedule_node_every_descendant(
+//    node, &is_innermost_time_loop_parallel, NULL);     
+  isl_bool no_opt = 0;
+
+  if (!no_opt) {
+    printf("[PolySA] Apply latency hiding.\n");
+    
+    /* Move down to the array marker. */
+    node = polysa_tree_move_down_to_array(node, sa->core);
+  
+    /* Detect all candidate loops. */
+    node = isl_schedule_node_map_descendant_bottom_up(
+      node, &detect_latency_hiding_loop, sa);
+  
+    /* Display the candidate loops. */
+    isl_schedule_free(schedule);
+    schedule = isl_schedule_node_get_schedule(node);
+    if (sa->scop->options->debug->polysa_verbose) {
+      isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
+      p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+      p = isl_printer_print_schedule(p, schedule);
+      printf("\n");
+      isl_printer_free(p);
+    }
+    isl_schedule_free(schedule);
+  
+    /* Tile the candidate loop. 
+     * For each candidate loop, if the loop is used for latency hiding,
+     * it is tiled and permuted to the innermost of the time loop band. 
+     * A latency hiding marker is added. */
+    node = polysa_latency_tile_loop(node, sa);
+  
+    /* Clean up the band pe_opt properties. */
+    schedule = isl_schedule_node_get_schedule(node);
+    isl_schedule_node_free(node);
+    schedule = isl_schedule_map_schedule_node_bottom_up(
+        schedule, &clear_pe_opt_prop, NULL);
+  
+    sa->schedule = schedule;
+  } else {
+    isl_schedule_node_free(node);
+  }
 
   return isl_stat_ok;
 }
@@ -1586,9 +2256,12 @@ void *polysa_prog_free(struct polysa_prog *sa)
 {
   if (!sa)
     return NULL;
+  
   isl_schedule_free(sa->schedule); 
   isl_union_map_free(sa->sizes);
   isl_union_map_free(sa->used_sizes);
+  isl_union_set_free(sa->core);
+
   free(sa);
   return NULL;
 }
@@ -1607,6 +2280,7 @@ struct polysa_prog *polysa_prog_copy(struct polysa_prog *sa) {
   sa_dup->sizes = isl_union_map_copy(sa->sizes);
   sa_dup->used_sizes = isl_union_map_copy(sa->used_sizes);
   sa_dup->kernel_id = sa->kernel_id;
+  sa_dup->core = isl_union_set_copy(sa->core);
 
   return sa_dup;
 }
@@ -1625,6 +2299,7 @@ struct polysa_prog *polysa_prog_from_schedule(__isl_take isl_schedule *schedule)
   sa->sizes = NULL;
   sa->used_sizes = NULL;
   sa->kernel_id = 0;
+  sa->core = NULL;
 
   return sa;
 }
@@ -1647,6 +2322,7 @@ struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop)
   prog->schedule = NULL;
   prog->sizes = NULL;
   prog->used_sizes = NULL;
+  prog->core = NULL;
 }
 
 void *polysa_acc_free(struct polysa_acc *acc) {

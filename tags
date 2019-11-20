@@ -287,8 +287,8 @@ CCLD	Makefile	/^CCLD = $(CC)$/;"	m
 CCLD	isl/Makefile	/^CCLD = $(CC)$/;"	m
 CCLD	isl/interface/Makefile	/^CCLD = $(CC)$/;"	m
 CCLD	pet/Makefile	/^CCLD = $(CC)$/;"	m
-CFLAGS	Makefile	/^CFLAGS = -g$/;"	m
-CFLAGS	isl/Makefile	/^CFLAGS = -g -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
+CFLAGS	Makefile	/^CFLAGS = -g -lm$/;"	m
+CFLAGS	isl/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	isl/doc/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	isl/interface/Makefile	/^CFLAGS = -O3 -fomit-frame-pointer -malign-double -fstrict-aliasing -ffast-math$/;"	m
 CFLAGS	pet/Makefile	/^CFLAGS = -g -O2$/;"	m
@@ -394,7 +394,7 @@ CXXDEPMODE	isl/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
 CXXDEPMODE	isl/doc/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
 CXXDEPMODE	isl/interface/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
 CXXDEPMODE	pet/Makefile	/^CXXDEPMODE = depmode=gcc3$/;"	m
-CXXFLAGS	isl/Makefile	/^CXXFLAGS = -g$/;"	m
+CXXFLAGS	isl/Makefile	/^CXXFLAGS = -g $/;"	m
 CXXFLAGS	isl/doc/Makefile	/^CXXFLAGS = -g -O2$/;"	m
 CXXFLAGS	isl/interface/Makefile	/^CXXFLAGS = -g -O2$/;"	m
 CXXFLAGS	pet/Makefile	/^CXXFLAGS = -g -O2$/;"	m
@@ -1008,7 +1008,7 @@ GIT_HEAD	isl/Makefile	/^GIT_HEAD = \/curr\/jaywang\/research\/systolic_compile\/
 GIT_HEAD	isl/doc/Makefile	/^GIT_HEAD = \/curr\/jaywang\/research\/systolic_compile\/ppcg\/ppcg\/.git\/modules\/isl\/index$/;"	m
 GIT_HEAD	isl/interface/Makefile	/^GIT_HEAD = \/curr\/jaywang\/research\/systolic_compile\/ppcg\/ppcg\/.git\/modules\/isl\/index$/;"	m
 GIT_HEAD	pet/Makefile	/^GIT_HEAD = \/curr\/jaywang\/research\/systolic_compile\/ppcg\/ppcg\/.git\/modules\/pet\/index$/;"	m
-GIT_HEAD_ID	Makefile	/^GIT_HEAD_ID = ppcg-0.08.2-14-gb6ffe0a$/;"	m
+GIT_HEAD_ID	Makefile	/^GIT_HEAD_ID = ppcg-0.08.2-22-g8e66baa$/;"	m
 GIT_HEAD_ID	gitversion.h	1;"	d
 GIT_HEAD_ID	isl/Makefile	/^GIT_HEAD_ID = isl-0.21$/;"	m
 GIT_HEAD_ID	isl/doc/Makefile	/^GIT_HEAD_ID = isl-0.21$/;"	m
@@ -2213,6 +2213,7 @@ POLYSA_TARGET_C	ppcg_options.h	123;"	d
 POLYSA_TARGET_INTEL_OPENCL	ppcg_options.h	125;"	d
 POLYSA_TARGET_T2S	ppcg_options.h	126;"	d
 POLYSA_TARGET_XILINX_HLS	ppcg_options.h	124;"	d
+POLYSA_TREE_H	polysa_tree.h	2;"	d
 POST_INSTALL	Makefile	/^POST_INSTALL = :$/;"	m
 POST_INSTALL	isl/Makefile	/^POST_INSTALL = :$/;"	m
 POST_INSTALL	isl/doc/Makefile	/^POST_INSTALL = :$/;"	m
@@ -2869,6 +2870,7 @@ add_kills	pet/scan.cc	/^__isl_give pet_tree *PetScan::add_kills(__isl_take pet_t
 add_known_div_constraints	isl/isl_map.c	/^static __isl_give isl_basic_map *add_known_div_constraints($/;"	f	file:
 add_larger_bound_constraint	isl/isl_constraint.c	/^static __isl_give isl_basic_set *add_larger_bound_constraint($/;"	f	file:
 add_last_piece	isl/isl_ast_build_expr.c	/^static isl_stat add_last_piece(struct isl_from_pw_aff_data *data,$/;"	f	file:
+add_latency_mark	polysa_common.c	/^static __isl_give isl_schedule_node *add_latency_mark(__isl_take isl_schedule_node *node,$/;"	f	file:
 add_length	isl/isl_transitive_closure.c	/^static isl_stat add_length(__isl_keep isl_map *map, isl_map ***grid, int n)$/;"	f	file:
 add_lexmin_eq	isl/isl_tab_pip.c	/^static int add_lexmin_eq(struct isl_tab *tab, isl_int *eq)$/;"	f	file:
 add_lexmin_ineq	isl/isl_tab_pip.c	/^static struct isl_tab *add_lexmin_ineq(struct isl_tab *tab, isl_int *ineq)$/;"	f	file:
@@ -4639,6 +4641,7 @@ coincidence	isl/include/isl/cpp-checked.h	/^isl::checked::union_map schedule_con
 coincidence	isl/include/isl/cpp.h	/^isl::union_map schedule_constraints::coincidence() const$/;"	f	class:isl::schedule_constraints
 coincident	isl/isl_schedule_band.h	/^	int *coincident;$/;"	m	struct:isl_schedule_band
 coincident	isl/isl_scheduler.c	/^	int	*coincident;$/;"	m	struct:isl_sched_node	file:
+coincident	polysa_common.c	/^  int *coincident;$/;"	m	struct:polysa_node_band_prop	file:
 col	isl/isl_stream_private.h	/^	int	    	col;$/;"	m	struct:isl_stream
 col	isl/isl_stream_private.h	/^	int col;$/;"	m	struct:isl_token
 col_is_parameter_var	isl/isl_tab_pip.c	/^static int col_is_parameter_var(struct isl_tab *tab, int col)$/;"	f	file:
@@ -5058,7 +5061,9 @@ copy_summary	tests/call3.c	/^void copy_summary(int b[100], int a[100])$/;"	f
 copy_summary	tests/not_accessed.c	/^void copy_summary(int b[1000], int a[1000], int pos, int c[1000])$/;"	f
 core	gpu.h	/^	isl_union_set *core;$/;"	m	struct:polysa_kernel
 core	gpu.h	/^	isl_union_set *core;$/;"	m	struct:ppcg_kernel
+core	polysa_common.h	/^  isl_union_set *core;$/;"	m	struct:polysa_prog
 core_child	gpu_tree.c	/^static __isl_give isl_schedule_node *core_child($/;"	f	file:
+core_child	polysa_tree.c	/^static __isl_give isl_schedule_node *core_child($/;"	f	file:
 coscheduled	isl/isl_flow.c	/^	isl_access_coscheduled		coscheduled;$/;"	m	struct:isl_access_info	file:
 coscheduled	isl/isl_flow.c	/^static isl_bool coscheduled(void *first, void *second)$/;"	f	file:
 coscheduled_node	isl/isl_flow.c	/^static isl_bool coscheduled_node(void *first, void *second)$/;"	f	file:
@@ -5076,6 +5081,7 @@ count_domains	isl/isl_test.c	/^static __isl_give isl_ast_node *count_domains(__i
 count_eq	isl/isl_coalesce.c	/^static int count_eq(struct isl_coalesce_info *info, int status)$/;"	f	file:
 count_fields	isl/imath/imtest.c	/^int  count_fields(char *line, int delim)$/;"	f
 count_ineq	isl/isl_coalesce.c	/^static int count_ineq(struct isl_coalesce_info *info, int status)$/;"	f	file:
+count_latency_hiding_loop	polysa_common.c	/^static isl_bool count_latency_hiding_loop(__isl_keep isl_schedule_node *node, void *user)$/;"	f	file:
 count_map_constraints	isl/isl_scheduler.c	/^static isl_stat count_map_constraints(struct isl_sched_graph *graph,$/;"	f	file:
 count_matching_array	isl/isl_flow.c	/^static isl_stat count_matching_array(__isl_take isl_map *map, void *user)$/;"	f	file:
 count_occurrences	isl/isl_tab_pip.c	/^static __isl_give int *count_occurrences(__isl_keep isl_basic_map *bmap,$/;"	f	file:
@@ -6076,6 +6082,7 @@ extract_modulos	isl/isl_ast_build_expr.c	/^static __isl_give isl_aff *extract_mo
 extract_mpa_from_tuple	isl/isl_input.c	/^static __isl_give isl_multi_pw_aff *extract_mpa_from_tuple($/;"	f	file:
 extract_multi_pw_aff	pet/parse.c	/^static __isl_give isl_multi_pw_aff *extract_multi_pw_aff(isl_ctx *ctx,$/;"	f	file:
 extract_node	isl/isl_scheduler.c	/^static isl_stat extract_node(__isl_take isl_set *set, void *user)$/;"	f	file:
+extract_node_band_prop	polysa_common.c	/^static struct polysa_node_band_prop *extract_node_band_prop(__isl_keep isl_schedule_node *node){$/;"	f	file:
 extract_node_list	isl/isl_ast_graft.c	/^static __isl_give isl_ast_node_list *extract_node_list($/;"	f	file:
 extract_node_transformation	isl/isl_scheduler.c	/^static __isl_give isl_map *extract_node_transformation(isl_ctx *ctx,$/;"	f	file:
 extract_nonneg_mod	isl/isl_ast_build_expr.c	/^static int extract_nonneg_mod(struct isl_extract_mod_data *data)$/;"	f	file:
@@ -8742,6 +8749,7 @@ is_local	isl/isl_scheduler.c	/^static int is_local(struct isl_sched_edge *edge)$
 is_long	isl/interface/generator.cc	/^bool generator::is_long(QualType type)$/;"	f	class:generator
 is_loop_type_option	isl/isl_schedule_band.c	/^static isl_bool is_loop_type_option(__isl_keep isl_set *set)$/;"	f	file:
 is_marked	gpu_tree.c	/^static int is_marked(__isl_keep isl_schedule_node *node, const char *name)$/;"	f	file:
+is_marked	polysa_tree.c	/^static int is_marked(__isl_keep isl_schedule_node *node, const char *name)$/;"	f	file:
 is_medium_mpz	isl/imath/tests/gmp-compat-test/gendata.py	/^def is_medium_mpz(s):$/;"	f
 is_min_or_max_builtin	pet/expr.c	/^static int is_min_or_max_builtin(const char *name)$/;"	f	file:
 is_multi_edge_type	isl/isl_scheduler.c	/^static int is_multi_edge_type(struct isl_sched_edge *edge)$/;"	f	file:
@@ -14212,6 +14220,7 @@ multiply_threshold	isl/imath/imath.c	/^STATIC const mp_size multiply_threshold =
 multiply_threshold	isl/imath/imath.c	/^mp_size multiply_threshold = MP_MULT_THRESH;$/;"	v
 mupa	isl/isl_schedule_band.h	/^	isl_multi_union_pw_aff *mupa;$/;"	m	struct:isl_schedule_band
 mupa	isl/isl_union_map.c	/^	isl_multi_union_pw_aff *mupa;$/;"	m	struct:isl_union_order_at_data	file:
+mupa	polysa_common.c	/^  isl_multi_union_pw_aff *mupa;$/;"	m	struct:polysa_node_band_prop	file:
 mupa_apply_multi_aff_0D	isl/isl_aff.c	/^static __isl_give isl_multi_union_pw_aff *mupa_apply_multi_aff_0D($/;"	f	file:
 mupa_apply_pw_multi_aff_0D	isl/isl_aff.c	/^static __isl_give isl_multi_union_pw_aff *mupa_apply_pw_multi_aff_0D($/;"	f	file:
 mupa_bin_tests	isl/isl_test.c	/^} mupa_bin_tests[] = {$/;"	v	typeref:struct:__anon52
@@ -14338,6 +14347,7 @@ n_lower	isl/isl_ast_codegen.c	/^	int n_lower;$/;"	m	struct:isl_ast_count_constra
 n_may	isl/isl_flow.c	/^	int		    		n_may;$/;"	m	struct:isl_access_info	file:
 n_member	isl/include/isl/cpp-checked.h	/^class size schedule_node_band::n_member() const$/;"	f	class:isl::checked::schedule_node_band
 n_member	isl/include/isl/cpp.h	/^unsigned schedule_node_band::n_member() const$/;"	f	class:isl::schedule_node_band
+n_member	polysa_common.c	/^  int n_member;$/;"	m	struct:polysa_node_band_prop	file:
 n_miss	isl/isl_ctx_private.h	/^	int			n_miss;$/;"	m	struct:isl_ctx
 n_must	isl/isl_flow.c	/^	int		    		n_must;$/;"	m	struct:isl_access_info	file:
 n_non_redundant	isl/isl_map_subtract.c	/^static int n_non_redundant(isl_ctx *ctx, struct isl_tab *tab,$/;"	f	file:
@@ -14371,8 +14381,10 @@ n_sync	gpu.h	/^	int n_sync;$/;"	m	struct:polysa_kernel
 n_sync	gpu.h	/^	int n_sync;$/;"	m	struct:ppcg_kernel
 n_test	pet/state.h	/^	int n_test;$/;"	m	struct:pet_state
 n_thread	gpu_group.c	/^	int n_thread;$/;"	m	struct:gpu_group_data	file:
+n_tiled_loop	polysa_common.c	/^  int n_tiled_loop;$/;"	m	struct:polysa_pe_opt_tile_data	file:
 n_token	isl/isl_stream_private.h	/^	int	    	n_token;$/;"	m	struct:isl_stream
 n_total_row	isl/isl_scheduler.c	/^	int n_total_row;$/;"	m	struct:isl_sched_graph	file:
+n_touched_loop	polysa_common.c	/^  int n_touched_loop;$/;"	m	struct:polysa_pe_opt_tile_data	file:
 n_type	pet/include/pet.h	/^	int n_type;$/;"	m	struct:pet_scop
 n_un	isl/isl_stream_private.h	/^	int		n_un;$/;"	m	struct:isl_stream
 n_unbounded	isl/isl_tab.h	/^	int n_unbounded;$/;"	m	struct:isl_tab
@@ -14514,9 +14526,13 @@ node_from	isl/include/isl/cpp-checked.h	/^isl::checked::ast_node ast_build::node
 node_from	isl/include/isl/cpp.h	/^isl::ast_node ast_build::node_from(isl::schedule schedule) const$/;"	f	class:isl::ast_build
 node_from_schedule_map	isl/include/isl/cpp-checked.h	/^isl::checked::ast_node ast_build::node_from_schedule_map(isl::checked::union_map schedule) const$/;"	f	class:isl::checked::ast_build
 node_from_schedule_map	isl/include/isl/cpp.h	/^isl::ast_node ast_build::node_from_schedule_map(isl::union_map schedule) const$/;"	f	class:isl::ast_build
+node_has_space	polysa_common.c	/^static isl_bool node_has_space(__isl_keep isl_schedule_node *node) {$/;"	f	file:
 node_has_tuples	isl/isl_scheduler.c	/^static int node_has_tuples(const void *entry, const void *val)$/;"	f	file:
 node_insert_dim	isl/isl_ast_build.c	/^static __isl_give isl_ast_build *node_insert_dim($/;"	f	file:
+node_is_anchor	polysa_tree.c	/^static int node_is_anchor(__isl_keep isl_schedule_node *node)$/;"	f	file:
+node_is_array	polysa_tree.c	/^static int node_is_array(__isl_keep isl_schedule_node *node)$/;"	f	file:
 node_is_core	gpu_tree.c	/^static int node_is_core(__isl_keep isl_schedule_node *node,$/;"	f	file:
+node_is_core	polysa_tree.c	/^static int node_is_core(__isl_keep isl_schedule_node *node,$/;"	f	file:
 node_is_shared	gpu_tree.c	/^static int node_is_shared(__isl_keep isl_schedule_node *node)$/;"	f	file:
 node_is_sync_filter	gpu_tree.c	/^static int node_is_sync_filter(__isl_keep isl_schedule_node *node,$/;"	f	file:
 node_is_thread	gpu_tree.c	/^static int node_is_thread(__isl_keep isl_schedule_node *node)$/;"	f	file:
@@ -15121,6 +15137,7 @@ pdfdir	isl/doc/Makefile	/^pdfdir = ${docdir}$/;"	m
 pdfdir	isl/interface/Makefile	/^pdfdir = ${docdir}$/;"	m
 pdfdir	pet/Makefile	/^pdfdir = ${docdir}$/;"	m
 pe_opt	isl/isl_schedule_band.h	/^  enum polysa_loop_type *pe_opt;$/;"	m	struct:isl_schedule_band	typeref:enum:isl_schedule_band::polysa_loop_type
+pe_opt	polysa_common.c	/^  enum polysa_loop_type *pe_opt;$/;"	m	struct:polysa_node_band_prop	typeref:enum:polysa_node_band_prop::polysa_loop_type	file:
 peek_basic_set	isl/isl_tab_pip.c	/^	struct isl_basic_set *(*peek_basic_set)(struct isl_context *context);$/;"	m	struct:isl_context_op	typeref:struct:isl_context_op::peek_basic_set	file:
 peek_tab	isl/isl_tab_pip.c	/^	struct isl_tab *(*peek_tab)(struct isl_context *context);$/;"	m	struct:isl_context_op	typeref:struct:isl_context_op::peek_tab	file:
 pencil	pet/expr.c	/^	int pencil;$/;"	m	struct:affine_builtin_decl	file:
@@ -15133,6 +15150,7 @@ perform_undo_var	isl/isl_tab.c	/^static isl_stat perform_undo_var(struct isl_tab
 permutable	isl/include/isl/cpp-checked.h	/^boolean schedule_node_band::permutable() const$/;"	f	class:isl::checked::schedule_node_band
 permutable	isl/include/isl/cpp.h	/^bool schedule_node_band::permutable() const$/;"	f	class:isl::schedule_node_band
 permutable	isl/isl_schedule_band.h	/^	int permutable;$/;"	m	struct:isl_schedule_band
+permutable	polysa_common.c	/^  int permutable;$/;"	m	struct:polysa_node_band_prop	file:
 persistent_callback_arg	isl/interface/generator.cc	/^ParmVarDecl *generator::persistent_callback_arg(FunctionDecl *fd)$/;"	f	class:generator
 persistent_callback_name	isl/interface/generator.h	/^	string persistent_callback_name(FunctionDecl *fd) const {$/;"	f	struct:isl_class
 persistent_callbacks	isl/interface/generator.h	/^	set<FunctionDecl *> persistent_callbacks;$/;"	m	struct:isl_class
@@ -15833,6 +15851,8 @@ polysa_generate_wrap	gpu.c	/^static __isl_give isl_printer *polysa_generate_wrap
 polysa_iter	polysa_common.h	/^struct polysa_iter {$/;"	s
 polysa_iter_free	polysa_common.c	/^__isl_null struct polysa_iter *polysa_iter_free(struct polysa_iter *iter) {$/;"	f
 polysa_kernel	gpu.h	/^struct polysa_kernel {$/;"	s
+polysa_latency_tile_band_loop	polysa_common.c	/^static __isl_give isl_schedule_node *polysa_latency_tile_band_loop($/;"	f	file:
+polysa_latency_tile_loop	polysa_common.c	/^static __isl_give isl_schedule_node *polysa_latency_tile_loop(__isl_take isl_schedule_node *node, struct polysa_prog *sa)$/;"	f	file:
 polysa_loop_array_part	isl/include/isl/ast_type.h	/^  polysa_loop_array_part$/;"	e	enum:polysa_loop_type
 polysa_loop_default	isl/include/isl/ast_type.h	/^  polysa_loop_default = 0,$/;"	e	enum:polysa_loop_type
 polysa_loop_error	isl/include/isl/ast_type.h	/^  polysa_loop_error = -1,$/;"	e	enum:polysa_loop_type
@@ -15843,6 +15863,12 @@ polysa_loop_time	isl/include/isl/ast_type.h	/^  polysa_loop_time,$/;"	e	enum:pol
 polysa_loop_type	isl/include/isl/ast_type.h	/^enum polysa_loop_type {$/;"	g
 polysa_map_to_device	gpu.c	/^__isl_give isl_schedule *polysa_map_to_device(struct gpu_gen *gen,$/;"	f
 polysa_mark_kernels	gpu.c	/^static __isl_give isl_schedule_node *polysa_mark_kernels(struct gpu_gen *gen,$/;"	f	file:
+polysa_node_band_prop	polysa_common.c	/^struct polysa_node_band_prop {$/;"	s	file:
+polysa_node_band_sink_time	polysa_common.c	/^static __isl_give isl_schedule_node *polysa_node_band_sink_time(__isl_take isl_schedule_node *node, struct polysa_prog *sa) {$/;"	f	file:
+polysa_node_band_tile_loop	polysa_common.c	/^static __isl_give isl_schedule_node *polysa_node_band_tile_loop($/;"	f	file:
+polysa_node_interchange	polysa_common.c	/^static __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_node *node)$/;"	f	file:
+polysa_node_merge	polysa_common.c	/^static __isl_give isl_schedule_node *polysa_node_merge(__isl_take isl_schedule_node *node)$/;"	f	file:
+polysa_pe_opt_tile_data	polysa_common.c	/^struct polysa_pe_opt_tile_data {$/;"	s	file:
 polysa_prog	polysa_common.h	/^struct polysa_prog {$/;"	s
 polysa_prog_alloc	polysa_common.c	/^struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop) $/;"	f
 polysa_prog_copy	polysa_common.c	/^struct polysa_prog *polysa_prog_copy(struct polysa_prog *sa) {$/;"	f
@@ -15851,6 +15877,9 @@ polysa_prog_from_schedule	polysa_common.c	/^struct polysa_prog *polysa_prog_from
 polysa_stmt	polysa_t2s.c	/^struct polysa_stmt {$/;"	s	file:
 polysa_stmt_free	polysa_t2s.c	/^static void polysa_stmt_free(void *user)$/;"	f	file:
 polysa_tile_band	polysa_common.c	/^__isl_give isl_schedule_node *polysa_tile_band($/;"	f
+polysa_tree_move_down_to_array	polysa_tree.c	/^__isl_give isl_schedule_node *polysa_tree_move_down_to_array($/;"	f
+polysa_tree_move_up_to_anchor	polysa_tree.c	/^__isl_give isl_schedule_node *polysa_tree_move_up_to_anchor($/;"	f
+polysa_tree_move_up_to_array	polysa_tree.c	/^__isl_give isl_schedule_node *polysa_tree_move_up_to_array($/;"	f
 polysa_verbose	ppcg_options.h	/^  int polysa_verbose;$/;"	m	struct:ppcg_debug_options
 polysa_vsa	polysa_vsa.h	/^struct polysa_vsa {$/;"	s
 polysa_vsa_alloc	polysa_vsa.c	/^struct polysa_vsa *polysa_vsa_alloc()$/;"	f
@@ -16663,6 +16692,7 @@ range_product	isl/include/isl/cpp.h	/^isl::pw_multi_aff pw_multi_aff::range_prod
 range_product	isl/include/isl/cpp.h	/^isl::union_map union_map::range_product(isl::union_map umap2) const$/;"	f	class:isl::union_map
 range_product_entry	isl/isl_union_map.c	/^static isl_stat range_product_entry(void **entry, void *user)$/;"	f	file:
 rank	isl/isl_scheduler.c	/^	int	 rank;$/;"	m	struct:isl_sched_node	file:
+rar_sol_smart_pick	ppcg.c	/^static int rar_sol_smart_pick(__isl_keep isl_mat *mat, struct ppcg_scop *ps) {$/;"	f	file:
 rational	isl/isl_tab.h	/^	unsigned rational : 1;$/;"	m	struct:isl_tab
 rational	isl/isl_tab_pip.c	/^	int rational;$/;"	m	struct:isl_sol	file:
 rational_sample	isl/isl_sample.c	/^static __isl_give isl_vec *rational_sample(__isl_take isl_basic_set *bset)$/;"	f	file:
@@ -16699,6 +16729,7 @@ read_grid_and_block_sizes	gpu.c	/^static isl_stat read_grid_and_block_sizes(stru
 read_grid_sizes	gpu.c	/^static isl_stat read_grid_sizes(struct ppcg_kernel *kernel,$/;"	f	file:
 read_guard	isl/isl_schedule_read.c	/^static __isl_give isl_schedule_tree *read_guard(isl_stream *s)$/;"	f	file:
 read_int_value	isl/imath/imdrover.c	/^static mp_result read_int_value(mp_int z, char *str)$/;"	f	file:
+read_latency_tile_sizes	polysa_common.c	/^static int *read_latency_tile_sizes(struct polysa_prog *sa, int *tile_len)$/;"	f	file:
 read_line	isl/imath/imtest.c	/^int  read_line(FILE *ifp, char *line, int limit)$/;"	f
 read_long	isl/imath/imdrover.c	/^static int read_long(long *z, char *str)$/;"	f	file:
 read_map_tuple	isl/isl_input.c	/^static __isl_give isl_map *read_map_tuple(__isl_keep isl_stream *s,$/;"	f	file:
@@ -16992,6 +17023,7 @@ restore	isl/isl_tab_pip.c	/^	void (*restore)(struct isl_context *context, void *
 restore_basis	isl/isl_tab.c	/^static int restore_basis(struct isl_tab *tab, int *col_var)$/;"	f	file:
 restore_last_redundant	isl/isl_tab.c	/^static isl_stat restore_last_redundant(struct isl_tab *tab)$/;"	f	file:
 restore_lexmin	isl/isl_tab_pip.c	/^static int restore_lexmin(struct isl_tab *tab)$/;"	f	file:
+restore_node_band_prop	polysa_common.c	/^static __isl_give isl_schedule_node *restore_node_band_prop(__isl_take isl_schedule_node *node, $/;"	f	file:
 restore_row	isl/isl_tab.c	/^static int restore_row(struct isl_tab *tab, struct isl_tab_var *var)$/;"	f	file:
 restrict_fn	isl/isl_flow.c	/^	isl_access_restrict		restrict_fn;$/;"	m	struct:isl_access_info	file:
 restrict_skip	pet/scop.c	/^static struct pet_scop *restrict_skip(struct pet_scop *scop,$/;"	f	file:
@@ -17153,6 +17185,7 @@ s_uvcmp	isl/imath/imath.c	/^STATIC int      s_uvcmp(mp_int a, mp_usmall uv)$/;"	
 s_uvpack	isl/imath/imath.c	/^STATIC int       s_uvpack(mp_usmall uv, mp_digit t[])$/;"	f
 s_val2ch	isl/imath/imath.c	/^STATIC char      s_val2ch(int v, int caps)$/;"	f
 s_vcmp	isl/imath/imath.c	/^STATIC int      s_vcmp(mp_int a, mp_small v)$/;"	f
+sa	polysa_common.c	/^  struct polysa_prog *sa;$/;"	m	struct:polysa_pe_opt_tile_data	typeref:struct:polysa_pe_opt_tile_data::polysa_prog	file:
 sa_SIMD_vectorization_optimize	polysa_common.c	/^isl_stat sa_SIMD_vectorization_optimize(struct polysa_prog *sa)$/;"	f
 sa_array_partitioning_optimize	polysa_common.c	/^isl_stat sa_array_partitioning_optimize(struct polysa_prog *sa)$/;"	f
 sa_candidates_smart_pick	polysa_common.c	/^struct polysa_prog *sa_candidates_smart_pick(struct polysa_prog **sa_list, __isl_keep isl_size num_sa)$/;"	f
@@ -17161,6 +17194,7 @@ sa_legality_check	polysa_common.c	/^isl_bool sa_legality_check(__isl_keep isl_sc
 sa_loop_init	polysa_common.c	/^isl_stat sa_loop_init(struct polysa_prog *sa)$/;"	f
 sa_pe_optimize	polysa_common.c	/^isl_stat sa_pe_optimize(struct polysa_prog *sa)$/;"	f
 sa_sizes	ppcg_options.h	/^  char *sa_sizes;$/;"	m	struct:ppcg_options
+sa_space_time_loop_setup	polysa_common.c	/^isl_stat sa_space_time_loop_setup(struct polysa_prog *sa) $/;"	f
 sa_space_time_transform	polysa_common.c	/^struct polysa_prog **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop,$/;"	f
 sa_space_time_transform_at_dim	polysa_common.c	/^struct polysa_prog **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, $/;"	f
 sa_space_time_transform_at_dim_async	polysa_common.c	/^struct polysa_prog **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,$/;"	f
@@ -17873,6 +17907,7 @@ space_shift	hybrid.c	/^	isl_multi_aff *space_shift;$/;"	m	struct:ppcg_ht_phase	f
 space_sizes	hybrid.c	/^	isl_multi_val *space_sizes;$/;"	m	struct:ppcg_ht_tiling	file:
 space_tile	hybrid.c	/^	isl_multi_aff *space_tile;$/;"	m	struct:ppcg_ht_phase	file:
 space_time	isl/isl_schedule_band.h	/^  enum polysa_loop_type *space_time; $/;"	m	struct:isl_schedule_band	typeref:enum:isl_schedule_band::polysa_loop_type
+space_time	polysa_common.c	/^  enum polysa_loop_type *space_time;$/;"	m	struct:polysa_node_band_prop	typeref:enum:polysa_node_band_prop::polysa_loop_type	file:
 space_w	polysa_common.h	/^  int space_w;$/;"	m	struct:polysa_prog
 space_w	polysa_vsa.h	/^  int space_w;$/;"	m	struct:polysa_vsa
 specializer	isl/isl_scheduler.c	/^static __isl_give isl_map *specializer(struct isl_sched_node *src,$/;"	f	file:
@@ -18528,10 +18563,12 @@ tile_band	cpu.c	/^static __isl_give isl_schedule_node *tile_band($/;"	f	file:
 tile_band	gpu.c	/^static __isl_give isl_schedule_node *tile_band($/;"	f	file:
 tile_band	polysa_common.c	/^static __isl_give isl_schedule_node *tile_band($/;"	f	file:
 tile_band	polysa_t2s.c	/^static __isl_give isl_schedule_node *tile_band($/;"	f	file:
+tile_len	polysa_common.c	/^  int tile_len;$/;"	m	struct:polysa_pe_opt_tile_data	file:
 tile_outer	gpu.c	/^static __isl_give isl_multi_pw_aff *tile_outer($/;"	f	file:
 tile_scale_tile_loops	isl/isl_options_private.h	/^	int			tile_scale_tile_loops;$/;"	m	struct:isl_options
 tile_set_depth	gpu_group.c	/^static isl_stat tile_set_depth(struct gpu_group_data *data,$/;"	f	file:
 tile_shift_point_loops	isl/isl_options_private.h	/^	int			tile_shift_point_loops;$/;"	m	struct:isl_options
+tile_size	polysa_common.c	/^  int *tile_size;$/;"	m	struct:polysa_pe_opt_tile_data	file:
 tile_size	ppcg_options.h	/^	int tile_size;$/;"	m	struct:ppcg_options
 tile_tests	isl/isl_test.c	/^} tile_tests[] = {$/;"	v	typeref:struct:__anon68
 tiling	gpu_array_tile.h	/^	isl_multi_aff *tiling;$/;"	m	struct:gpu_array_tile
@@ -18980,6 +19017,7 @@ union_set_list	isl/include/isl/cpp.h	/^union_set_list::union_set_list(__isl_take
 union_set_list	isl/include/isl/cpp.h	/^union_set_list::union_set_list(const union_set_list &obj)$/;"	f	class:isl::union_set_list
 union_set_list	isl/include/isl/cpp.h	/^union_set_list::union_set_list(isl::ctx ctx, int n)$/;"	f	class:isl::union_set_list
 union_set_list	isl/include/isl/cpp.h	/^union_set_list::union_set_list(isl::union_set el)$/;"	f	class:isl::union_set_list
+unionize_pw_aff_space	polysa_common.c	/^static isl_stat unionize_pw_aff_space(__isl_take isl_pw_aff *pa, void *user)$/;"	f	file:
 unique	isl/isl_map.c	/^static int unique(isl_int *p, unsigned pos, unsigned len)$/;"	f	file:
 unique_ptr	isl/interface/extract_interface.cc	94;"	d	file:
 unique_ptr	pet/pet.cc	112;"	d	file:
