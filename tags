@@ -5647,7 +5647,6 @@ dsa_kernel	t2s_tests/cholesky/kernel.ppcg.c	/^void dsa_kernel(data_t A[N][N], da
 dsa_kernel	t2s_tests/covmat/kernel.c	/^void dsa_kernel(data_t d[N][K], data_t V[K][K]) {$/;"	f
 dsa_kernel	t2s_tests/gemm/kernel.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	t2s_tests/gemm/kernel.polysa.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
-dsa_kernel	t2s_tests/gemm/kernel.polysa.polysa.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	t2s_tests/gemm/kernel_tile.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	t2s_tests/gemm/kernel_tile.polysa.c	/^void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {$/;"	f
 dsa_kernel	t2s_tests/lu/kernel.c	/^void dsa_kernel(data_t A[N][N], data_t L[N][N], data_t U[N][N]) {$/;"	f
@@ -8728,6 +8727,7 @@ is_injective	isl/include/isl/cpp-checked.h	/^boolean union_map::is_injective() c
 is_injective	isl/include/isl/cpp.h	/^bool map::is_injective() const$/;"	f	class:isl::map
 is_injective	isl/include/isl/cpp.h	/^bool union_map::is_injective() const$/;"	f	class:isl::union_map
 is_innermost_permutable_node_update	polysa_common.c	/^isl_bool is_innermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)$/;"	f
+is_innermost_time_loop_parallel	polysa_common.c	/^isl_bool is_innermost_time_loop_parallel(__isl_keep isl_schedule_node *node, void *user)$/;"	f
 is_int	isl/include/isl/cpp-checked.h	/^boolean val::is_int() const$/;"	f	class:isl::checked::val
 is_int	isl/include/isl/cpp.h	/^bool val::is_int() const$/;"	f	class:isl::val
 is_internal	isl/isl_map.c	/^static isl_bool is_internal(__isl_keep isl_vec *inner,$/;"	f	file:
@@ -15864,6 +15864,7 @@ polysa_loop_type	isl/include/isl/ast_type.h	/^enum polysa_loop_type {$/;"	g
 polysa_map_to_device	gpu.c	/^__isl_give isl_schedule *polysa_map_to_device(struct gpu_gen *gen,$/;"	f
 polysa_mark_kernels	gpu.c	/^static __isl_give isl_schedule_node *polysa_mark_kernels(struct gpu_gen *gen,$/;"	f	file:
 polysa_node_band_prop	polysa_common.c	/^struct polysa_node_band_prop {$/;"	s	file:
+polysa_node_band_prop_free	polysa_common.c	/^static struct polysa_node_band_prop *polysa_node_band_prop_free(__isl_take struct polysa_node_band_prop *prop)$/;"	f	file:
 polysa_node_band_sink_time	polysa_common.c	/^static __isl_give isl_schedule_node *polysa_node_band_sink_time(__isl_take isl_schedule_node *node, struct polysa_prog *sa) {$/;"	f	file:
 polysa_node_band_tile_loop	polysa_common.c	/^static __isl_give isl_schedule_node *polysa_node_band_tile_loop($/;"	f	file:
 polysa_node_interchange	polysa_common.c	/^static __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_node *node)$/;"	f	file:

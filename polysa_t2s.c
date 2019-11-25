@@ -1592,8 +1592,8 @@ static __isl_give char *c_to_t2s_stmt(__isl_take char *c_text, __isl_take isl_se
       }
     } else if (ch == ';') {    
       if (iter_domain) {
-        p = isl_printer_print_str(p, ", ");
-        p = isl_printer_print_str(p, LHS_func);
+//        p = isl_printer_print_str(p, ", ");
+//        p = isl_printer_print_str(p, LHS_func);
         p = isl_printer_print_str(p, ")");
       }
     } else if (ch == '[') {
@@ -1787,17 +1787,17 @@ static isl_stat create_t2s_URE_from_text(struct t2s_data *data, __isl_take char 
   free(func_name_tmp);
 
   int update_level = get_t2s_URE_update_level(UREs, URE_num, strdup(func_name));
-  if (update_level == -1) {
-    p = isl_printer_to_str(ctx);
-    p = isl_printer_print_str(p, func_decl);
-    p = isl_printer_print_str(p, " = 0;\n");
-    char *init_URE_text = isl_printer_get_str(p);
-    isl_printer_free(p);
-
-    data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
-    data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(func_name), init_URE_text, d, ctx);
-    data->URE_num++;
-  }
+//  if (update_level == -1) {
+//    p = isl_printer_to_str(ctx);
+//    p = isl_printer_print_str(p, func_decl);
+//    p = isl_printer_print_str(p, " = 0;\n");
+//    char *init_URE_text = isl_printer_get_str(p);
+//    isl_printer_free(p);
+//
+//    data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
+//    data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(func_name), init_URE_text, d, ctx);
+//    data->URE_num++;
+//  }
 
   /* Add the statement URE. */
   data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
@@ -2128,21 +2128,18 @@ static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
     /* Generate the URE. */
     int update_level = get_t2s_URE_update_level(data->URE, data->URE_num, strdup(func_name));
 
-    if (update_level == -1) {
-      p_str = isl_printer_to_str(ctx);
-      p_str = isl_printer_print_str(p_str, func_str);
-      p_str = isl_printer_print_str(p_str, " = 0;\n");
-      URE_text = isl_printer_get_str(p_str);
-      isl_printer_free(p_str);
-
-//      data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
-//      data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
-//      data->t2s_stmt_num++;
-
-      data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
-      data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(func_name), URE_text, 0, ctx); 
-      data->URE_num++;
-    }
+    /* Comment out. The latest T2S no longer requires this. */
+//    if (update_level == -1) {
+//      p_str = isl_printer_to_str(ctx);
+//      p_str = isl_printer_print_str(p_str, func_str);
+//      p_str = isl_printer_print_str(p_str, " = 0;\n");
+//      URE_text = isl_printer_get_str(p_str);
+//      isl_printer_free(p_str);
+//
+//      data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
+//      data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(func_name), URE_text, 0, ctx); 
+//      data->URE_num++;
+//    }
 
     p_str = isl_printer_to_str(ctx);
     p_str = isl_printer_print_str(p_str, func_str);
@@ -2155,8 +2152,8 @@ static int t2s_rar_URE_access(__isl_keep pet_expr *expr, void *user)
     p_str = isl_printer_print_str(p_str, reuse_domain_str);
     p_str = isl_printer_print_str(p_str, ", ");
     p_str = isl_printer_print_str(p_str, reuse_func_str);
-    p_str = isl_printer_print_str(p_str, ", ");
-    p_str = isl_printer_print_str(p_str, func_str);
+//    p_str = isl_printer_print_str(p_str, ", ");
+//    p_str = isl_printer_print_str(p_str, func_str);
     p_str = isl_printer_print_str(p_str, "));\n");
     URE_text = isl_printer_get_str(p_str);
     isl_printer_free(p_str);
@@ -2355,19 +2352,15 @@ static int t2s_drain_URE_access(__isl_keep pet_expr *expr, void *user)
 //    char *acc_str = array_acc_from_multi_pw_aff(trans_index);
 
     /* Generate the URE. */
-    p_str = isl_printer_to_str(ctx);
-    p_str = isl_printer_print_str(p_str, drain_func_str);    
-    p_str = isl_printer_print_str(p_str, " = 0;\n");
-    char *URE_text = isl_printer_get_str(p_str);
-    isl_printer_free(p_str);
+//    p_str = isl_printer_to_str(ctx);
+//    p_str = isl_printer_print_str(p_str, drain_func_str);    
+//    p_str = isl_printer_print_str(p_str, " = 0;\n");
+//    char *URE_text = isl_printer_get_str(p_str);
+//    isl_printer_free(p_str);
 
-//    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
-//    data->t2s_stmt_text[data->t2s_stmt_num] = URE_text;
-//    data->t2s_stmt_num++;
-
-    data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
-    data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(drain_func_name), URE_text, 1, ctx);
-    data->URE_num++;
+//    data->URE = (struct t2s_URE **)realloc(data->URE, sizeof(struct t2s_URE *) * (data->URE_num + 1));
+//    data->URE[data->URE_num] = create_t2s_URE(data->URE, data->URE_num, strdup(drain_func_name), URE_text, 1, ctx);
+//    data->URE_num++;
 
     p_str = isl_printer_to_str(ctx);
     p_str = isl_printer_print_str(p_str, drain_func_str);
@@ -2376,10 +2369,10 @@ static int t2s_drain_URE_access(__isl_keep pet_expr *expr, void *user)
     p_str = isl_printer_print_str(p_str, writeout_domain_str);
     p_str = isl_printer_print_str(p_str, ", ");
     p_str = isl_printer_print_str(p_str, func_str);
-    p_str = isl_printer_print_str(p_str, ", ");
-    p_str = isl_printer_print_str(p_str, drain_func_str);
+//    p_str = isl_printer_print_str(p_str, ", ");
+//    p_str = isl_printer_print_str(p_str, drain_func_str);
     p_str = isl_printer_print_str(p_str, ");\n");
-    URE_text = isl_printer_get_str(p_str);
+    char *URE_text = isl_printer_get_str(p_str);
     isl_printer_free(p_str);
 
 //    data->t2s_stmt_text = (char **)realloc(data->t2s_stmt_text, sizeof(char *) * (data->t2s_stmt_num + 1));
