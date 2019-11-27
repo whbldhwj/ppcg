@@ -6,7 +6,6 @@
 
 #include "ppcg.h"
 #include "polysa_common.h"
-#include "polysa_vsa.h"
 #include "gpu.h"
 
 enum polysa_dep_type {
