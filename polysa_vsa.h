@@ -23,8 +23,8 @@ struct polysa_vsa {
 struct polysa_vsa *polysa_vsa_alloc();
 void *polysa_vsa_free(struct polysa_vsa *vsa);
 
-void vsa_band_width_extract(struct polysa_prog *sa, struct polysa_vsa *vsa);
-void vsa_t2s_iter_extract(struct polysa_prog *sa, struct polysa_vsa *vsa);
-void vsa_t2s_var_extract(struct polysa_prog *sa, struct polysa_vsa *vsa);
+void vsa_band_width_extract(struct polysa_kernel *sa, struct polysa_vsa *vsa);
+void vsa_t2s_iter_extract(struct polysa_kernel *sa, struct polysa_vsa *vsa);
+void vsa_t2s_var_extract(struct polysa_kernel *sa, struct polysa_vsa *vsa);
 
 #endif

@@ -121,6 +121,8 @@ ISL_ARG_BOOL(struct ppcg_options, openmp, 0, "openmp", 0,
 ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, target, 0, "target", target,
 	&set_target, PPCG_TARGET_CUDA, PPCG_TARGET_CUDA,
 	"the target to generate code for")
+ISL_ARG_BOOL(struct ppcg_options, unroll_copy_local, 0, "unroll-copy-local",
+	0, "unroll code for copying to/from local memory")
 /* PolySA Extended */
 ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
   "Generate systolic arrays using PolySA")
@@ -137,6 +139,10 @@ ISL_ARG_BOOL(struct ppcg_options, t2s_tile, 0, "t2s-tile", 0,
   "Generate T2S code from tiled code")
 ISL_ARG_INT(struct ppcg_options, t2s_tile_phase, 0,
   "t2s-tile-phase", "phase", 0, "T2S tiled URE codegen phase")
+ISL_ARG_BOOL(struct ppcg_options, use_local_memory, 0, "local-memory", 1, 
+  "use local memory in kernel code")
+ISL_ARG_INT(struct ppcg_options, max_local_memory, 0,
+  "max-local-memory", "size", 8192, "maximal amount of local memory")
 /* PolySA Extended */
 ISL_ARG_BOOL(struct ppcg_options, linearize_device_arrays, 0,
 	"linearize-device-arrays", 1,

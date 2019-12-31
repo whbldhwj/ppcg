@@ -277,7 +277,7 @@ static __isl_give isl_union_map *remove_independences(struct gpu_prog *prog,
  * Additionally, store the union of these array->dep_order relations
  * for all arrays that cannot be mapped to private memory in prog->array_order.
  */
-void collect_order_dependences(struct gpu_prog *prog)
+static void collect_order_dependences(struct gpu_prog *prog)
 {
 	int i;
 	isl_space *space;
@@ -1055,10 +1055,10 @@ static __isl_give isl_multi_pw_aff *extract_grid_size(
 	isl_multi_pw_aff *size;
 
 //  // debug
-//  isl_printer *printer = isl_printer_to_file(kernel->ctx, stdout);
-//  isl_printer_print_union_set(printer, domain);
+//  isl_printer *p = isl_printer_to_file(kernel->ctx, stdout);
+//  p = isl_printer_print_union_set(p, domain);
 //  printf("\n") ;
-//  isl_printer_print_union_set(printer, kernel->block_filter);
+//  p = isl_printer_print_union_set(p, kernel->block_filter);
 //  printf("\n") ;
 //  // debug
 
@@ -1066,7 +1066,7 @@ static __isl_give isl_multi_pw_aff *extract_grid_size(
 				    isl_union_set_copy(kernel->block_filter));
   
 //  // debug
-//  isl_printer_print_union_set(printer, domain);
+//  p = isl_printer_print_union_set(p, domain);
 //  printf("\n") ;
 //  // debug
 
@@ -1074,7 +1074,7 @@ static __isl_give isl_multi_pw_aff *extract_grid_size(
 	grid = isl_set_from_params(grid);
 	grid = isl_set_add_dims(grid, isl_dim_set, kernel->n_grid);
 //  // debug
-//  isl_printer_print_set(printer, grid);
+//  p = isl_printer_print_set(p, grid);
 //  printf("\n");
 //  // debug
 
@@ -2557,7 +2557,7 @@ static __isl_give isl_ast_node *generate_code(struct gpu_gen *gen,
 	return tree;
 }
 
-__isl_give isl_union_map *extract_sizes_from_str(isl_ctx *ctx, const char *str)
+static __isl_give isl_union_map *extract_sizes_from_str(isl_ctx *ctx, const char *str)
 {
 	if (!str)
 		return NULL;
@@ -3823,6 +3823,7 @@ static __isl_give isl_union_set *compute_sync_writes(
 		    isl_union_map_reverse(isl_union_map_copy(thread_prefix)));
 	wrap = isl_union_map_wrap(equal);
 	local = isl_union_map_subtract_domain(local, wrap);
+  /* So far local contains WAW and RAW that across threads and within the same kernel. */
 
 	local = isl_union_map_zip(local);
 	local = isl_union_map_universe(local);
@@ -3925,16 +3926,21 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 	isl_union_set *domain, *expanded;
 	int single_statement;
 
+  // debug
+  isl_printer *p = isl_printer_to_file(gen->ctx, stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  p = isl_printer_print_schedule_node(p, node);
+  printf("\n");  
+  // debug
+
 	node = gpu_tree_insert_shared_before_thread(node);
 	if (!node)
 		return NULL;
 
   // debug
-//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-////  isl_printer_print_schedule_node(printer, node);
-////  printf("\n");
-//  // debug
+  p = isl_printer_print_schedule_node(p, node);
+  printf("\n");
+  // debug
 
 	kernel = isl_calloc_type(gen->ctx, struct ppcg_kernel);
 	kernel = ppcg_kernel_create_local_arrays(kernel, gen->prog);
@@ -3994,13 +4000,13 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 	if (!single_statement)
 		node = group_statements(node, kernel->id);
 
-//  // debug
-//  isl_printer_print_schedule_node(printer, node);
-//  printf("\n");
-//  isl_printer_free(printer);
-//  // debug
+  // debug
+  p = isl_printer_print_schedule_node(p, node);
+  printf("\n");
+  // debug
 
 	node = isl_schedule_node_child(node, 0);
+  /* Split off the first "kernel->n_grid" parallel loops. */
 	node = split_band(node, kernel->n_grid);
 	kernel->block_ids = ppcg_scop_generate_names(gen->prog->scop,
 						kernel->n_grid, "b");
@@ -4041,10 +4047,10 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 
 	node = gpu_tree_move_up_to_kernel(node);
 
-//  // debug
-//  isl_printer_print_schedule_node(printer, node);
-//  printf("\n");
-//  // debug
+  // debug
+  p = isl_printer_print_schedule_node(p, node);
+  printf("\n");
+  // debug
 
 	if (gpu_group_references(kernel, node) < 0)
 		node = isl_schedule_node_free(node);
@@ -4103,6 +4109,11 @@ __isl_give isl_schedule_node *gpu_create_kernel(struct gpu_gen *gen,
 	if (!single_statement)
 		node = isl_schedule_node_parent(node);
 	node = isl_schedule_node_parent(node);
+
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
 
 	isl_id_free(id);
 	if (!id)
@@ -5295,7 +5306,7 @@ static __isl_give isl_union_set *node_may_persist(
  * Any array elements that is read without first being written inside
  * the subtree "node" needs to be copied in.
  * Furthermore, if there are any array elements that
- * are copied out, but that may not be written inside "node, then
+ * are copied out, but that may not be written inside "node", then
  * they also need to be copied in to ensure that the value after execution
  * is the same as the value before execution, at least for those array
  * elements that may have their values preserved by the scop or that
@@ -5497,6 +5508,12 @@ static __isl_give isl_schedule *map_to_device(struct gpu_gen *gen,
 //  // debug
 
 	node = mark_kernels(gen, node);
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
 	node = add_to_from_device(node, domain, prefix, gen->prog);
 	node = isl_schedule_node_root(node);
 	node = isl_schedule_node_child(node, 0);
@@ -5504,11 +5521,13 @@ static __isl_give isl_schedule *map_to_device(struct gpu_gen *gen,
 	node = isl_schedule_node_insert_guard(node, guard);
 	node = isl_schedule_node_child(node, 0);
 
+	node = add_init_clear_device(node);
+
 //  // debug
-//  isl_printer_print_schedule_node(printer, node);
+//  p = isl_printer_print_schedule_node(p, node);
 //  printf("\n");
 //  // debug
-	node = add_init_clear_device(node);
+
 	schedule = isl_schedule_node_get_schedule(node);
 	isl_schedule_node_free(node);
 
@@ -5870,10 +5889,10 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 		isl_schedule_free(schedule);
 	} else {
     // debug
-    isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
-    isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-    isl_printer_print_schedule(printer, schedule);
-    printf("\n");
+//    isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+//    isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+//    isl_printer_print_schedule(printer, schedule);
+//    printf("\n");
     // debug
 		schedule = map_to_device(gen, schedule);
 //    // debug
@@ -6049,901 +6068,901 @@ void *gpu_prog_free(struct gpu_prog *prog)
 /******************** PolySA ************************/
 /****************************************************/
 
-/* Return the validity constrraints between pairs of instances 
- * that are scheduled together by the ancestors of "node".
- * That is, select those validity constraints that relate 
- * pairs of instances that have the same value for the prefix schedule.
- * If the schedule depth is zero, then the prefix schedule does not
- * contain any information, so we intersect domain and range of the 
- * schedule constraints with the reaching domain elements instead.
- */
-static __isl_give isl_union_map *get_local_validity(
-  __isl_keep isl_schedule_node *node,
-  __isl_keep isl_schedule_constraints *sc)
-{
-  isl_union_map *validity;
-  validity = isl_schedule_constraints_get_validity(sc);
-  isl_union_pw_multi_aff *contraction;
-  contraction = isl_schedule_node_get_subtree_contraction(node);
-  if (isl_schedule_node_get_schedule_depth(node) == 0) {
-    isl_union_set *domain;
+// /* Return the validity constrraints between pairs of instances 
+//  * that are scheduled together by the ancestors of "node".
+//  * That is, select those validity constraints that relate 
+//  * pairs of instances that have the same value for the prefix schedule.
+//  * If the schedule depth is zero, then the prefix schedule does not
+//  * contain any information, so we intersect domain and range of the 
+//  * schedule constraints with the reaching domain elements instead.
+//  */
+// static __isl_give isl_union_map *get_local_validity(
+//   __isl_keep isl_schedule_node *node,
+//   __isl_keep isl_schedule_constraints *sc)
+// {
+//   isl_union_map *validity;
+//   validity = isl_schedule_constraints_get_validity(sc);
+//   isl_union_pw_multi_aff *contraction;
+//   contraction = isl_schedule_node_get_subtree_contraction(node);
+//   if (isl_schedule_node_get_schedule_depth(node) == 0) {
+//     isl_union_set *domain;
 
-    domain = isl_schedule_node_get_domain(node);
-    domain = isl_union_set_preimage_union_pw_multi_aff(domain,
-        contraction);
-    validity = isl_union_map_intersect_domain(validity,
-        isl_union_set_copy(domain));
-    validity = isl_union_map_intersect_range(validity,
-        domain);
-    return validity;
-  }
+//     domain = isl_schedule_node_get_domain(node);
+//     domain = isl_union_set_preimage_union_pw_multi_aff(domain,
+//         contraction);
+//     validity = isl_union_map_intersect_domain(validity,
+//         isl_union_set_copy(domain));
+//     validity = isl_union_map_intersect_range(validity,
+//         domain);
+//     return validity;
+//   }
 
-  isl_multi_union_pw_aff *prefix = isl_schedule_node_get_prefix_schedule_multi_union_pw_aff(node);
-  prefix = isl_multi_union_pw_aff_pullback_union_pw_multi_aff(prefix, contraction);
-  return isl_union_map_eq_at_multi_union_pw_aff(validity, prefix);
-}
+//   isl_multi_union_pw_aff *prefix = isl_schedule_node_get_prefix_schedule_multi_union_pw_aff(node);
+//   prefix = isl_multi_union_pw_aff_pullback_union_pw_multi_aff(prefix, contraction);
+//   return isl_union_map_eq_at_multi_union_pw_aff(validity, prefix);
+// }
 
-/* Test for each pair of instances in the dep_flow and dep_rar that are 
- * scheduled together by the outer nodes, the dependence distance on the 
- * "node" is constant.
- */
-static isl_bool is_band_dep_uniform(__isl_keep isl_schedule_node *node,
-    struct gpu_prog *prog)
-{
-  int n;
-  isl_schedule_constraints *sc = construct_schedule_constraints(prog);
-  isl_union_map *validity = get_local_validity(node, sc);
+// /* Test for each pair of instances in the dep_flow and dep_rar that are 
+//  * scheduled together by the outer nodes, the dependence distance on the 
+//  * "node" is constant.
+//  */
+// static isl_bool is_band_dep_uniform(__isl_keep isl_schedule_node *node,
+//     struct gpu_prog *prog)
+// {
+//   int n;
+//   isl_schedule_constraints *sc = construct_schedule_constraints(prog);
+//   isl_union_map *validity = get_local_validity(node, sc);
 
-//  // debug
-//  isl_printer *printer = isl_printer_to_file(prog->ctx, stdout);
-//  isl_printer_print_union_map(printer, validity);
-//  printf("\n");
-//  // debug
+// //  // debug
+// //  isl_printer *printer = isl_printer_to_file(prog->ctx, stdout);
+// //  isl_printer_print_union_map(printer, validity);
+// //  printf("\n");
+// //  // debug
 
-  isl_basic_map_list *deps = isl_union_map_get_basic_map_list(validity);
-  isl_bool is_uniform = isl_bool_true;
-  for (int i = 0; i < isl_union_map_n_basic_map(validity); i++) {
-    isl_basic_map *dep = isl_basic_map_list_get_basic_map(deps, i);
-    if (!is_dep_uniform_at_node(node, dep)) {
-      is_uniform = isl_bool_false;
-      isl_basic_map_free(dep);
-      break;
-    }
-    isl_basic_map_free(dep);
-  }
+//   isl_basic_map_list *deps = isl_union_map_get_basic_map_list(validity);
+//   isl_bool is_uniform = isl_bool_true;
+//   for (int i = 0; i < isl_union_map_n_basic_map(validity); i++) {
+//     isl_basic_map *dep = isl_basic_map_list_get_basic_map(deps, i);
+//     if (!is_dep_uniform_at_node(node, dep)) {
+//       is_uniform = isl_bool_false;
+//       isl_basic_map_free(dep);
+//       break;
+//     }
+//     isl_basic_map_free(dep);
+//   }
 
-  isl_basic_map_list_free(deps);
-  isl_schedule_constraints_free(sc);
-  isl_union_map_free(validity);
+//   isl_basic_map_list_free(deps);
+//   isl_schedule_constraints_free(sc);
+//   isl_union_map_free(validity);
 
-  return is_uniform;
-}
+//   return is_uniform;
+// }
 
-/* The node should satisfy the following constraints to be systolizable:
- * - innermost permutable band
- * - dependneces are uniform in the band
- */
-static isl_bool is_systolizable(__isl_keep isl_schedule_node *node, 
-    void *user)
-{
-  if (!node)
-    return isl_bool_error;
+// /* The node should satisfy the following constraints to be systolizable:
+//  * - innermost permutable band
+//  * - dependneces are uniform in the band
+//  */
+// static isl_bool is_systolizable(__isl_keep isl_schedule_node *node, 
+//     void *user)
+// {
+//   if (!node)
+//     return isl_bool_error;
 
-  struct gpu_prog *prog = user;
+//   struct gpu_prog *prog = user;
 
-  if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
-    return isl_bool_false;
-  if (!isl_schedule_node_band_get_permutable(node))
-    return isl_bool_false;
-  if (isl_schedule_node_band_n_member(node) < 1)
-    return isl_bool_false;
-  if (!is_band_dep_uniform(node, prog))
-    return isl_bool_false;
-  int n = isl_schedule_node_n_children(node);
-  if (n > 0) {
-    for (int i = 0; i < n; i++) {
-      isl_schedule_node *child = isl_schedule_node_child(isl_schedule_node_copy(node), i);
-      if (subtree_has_systolizable_bands(child, prog)) {
-        isl_schedule_node_free(child);
-        return isl_bool_false;
-      }
-      isl_schedule_node_free(child);
-    }
-  }
+//   if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
+//     return isl_bool_false;
+//   if (!isl_schedule_node_band_get_permutable(node))
+//     return isl_bool_false;
+//   if (isl_schedule_node_band_n_member(node) < 1)
+//     return isl_bool_false;
+//   if (!is_band_dep_uniform(node, prog))
+//     return isl_bool_false;
+//   int n = isl_schedule_node_n_children(node);
+//   if (n > 0) {
+//     for (int i = 0; i < n; i++) {
+//       isl_schedule_node *child = isl_schedule_node_child(isl_schedule_node_copy(node), i);
+//       if (subtree_has_systolizable_bands(child, prog)) {
+//         isl_schedule_node_free(child);
+//         return isl_bool_false;
+//       }
+//       isl_schedule_node_free(child);
+//     }
+//   }
 
-  return isl_bool_true;
-}
+//   return isl_bool_true;
+// }
 
-/* Is "node" not a suitably systolizable band?
- */
-static isl_bool not_systolizable(__isl_keep isl_schedule_node *node, void *user)
-{
-  return isl_bool_not(is_systolizable(node, user)); 
-}
+// /* Is "node" not a suitably systolizable band?
+//  */
+// static isl_bool not_systolizable(__isl_keep isl_schedule_node *node, void *user)
+// {
+//   return isl_bool_not(is_systolizable(node, user)); 
+// }
 
-/* Does the subtree rooted at "node" has any suitably systolizable band nodes?
- * That is, does it have any nodes that are innermost and contains only uniform dependences.
- */
-isl_bool subtree_has_systolizable_bands(__isl_keep isl_schedule_node *node,
-    struct gpu_prog *prog)
-{
-  isl_bool all_non_systolizable;
+// /* Does the subtree rooted at "node" has any suitably systolizable band nodes?
+//  * That is, does it have any nodes that are innermost and contains only uniform dependences.
+//  */
+// isl_bool subtree_has_systolizable_bands(__isl_keep isl_schedule_node *node,
+//     struct gpu_prog *prog)
+// {
+//   isl_bool all_non_systolizable;
 
-  all_non_systolizable = isl_schedule_node_every_descendant(node,
-      &not_systolizable, prog);
+//   all_non_systolizable = isl_schedule_node_every_descendant(node,
+//       &not_systolizable, prog);
 
-  return isl_bool_not(all_non_systolizable);
-}
+//   return isl_bool_not(all_non_systolizable);
+// }
 
-/* Does "schedule" contain any permutable band which is systolizable? */
-isl_bool has_any_systolizable_node(__isl_keep isl_schedule *schedule, struct gpu_prog *prog)
-{
-  isl_schedule_node *root;
-  isl_bool any_systolizable;
+// /* Does "schedule" contain any permutable band which is systolizable? */
+// isl_bool has_any_systolizable_node(__isl_keep isl_schedule *schedule, struct gpu_prog *prog)
+// {
+//   isl_schedule_node *root;
+//   isl_bool any_systolizable;
 
-  root = isl_schedule_get_root(schedule);
-  any_systolizable = subtree_has_systolizable_bands(root, prog);
-  any_systolizable = isl_bool_true;
-  isl_schedule_node_free(root);
+//   root = isl_schedule_get_root(schedule);
+//   any_systolizable = subtree_has_systolizable_bands(root, prog);
+//   any_systolizable = isl_bool_true;
+//   isl_schedule_node_free(root);
 
-  return any_systolizable;
-}
+//   return any_systolizable;
+// }
 
-/* This function is called for each instance of a user statement
- * in the kernel. This may be one of the original user statements
- * or a statement introduced by PolySA.
- *
- * We first check the statement id corresponds to an original
- * user statement. Any statement that is not an original user statement has been
- * introduced by PolySA and requires special handling.
- *
- * If the user statement if one of the original user statements, then we call
- * create_domain_leaf. If it is "init_device", then we call
- * build_array_bounds. Otherwise, we check if it is a copy statement and call 
- * the appropriate functions. Statements that copy and array to/from the device
- * do not need any further treatment.
- * Neither does "clear_device".
- */
-static __isl_give isl_ast_node *polysa_at_domain(__isl_take isl_ast_node *node,
-    __isl_keep isl_ast_build *build, void *user)
-{
-  struct ppcg_at_domain_data *data = user;
-  struct gpu_stmt *gpu_stmt;
-  isl_ast_expr *expr, *arg;
-  isl_id *id;
-  int is_sync;
-  const char *name;
-  void *p;
+// /* This function is called for each instance of a user statement
+//  * in the kernel. This may be one of the original user statements
+//  * or a statement introduced by PolySA.
+//  *
+//  * We first check the statement id corresponds to an original
+//  * user statement. Any statement that is not an original user statement has been
+//  * introduced by PolySA and requires special handling.
+//  *
+//  * If the user statement if one of the original user statements, then we call
+//  * create_domain_leaf. If it is "init_device", then we call
+//  * build_array_bounds. Otherwise, we check if it is a copy statement and call 
+//  * the appropriate functions. Statements that copy and array to/from the device
+//  * do not need any further treatment.
+//  * Neither does "clear_device".
+//  */
+// static __isl_give isl_ast_node *polysa_at_domain(__isl_take isl_ast_node *node,
+//     __isl_keep isl_ast_build *build, void *user)
+// {
+//   struct ppcg_at_domain_data *data = user;
+//   struct gpu_stmt *gpu_stmt;
+//   isl_ast_expr *expr, *arg;
+//   isl_id *id;
+//   int is_sync;
+//   const char *name;
+//   void *p;
 
-  expr = isl_ast_node_user_get_expr(node);
-  arg = isl_ast_expr_get_op_arg(expr, 0);
-  id = isl_ast_expr_get_id(arg);
-  name = isl_id_get_name(id);
-  p = isl_id_get_user(id);
-  isl_ast_expr_free(expr);
-  isl_ast_expr_free(arg);
+//   expr = isl_ast_node_user_get_expr(node);
+//   arg = isl_ast_expr_get_op_arg(expr, 0);
+//   id = isl_ast_expr_get_id(arg);
+//   name = isl_id_get_name(id);
+//   p = isl_id_get_user(id);
+//   isl_ast_expr_free(expr);
+//   isl_ast_expr_free(arg);
 
-  gpu_stmt = find_stmt(data->prog, id);
-  is_sync = gpu_tree_id_is_sync(id, data->kernel);
-  isl_id_free(id);
+//   gpu_stmt = find_stmt(data->prog, id);
+//   is_sync = gpu_tree_id_is_sync(id, data->kernel);
+//   isl_id_free(id);
 
-  if (gpu_stmt)
-    return create_domain_leaf(data->kernel, node, build, gpu_stmt); // TODO
+//   if (gpu_stmt)
+//     return create_domain_leaf(data->kernel, node, build, gpu_stmt); // TODO
   
-  if (!prefixcmp(name, "to_device_") || !prefixcmp(name, "from_device_"))
-    return node;
-  if (!strcmp(name, "init_device"))
-    return build_array_bounds(node, data->prog, build); // TODO
-  if (!strcmp(name, "clear_device"))
-    return node;
-  if (is_sync < 0)
-    return isl_ast_node_free(node);
-  if (!strcmp(name, "read") || !strcmp(name, "write")) {
-    struct gpu_array_ref_group *group = p;
-    return create_access_leaf(data->kernel, group, node, build); // TODO
-  }
-  if (!is_sync)
-    isl_die(data->prog->ctx, isl_error_internal,
-        "unknown statement type",
-        return isl_ast_node_free(node));
-  return create_sync_leaf(data->kernel, node, build);
-}
+//   if (!prefixcmp(name, "to_device_") || !prefixcmp(name, "from_device_"))
+//     return node;
+//   if (!strcmp(name, "init_device"))
+//     return build_array_bounds(node, data->prog, build); // TODO
+//   if (!strcmp(name, "clear_device"))
+//     return node;
+//   if (is_sync < 0)
+//     return isl_ast_node_free(node);
+//   if (!strcmp(name, "read") || !strcmp(name, "write")) {
+//     struct gpu_array_ref_group *group = p;
+//     return create_access_leaf(data->kernel, group, node, build); // TODO
+//   }
+//   if (!is_sync)
+//     isl_die(data->prog->ctx, isl_error_internal,
+//         "unknown statement type",
+//         return isl_ast_node_free(node));
+//   return create_sync_leaf(data->kernel, node, build);
+// }
 
-/* This function is called before the AST generator starts traversing
- * the schedule subtree of a node with mark "mark".
- *
- * If the mark is called "kernel", store the kernel pointer in data->kernel
- * for use in at_domain and build AST expressions for the localized array sizes.
- */
-static isl_stat polysa_before_mark(__isl_keep isl_id *mark,
-    __isl_keep isl_ast_build *build, void *user)
-{
-  struct ppcg_at_domain_data *data = user;
+// /* This function is called before the AST generator starts traversing
+//  * the schedule subtree of a node with mark "mark".
+//  *
+//  * If the mark is called "kernel", store the kernel pointer in data->kernel
+//  * for use in at_domain and build AST expressions for the localized array sizes.
+//  */
+// static isl_stat polysa_before_mark(__isl_keep isl_id *mark,
+//     __isl_keep isl_ast_build *build, void *user)
+// {
+//   struct ppcg_at_domain_data *data = user;
 
-  if (!mark)
-    return isl_stat_error;
-  if (!strcmp(isl_id_get_name(mark), "kernel")) {
-    data->kernel = isl_id_get_user(mark);
-    if (build_grid_and_local_array_sizes(data->kernel, build) < 0)
-      return isl_stat_error;    
-  }
-  return isl_stat_ok;
-}
+//   if (!mark)
+//     return isl_stat_error;
+//   if (!strcmp(isl_id_get_name(mark), "kernel")) {
+//     data->kernel = isl_id_get_user(mark);
+//     if (build_grid_and_local_array_sizes(data->kernel, build) < 0)
+//       return isl_stat_error;    
+//   }
+//   return isl_stat_ok;
+// }
 
-/* Use isl to generate code for both the host and the device 
- * from "schedule".
- * The device code is marked by "kernel" mark nodes in the schedule tree,
- * containing a pointer to a ppcg_kernel object.
- * The returned AST only contains the AST for the host code.
- * The ASTs from the device code are embedded in ppcg_kernel objects 
- * attached to the leaf nodes that call "kernels".
- */
-static __isl_give isl_ast_node *polysa_generate_code(struct gpu_gen *gen,
-    __isl_take isl_schedule *schedule)
-{
-  struct ppcg_at_domain_data data;
-  isl_ast_build *build;
-  isl_ast_node *tree;
-  isl_id_list *iterators;
-  int depth;
+// /* Use isl to generate code for both the host and the device 
+//  * from "schedule".
+//  * The device code is marked by "kernel" mark nodes in the schedule tree,
+//  * containing a pointer to a ppcg_kernel object.
+//  * The returned AST only contains the AST for the host code.
+//  * The ASTs from the device code are embedded in ppcg_kernel objects 
+//  * attached to the leaf nodes that call "kernels".
+//  */
+// static __isl_give isl_ast_node *polysa_generate_code(struct gpu_gen *gen,
+//     __isl_take isl_schedule *schedule)
+// {
+//   struct ppcg_at_domain_data data;
+//   isl_ast_build *build;
+//   isl_ast_node *tree;
+//   isl_id_list *iterators;
+//   int depth;
 
-  data.prog = gen->prog;
-  data.kernel = NULL;
+//   data.prog = gen->prog;
+//   data.kernel = NULL;
 
-  depth = 0;
-  if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth, 
-        &depth) < 0)
-    schedule = isl_schedule_free(schedule);
-  build = isl_ast_build_alloc(gen->prog->ctx);
-  iterators = ppcg_scop_generate_names(gen->prog->scop, depth, "c");
-  build = isl_ast_build_set_iterators(build, iterators);
-  build = isl_ast_build_set_at_each_domain(build, &polysa_at_domain, &data); // TODO
-  build = isl_ast_build_set_before_each_mark(build, &polysa_before_mark, &data); // TODO
-  build = isl_ast_build_set_after_each_mark(build, &after_mark, &data); 
-  if (gen->prog->scop->options->debug->dump_final_schedule)
-    isl_schedule_dump(schedule);
-  tree = isl_ast_build_node_from_schedule(build, schedule);
-  isl_ast_build_free(build);
+//   depth = 0;
+//   if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth, 
+//         &depth) < 0)
+//     schedule = isl_schedule_free(schedule);
+//   build = isl_ast_build_alloc(gen->prog->ctx);
+//   iterators = ppcg_scop_generate_names(gen->prog->scop, depth, "c");
+//   build = isl_ast_build_set_iterators(build, iterators);
+//   build = isl_ast_build_set_at_each_domain(build, &polysa_at_domain, &data); // TODO
+//   build = isl_ast_build_set_before_each_mark(build, &polysa_before_mark, &data); // TODO
+//   build = isl_ast_build_set_after_each_mark(build, &after_mark, &data); 
+//   if (gen->prog->scop->options->debug->dump_final_schedule)
+//     isl_schedule_dump(schedule);
+//   tree = isl_ast_build_node_from_schedule(build, schedule);
+//   isl_ast_build_free(build);
 
-  return tree;
-}
+//   return tree;
+// }
 
-/* Gnerate systolic array code for "scop" and print it to "p".
- * After generating an AST for the transformed scop as explained below,
- * we call "gen->print" to print the AST in the desired output format
- * to "p".
- *
- * If it turns out it does not make sense to generate systolic array code,
- * then we generate CPU code instead.
- *
- * The declarations of the arrays that are visible outside of the scop
- * are printed outside of the code generated from the schedule,
- * because the generated code may involve a guard around the entire code.
- *
- * We first compute a schedule that respects the dependences
- * of the original program and select the innermost bands that
- * are suitable to be mapped to systolic array.
- * If the --load-schedule is specified, then the loaded schedule
- * is used instead of a computed schedule.
- *
- * Each of these bands B is then processed through stages including:
- * Array Generation, PE Optimization, Data Transfer Optimization
- * with a kernel marker on top.
- *
- *  K
- *  |
- *  SA
- *
- * The entire AST is then generated from the single resulting schedule tree.
- * During the generation the subtrees at kernel nodes (K) are saved 
- * aside and replaced by kernel calls. The result is printed as host code
- * while the saved subtrees are printed as device code.
- */
-__isl_give isl_printer *polysa_generate(__isl_take isl_printer *p,
-	struct gpu_gen *gen, struct ppcg_scop *scop,
-	struct ppcg_options *options)
-{
-	struct gpu_prog *prog;
-	isl_ctx *ctx;
-	isl_schedule *schedule;
+// /* Gnerate systolic array code for "scop" and print it to "p".
+//  * After generating an AST for the transformed scop as explained below,
+//  * we call "gen->print" to print the AST in the desired output format
+//  * to "p".
+//  *
+//  * If it turns out it does not make sense to generate systolic array code,
+//  * then we generate CPU code instead.
+//  *
+//  * The declarations of the arrays that are visible outside of the scop
+//  * are printed outside of the code generated from the schedule,
+//  * because the generated code may involve a guard around the entire code.
+//  *
+//  * We first compute a schedule that respects the dependences
+//  * of the original program and select the innermost bands that
+//  * are suitable to be mapped to systolic array.
+//  * If the --load-schedule is specified, then the loaded schedule
+//  * is used instead of a computed schedule.
+//  *
+//  * Each of these bands B is then processed through stages including:
+//  * Array Generation, PE Optimization, Data Transfer Optimization
+//  * with a kernel marker on top.
+//  *
+//  *  K
+//  *  |
+//  *  SA
+//  *
+//  * The entire AST is then generated from the single resulting schedule tree.
+//  * During the generation the subtrees at kernel nodes (K) are saved 
+//  * aside and replaced by kernel calls. The result is printed as host code
+//  * while the saved subtrees are printed as device code.
+//  */
+// __isl_give isl_printer *polysa_generate(__isl_take isl_printer *p,
+// 	struct gpu_gen *gen, struct ppcg_scop *scop,
+// 	struct ppcg_options *options)
+// {
+// 	struct gpu_prog *prog;
+// 	isl_ctx *ctx;
+// 	isl_schedule *schedule;
 
-  if (!scop)
-    return isl_printer_free(p);
+//   if (!scop)
+//     return isl_printer_free(p);
 
-  ctx = isl_printer_get_ctx(p);
-  prog = gpu_prog_alloc(ctx, scop);
-  if (!prog)
-    return isl_printer_free(p);
+//   ctx = isl_printer_get_ctx(p);
+//   prog = gpu_prog_alloc(ctx, scop);
+//   if (!prog)
+//     return isl_printer_free(p);
 
-  gen->prog = prog;
-  schedule = get_schedule(gen);
+//   gen->prog = prog;
+//   schedule = get_schedule(gen);
 
-  isl_bool any_systolizable;
-  /* Examine if the "schedule" contain any systolizable band. */
-  any_systolizable = has_any_systolizable_node(schedule, prog); 
-  if (any_systolizable < 0 || !any_systolizable) {
-    if (any_systolizable < 0)
-      p = isl_printer_free(p);
-    else
-      p = print_cpu(p, scop, options);
-    isl_schedule_free(schedule);
-  } else {
-    schedule = polysa_map_to_device(gen, schedule);
-    gen->tree = polysa_generate_code(gen, schedule);
-    p = ppcg_set_macro_names(p);
-    p = ppcg_print_exposed_declarations(p, prog->scop);
-    p = gen->print(p, gen->prog, gen->tree, &gen->types, 
-          gen->print_user);
-    isl_ast_node_free(gen->tree);
-    isl_schedule_free(schedule);
-  }
+//   isl_bool any_systolizable;
+//   /* Examine if the "schedule" contain any systolizable band. */
+//   any_systolizable = has_any_systolizable_node(schedule, prog); 
+//   if (any_systolizable < 0 || !any_systolizable) {
+//     if (any_systolizable < 0)
+//       p = isl_printer_free(p);
+//     else
+//       p = print_cpu(p, scop, options);
+//     isl_schedule_free(schedule);
+//   } else {
+//     schedule = polysa_map_to_device(gen, schedule);
+//     gen->tree = polysa_generate_code(gen, schedule);
+//     p = ppcg_set_macro_names(p);
+//     p = ppcg_print_exposed_declarations(p, prog->scop);
+//     p = gen->print(p, gen->prog, gen->tree, &gen->types, 
+//           gen->print_user);
+//     isl_ast_node_free(gen->tree);
+//     isl_schedule_free(schedule);
+//   }
     
-	gpu_prog_free(prog);
+// 	gpu_prog_free(prog);
 
-	return p;
-}
+// 	return p;
+// }
 
-/* Wrapper around generate for use as a ppcg_transform callback.
- */
-static __isl_give isl_printer *polysa_generate_wrap(__isl_take isl_printer *p,
-	struct ppcg_scop *scop, void *user)
-{
-	struct gpu_gen *gen = user;
+// /* Wrapper around generate for use as a ppcg_transform callback.
+//  */
+// static __isl_give isl_printer *polysa_generate_wrap(__isl_take isl_printer *p,
+// 	struct ppcg_scop *scop, void *user)
+// {
+// 	struct gpu_gen *gen = user;
 
-	return polysa_generate(p, gen, scop, gen->options);
-}
+// 	return polysa_generate(p, gen, scop, gen->options);
+// }
 
-/* Transform the code in the file called "input" by replacing
- * all scops by corresponding systolic code and write the results to "out".
- */
-int generate_sa(isl_ctx *ctx, const char *input, FILE *out,
-	struct ppcg_options *options,
-	__isl_give isl_printer *(*print)(__isl_take isl_printer *p,
-		struct gpu_prog *prog, __isl_keep isl_ast_node *tree,
-		struct gpu_types *types, void *user), void *user)
-{
-	struct gpu_gen gen;
-	int r;
-	int i;
+// /* Transform the code in the file called "input" by replacing
+//  * all scops by corresponding systolic code and write the results to "out".
+//  */
+// int generate_sa(isl_ctx *ctx, const char *input, FILE *out,
+// 	struct ppcg_options *options,
+// 	__isl_give isl_printer *(*print)(__isl_take isl_printer *p,
+// 		struct gpu_prog *prog, __isl_keep isl_ast_node *tree,
+// 		struct gpu_types *types, void *user), void *user)
+// {
+// 	struct gpu_gen gen;
+// 	int r;
+// 	int i;
 
-	gen.ctx = ctx;
-	gen.sizes = extract_sizes_from_str(ctx, options->sizes);
-	gen.options = options;
-	gen.kernel_id = 0;
-	gen.print = print;
-	gen.print_user = user;
-	gen.types.n = 0;
-	gen.types.name = NULL;
+// 	gen.ctx = ctx;
+// 	gen.sizes = extract_sizes_from_str(ctx, options->sizes);
+// 	gen.options = options;
+// 	gen.kernel_id = 0;
+// 	gen.print = print;
+// 	gen.print_user = user;
+// 	gen.types.n = 0;
+// 	gen.types.name = NULL;
 
-	if (options->debug->dump_sizes) {
-		isl_space *space = isl_space_params_alloc(ctx, 0);
-		gen.used_sizes = isl_union_map_empty(space);
-	}
+// 	if (options->debug->dump_sizes) {
+// 		isl_space *space = isl_space_params_alloc(ctx, 0);
+// 		gen.used_sizes = isl_union_map_empty(space);
+// 	}
 
-	r = ppcg_transform(ctx, input, out, options, &polysa_generate_wrap, &gen);
+// 	r = ppcg_transform(ctx, input, out, options, &polysa_generate_wrap, &gen);
 
-	if (options->debug->dump_sizes) {
-		isl_union_map_dump(gen.used_sizes);
-		isl_union_map_free(gen.used_sizes);
-	}
+// 	if (options->debug->dump_sizes) {
+// 		isl_union_map_dump(gen.used_sizes);
+// 		isl_union_map_free(gen.used_sizes);
+// 	}
 
-	isl_union_map_free(gen.sizes);
-	for (i = 0; i < gen.types.n; ++i)
-		free(gen.types.name[i]);
-	free(gen.types.name);
+// 	isl_union_map_free(gen.sizes);
+// 	for (i = 0; i < gen.types.n; ++i)
+// 		free(gen.types.name[i]);
+// 	free(gen.types.name);
 
-	return r;
-}
+// 	return r;
+// }
 
 
 
-/* Given a set or sequence node, return the union the filters of either all
- * (if "only_initial" is not set) or the initial (if "only_initial" is set)
- * direct subtrees that do not contain any suitably permutable bands
- * (according to subtree_has_systolizable_bands).
- */
-static __isl_give isl_union_set *get_non_systolizable_subtree_filters(
-  __isl_keep isl_schedule_node *node, int only_initial, struct gpu_prog *prog)
-{
-  isl_space *space;
-  isl_union_set *filter;
-  int i, n;
+// /* Given a set or sequence node, return the union the filters of either all
+//  * (if "only_initial" is not set) or the initial (if "only_initial" is set)
+//  * direct subtrees that do not contain any suitably permutable bands
+//  * (according to subtree_has_systolizable_bands).
+//  */
+// static __isl_give isl_union_set *get_non_systolizable_subtree_filters(
+//   __isl_keep isl_schedule_node *node, int only_initial, struct gpu_prog *prog)
+// {
+//   isl_space *space;
+//   isl_union_set *filter;
+//   int i, n;
 
-  n = isl_schedule_node_n_children(node);
-  if (n < 0)
-    return NULL;
+//   n = isl_schedule_node_n_children(node);
+//   if (n < 0)
+//     return NULL;
 
-  node = isl_schedule_node_copy(node);
-  node = isl_schedule_node_child(node, 0);
-  filter = isl_schedule_node_filter_get_filter(node);
-  node = isl_schedule_node_parent(node);
-  space = isl_union_set_get_space(filter);
-  isl_union_set_free(filter);
-  filter = isl_union_set_empty(space);
+//   node = isl_schedule_node_copy(node);
+//   node = isl_schedule_node_child(node, 0);
+//   filter = isl_schedule_node_filter_get_filter(node);
+//   node = isl_schedule_node_parent(node);
+//   space = isl_union_set_get_space(filter);
+//   isl_union_set_free(filter);
+//   filter = isl_union_set_empty(space);
 
-  for (i = 0; i < n; ++i) {
-    int systolizable;
+//   for (i = 0; i < n; ++i) {
+//     int systolizable;
 
-    node = isl_schedule_node_child(node, i);
-    systolizable = subtree_has_systolizable_bands(node, prog);
-    if (systolizable < 0) {
-      filter = isl_union_set_free(filter);      
-    } else if (!systolizable) {
-      isl_union_set *filter_i;
-      filter_i = isl_schedule_node_filter_get_filter(node);
-      filter = isl_union_set_union(filter, filter_i);
-    } else if (only_initial) {
-      break;
-    }
-    node = isl_schedule_node_parent(node);
-  }
+//     node = isl_schedule_node_child(node, i);
+//     systolizable = subtree_has_systolizable_bands(node, prog);
+//     if (systolizable < 0) {
+//       filter = isl_union_set_free(filter);      
+//     } else if (!systolizable) {
+//       isl_union_set *filter_i;
+//       filter_i = isl_schedule_node_filter_get_filter(node);
+//       filter = isl_union_set_union(filter, filter_i);
+//     } else if (only_initial) {
+//       break;
+//     }
+//     node = isl_schedule_node_parent(node);
+//   }
 
-  isl_schedule_node_free(node);
+//   isl_schedule_node_free(node);
 
-  return filter;
-}
+//   return filter;
+// }
 
-/* Given a set or sequecne node, return the union of the filters of 
- * the direct subtrees that do not contain any suitably systolizable bands
- * (according to subtree_has_systolizable_bands).
- */
-static __isl_give isl_union_set *get_all_non_systolizable_subtree_filters(
-    __isl_keep isl_schedule_node *node, struct gpu_prog *prog)
-{
-  return get_non_systolizable_subtree_filters(node, 0, prog);
-}
+// /* Given a set or sequecne node, return the union of the filters of 
+//  * the direct subtrees that do not contain any suitably systolizable bands
+//  * (according to subtree_has_systolizable_bands).
+//  */
+// static __isl_give isl_union_set *get_all_non_systolizable_subtree_filters(
+//     __isl_keep isl_schedule_node *node, struct gpu_prog *prog)
+// {
+//   return get_non_systolizable_subtree_filters(node, 0, prog);
+// }
 
-/* Given a set or sequecne node, return the union of the filters of 
- * the direct subtrees that do not contain any suitably systolizable bands
- * (according to subtree_has_systolizable_bands).
- */
-static __isl_give isl_union_set *get_initial_non_systolizable_subtree_filters(
-    __isl_keep isl_schedule_node *node, struct gpu_prog *prog)
-{
-  return get_non_systolizable_subtree_filters(node, 1, prog);
-}
+// /* Given a set or sequecne node, return the union of the filters of 
+//  * the direct subtrees that do not contain any suitably systolizable bands
+//  * (according to subtree_has_systolizable_bands).
+//  */
+// static __isl_give isl_union_set *get_initial_non_systolizable_subtree_filters(
+//     __isl_keep isl_schedule_node *node, struct gpu_prog *prog)
+// {
+//   return get_non_systolizable_subtree_filters(node, 1, prog);
+// }
 
-/* If "node" points to a set node, then separate its children
- * into subtrees that have suitably systolizable bands and
- * those that do not.
- * Adjust the schedule tree in order to execute the second group
- * after the first group and return a pointer to the first group,
- * assuming there are any such subtrees.
- * If "node" points to a sequence node, then separate the initial
- * children that do not have suitably systolizable bands and
- * return a pointer to the subsequence of children that do have such bands,
- * assuming there are any such subtrees.
- *
- * In both cases, mark all local variables in "prog" that are accessed by
- * the group without systolizable bands as requiring a declaration on the host.
- */
-static __isl_give isl_schedule_node *isolate_systolizable_subtrees(
-    __isl_take isl_schedule_node *node, struct gpu_prog *prog)
-{
-  isl_union_set *filter;
-  enum isl_schedule_node_type type;
+// /* If "node" points to a set node, then separate its children
+//  * into subtrees that have suitably systolizable bands and
+//  * those that do not.
+//  * Adjust the schedule tree in order to execute the second group
+//  * after the first group and return a pointer to the first group,
+//  * assuming there are any such subtrees.
+//  * If "node" points to a sequence node, then separate the initial
+//  * children that do not have suitably systolizable bands and
+//  * return a pointer to the subsequence of children that do have such bands,
+//  * assuming there are any such subtrees.
+//  *
+//  * In both cases, mark all local variables in "prog" that are accessed by
+//  * the group without systolizable bands as requiring a declaration on the host.
+//  */
+// static __isl_give isl_schedule_node *isolate_systolizable_subtrees(
+//     __isl_take isl_schedule_node *node, struct gpu_prog *prog)
+// {
+//   isl_union_set *filter;
+//   enum isl_schedule_node_type type;
 
-  if (!node)
-    return NULL;
-  type = isl_schedule_node_get_type(node);
-  if (type == isl_schedule_node_set) {
-    filter = get_all_non_systolizable_subtree_filters(node, prog);
-    node = declare_accessed_local_variables(node, prog, filter);
-    node = isl_schedule_node_order_after(node, filter);
-  } else if (type == isl_schedule_node_sequence) {
-    filter = get_initial_non_systolizable_subtree_filters(node, prog);
-    node = declare_accessed_local_variables(node, prog, filter);
-    node = isl_schedule_node_order_before(node, filter);
-  }
+//   if (!node)
+//     return NULL;
+//   type = isl_schedule_node_get_type(node);
+//   if (type == isl_schedule_node_set) {
+//     filter = get_all_non_systolizable_subtree_filters(node, prog);
+//     node = declare_accessed_local_variables(node, prog, filter);
+//     node = isl_schedule_node_order_after(node, filter);
+//   } else if (type == isl_schedule_node_sequence) {
+//     filter = get_initial_non_systolizable_subtree_filters(node, prog);
+//     node = declare_accessed_local_variables(node, prog, filter);
+//     node = isl_schedule_node_order_before(node, filter);
+//   }
 
-  return node;
-}
+//   return node;
+// }
 
-__isl_give isl_schedule_node *polysa_create_kernel(struct gpu_gen *gen,
-    __isl_take isl_schedule_node *node, int scale,
-    __isl_keep isl_multi_val *sizes)
-{
-  struct ppcg_kernel *kernel; 
-  isl_union_set *domain;
-  isl_union_pw_multi_aff *contraction;
-  isl_union_set *expanded;
-  int single_statement;
-  isl_union_map *host_schedule;
-  isl_set *host_domain;
-  isl_id *id;
-  isl_schedule_node *node_thread;
+// __isl_give isl_schedule_node *polysa_create_kernel(struct gpu_gen *gen,
+//     __isl_take isl_schedule_node *node, int scale,
+//     __isl_keep isl_multi_val *sizes)
+// {
+//   struct ppcg_kernel *kernel; 
+//   isl_union_set *domain;
+//   isl_union_pw_multi_aff *contraction;
+//   isl_union_set *expanded;
+//   int single_statement;
+//   isl_union_map *host_schedule;
+//   isl_set *host_domain;
+//   isl_id *id;
+//   isl_schedule_node *node_thread;
 
-  node = gpu_tree_insert_shared_before_thread(node);
-  if (!node)
-    return NULL;
+//   node = gpu_tree_insert_shared_before_thread(node);
+//   if (!node)
+//     return NULL;
 
-  kernel = isl_calloc_type(gen->ctx, struct ppcg_kernel);
-  /* Initialize the local ararys. */
-  kernel = ppcg_kernel_create_local_arrays(kernel, gen->prog); 
-  if (!kernel)
-    return isl_schedule_node_free(node);
+//   kernel = isl_calloc_type(gen->ctx, struct ppcg_kernel);
+//   /* Initialize the local ararys. */
+//   kernel = ppcg_kernel_create_local_arrays(kernel, gen->prog); 
+//   if (!kernel)
+//     return isl_schedule_node_free(node);
 
-  domain = isl_schedule_node_get_domain(node);
-  single_statement = isl_union_set_n_set(domain) == 1;
+//   domain = isl_schedule_node_get_domain(node);
+//   single_statement = isl_union_set_n_set(domain) == 1;
 
-  kernel->ctx = gen->ctx;
-  kernel->prog = gen->prog;
-  kernel->options = gen->options;
-  kernel->context = extract_context(node, gen->prog);
-  kernel->core = isl_union_set_universe(isl_union_set_copy(domain));
-  contraction = isl_schedule_node_get_subtree_contraction(node);
-  kernel->contraction = isl_union_pw_multi_aff_copy(contraction);
-//  // debug
-//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-//  isl_printer_print_union_pw_multi_aff(printer, kernel->contraction);
-//  printf("\n");
-//  // debug
-  expanded = isl_union_set_copy(domain);
-  expanded = isl_union_set_preimage_union_pw_multi_aff(expanded,
-            contraction);
-  kernel->expanded_domain = isl_union_set_copy(expanded);
-//  // debug
-//  isl_printer_print_union_set(printer, kernel->expanded_domain);
-//  printf("\n");
-//  // debug
-  kernel->arrays = accessed_by_domain(expanded, gen->prog);
-  /* Replace the read_grid_and_block_sizes() with defaults. */
-	// kernel->n_grid = n_outer_coincidence(node);
-  kernel->n_grid = 0;
-	node_thread = isl_schedule_node_copy(node);
-	node_thread = gpu_tree_move_down_to_thread(node_thread, kernel->core);
-	node_thread = isl_schedule_node_child(node_thread, 0);
-	// kernel->n_block = n_outer_coincidence(node_thread);
-  kernel->n_block = 0;
-	isl_schedule_node_free(node_thread);
-	kernel->id = gen->kernel_id++;
-	if (read_grid_and_block_sizes(kernel, gen) < 0)
-		node = isl_schedule_node_free(node);
+//   kernel->ctx = gen->ctx;
+//   kernel->prog = gen->prog;
+//   kernel->options = gen->options;
+//   kernel->context = extract_context(node, gen->prog);
+//   kernel->core = isl_union_set_universe(isl_union_set_copy(domain));
+//   contraction = isl_schedule_node_get_subtree_contraction(node);
+//   kernel->contraction = isl_union_pw_multi_aff_copy(contraction);
+// //  // debug
+// //  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+// //  isl_printer_print_union_pw_multi_aff(printer, kernel->contraction);
+// //  printf("\n");
+// //  // debug
+//   expanded = isl_union_set_copy(domain);
+//   expanded = isl_union_set_preimage_union_pw_multi_aff(expanded,
+//             contraction);
+//   kernel->expanded_domain = isl_union_set_copy(expanded);
+// //  // debug
+// //  isl_printer_print_union_set(printer, kernel->expanded_domain);
+// //  printf("\n");
+// //  // debug
+//   kernel->arrays = accessed_by_domain(expanded, gen->prog);
+//   /* Replace the read_grid_and_block_sizes() with defaults. */
+// 	// kernel->n_grid = n_outer_coincidence(node);
+//   kernel->n_grid = 0;
+// 	node_thread = isl_schedule_node_copy(node);
+// 	node_thread = gpu_tree_move_down_to_thread(node_thread, kernel->core);
+// 	node_thread = isl_schedule_node_child(node_thread, 0);
+// 	// kernel->n_block = n_outer_coincidence(node_thread);
+//   kernel->n_block = 0;
+// 	isl_schedule_node_free(node_thread);
+// 	kernel->id = gen->kernel_id++;
+// 	if (read_grid_and_block_sizes(kernel, gen) < 0)
+// 		node = isl_schedule_node_free(node);
  
-  /* Compute writes that require synchornization. */
-  kernel->sync_writes = compute_sync_writes(kernel, node);
+//   /* Compute writes that require synchornization. */
+//   kernel->sync_writes = compute_sync_writes(kernel, node);
 
-  /* Host schedule. */
-  host_schedule = isl_schedule_node_get_prefix_schedule_union_map(node);
-  host_domain = isl_set_from_union_set(isl_union_map_range(host_schedule));
-  /* Avoid the kernel to be called at multiple places. */
-  node = atomic_ancestors(node);
-  /* Insert the kernel marker. */
-  id = isl_id_alloc(gen->ctx, "kernel", kernel);
-  id = isl_id_set_free_user(id, &ppcg_kernel_free_wrap);
-  node = isl_schedule_node_insert_mark(node, isl_id_copy(id));
-  /* Group the statements under the kernel space. */
-  if (!single_statement)
-    node = group_statements(node, kernel->id);
+//   /* Host schedule. */
+//   host_schedule = isl_schedule_node_get_prefix_schedule_union_map(node);
+//   host_domain = isl_set_from_union_set(isl_union_map_range(host_schedule));
+//   /* Avoid the kernel to be called at multiple places. */
+//   node = atomic_ancestors(node);
+//   /* Insert the kernel marker. */
+//   id = isl_id_alloc(gen->ctx, "kernel", kernel);
+//   id = isl_id_set_free_user(id, &ppcg_kernel_free_wrap);
+//   node = isl_schedule_node_insert_mark(node, isl_id_copy(id));
+//   /* Group the statements under the kernel space. */
+//   if (!single_statement)
+//     node = group_statements(node, kernel->id);
 
-  node = isl_schedule_node_child(node, 0);
-  /* Block filter. */
-	// node = split_band(node, kernel->n_grid);
-	kernel->block_ids = ppcg_scop_generate_names(gen->prog->scop,
-						kernel->n_grid, "b");
-	kernel->block_filter = set_schedule_modulo(node, kernel->block_ids,      
-						kernel->grid_dim);
-	kernel->grid_size = extract_grid_size(kernel,
-						isl_union_set_copy(domain));
-	if (!kernel->options->wrap)
-		node = snap_band_to_sizes(node, kernel->grid_dim,
-						kernel->options);
-	//if (scale)
-	//	node = scale_band(node, isl_multi_val_copy(sizes));
-	node = isl_schedule_node_parent(node);
-	if (!single_statement)
-		node = isl_schedule_node_parent(node);
-	node = insert_guard(node, kernel->context, kernel->grid_size,
-				gen->prog->scop);
-  /* Thread filter. */
-	node = gpu_tree_move_down_to_thread(node, kernel->core);
-	node = isl_schedule_node_child(node, 0);
-	// node = split_band(node, kernel->n_block);
-	kernel->thread_ids = ppcg_scop_generate_names(gen->prog->scop,
-						kernel->n_block, "t");
-	kernel->thread_filter = set_schedule_modulo(node, kernel->thread_ids,
-						kernel->block_dim);
-	if (extract_block_size(kernel, domain) < 0)
-		node = isl_schedule_node_free(node);
+//   node = isl_schedule_node_child(node, 0);
+//   /* Block filter. */
+// 	// node = split_band(node, kernel->n_grid);
+// 	kernel->block_ids = ppcg_scop_generate_names(gen->prog->scop,
+// 						kernel->n_grid, "b");
+// 	kernel->block_filter = set_schedule_modulo(node, kernel->block_ids,      
+// 						kernel->grid_dim);
+// 	kernel->grid_size = extract_grid_size(kernel,
+// 						isl_union_set_copy(domain));
+// 	if (!kernel->options->wrap)
+// 		node = snap_band_to_sizes(node, kernel->grid_dim,
+// 						kernel->options);
+// 	//if (scale)
+// 	//	node = scale_band(node, isl_multi_val_copy(sizes));
+// 	node = isl_schedule_node_parent(node);
+// 	if (!single_statement)
+// 		node = isl_schedule_node_parent(node);
+// 	node = insert_guard(node, kernel->context, kernel->grid_size,
+// 				gen->prog->scop);
+//   /* Thread filter. */
+// 	node = gpu_tree_move_down_to_thread(node, kernel->core);
+// 	node = isl_schedule_node_child(node, 0);
+// 	// node = split_band(node, kernel->n_block);
+// 	kernel->thread_ids = ppcg_scop_generate_names(gen->prog->scop,
+// 						kernel->n_block, "t");
+// 	kernel->thread_filter = set_schedule_modulo(node, kernel->thread_ids,
+// 						kernel->block_dim);
+// 	if (extract_block_size(kernel, domain) < 0)
+// 		node = isl_schedule_node_free(node);
 
-  /* Insert block filters. */
-  node = gpu_tree_move_up_to_kernel(node);
-  node = isl_schedule_node_child(node, 0);
-  // node = insert_context(kernel, node);
-  //node = isl_schedule_node_child(node, 0);
-  //node = isl_schedule_node_insert_filter(node,
-  //    isl_union_set_copy(kernel->block_filter));
+//   /* Insert block filters. */
+//   node = gpu_tree_move_up_to_kernel(node);
+//   node = isl_schedule_node_child(node, 0);
+//   // node = insert_context(kernel, node);
+//   //node = isl_schedule_node_child(node, 0);
+//   //node = isl_schedule_node_insert_filter(node,
+//   //    isl_union_set_copy(kernel->block_filter));
 
-  node = gpu_tree_move_up_to_kernel(node);
+//   node = gpu_tree_move_up_to_kernel(node);
 
-  // debug
-//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-//  isl_printer_print_schedule_node(printer, node);
-//  printf("\n");
-//  // debug
+//   // debug
+// //  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+// //  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+// //  isl_printer_print_schedule_node(printer, node);
+// //  printf("\n");
+// //  // debug
 
-  /* Calculate the group references. */
-  if (gpu_group_references(kernel, node) < 0) 
-    node = isl_schedule_node_free(node);
-  localize_bounds(kernel, host_domain); 
-  isl_set_free(host_domain);
+//   /* Calculate the group references. */
+//   if (gpu_group_references(kernel, node) < 0) 
+//     node = isl_schedule_node_free(node);
+//   localize_bounds(kernel, host_domain); 
+//   isl_set_free(host_domain);
 
-  check_shared_memory_bound(kernel); 
-  mark_global_arrays(kernel); 
-  compute_group_tilings(kernel); 
+//   check_shared_memory_bound(kernel); 
+//   mark_global_arrays(kernel); 
+//   compute_group_tilings(kernel); 
 
-  /* Insert thread filters. */
-  node = gpu_tree_move_down_to_thread(node, kernel->core);
-  node = isl_schedule_node_child(node, 0);
-  if (!kernel->options->wrap)
-    node = snap_band_to_sizes(node, kernel->block_dim,
-        kernel->options);
-  //node = isl_schedule_node_insert_filter(node,
-  //    isl_union_set_copy(kernel->thread_filter));
-  if (kernel_requires_unroll(kernel)) {
-    node = isl_schedule_node_child(node, 0);
-    node = unroll(node);
-  }
+//   /* Insert thread filters. */
+//   node = gpu_tree_move_down_to_thread(node, kernel->core);
+//   node = isl_schedule_node_child(node, 0);
+//   if (!kernel->options->wrap)
+//     node = snap_band_to_sizes(node, kernel->block_dim,
+//         kernel->options);
+//   //node = isl_schedule_node_insert_filter(node,
+//   //    isl_union_set_copy(kernel->thread_filter));
+//   if (kernel_requires_unroll(kernel)) {
+//     node = isl_schedule_node_child(node, 0);
+//     node = unroll(node);
+//   }
 
-  node = gpu_tree_move_up_to_thread(node);
-  kernel->copy_schedule_dim = isl_schedule_node_get_schedule_depth(node);
-  kernel->copy_schedule = 
-    isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(node);
-  contraction = isl_union_pw_multi_aff_copy(kernel->contraction);
-  kernel->copy_schedule =
-    isl_union_pw_multi_aff_pullback_union_pw_multi_aff(
-              kernel->copy_schedule, contraction);
-  // debug
-//  isl_printer_print_union_pw_multi_aff(printer, kernel->copy_schedule);
-//  printf("\n");
-  // debug
+//   node = gpu_tree_move_up_to_thread(node);
+//   kernel->copy_schedule_dim = isl_schedule_node_get_schedule_depth(node);
+//   kernel->copy_schedule = 
+//     isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(node);
+//   contraction = isl_union_pw_multi_aff_copy(kernel->contraction);
+//   kernel->copy_schedule =
+//     isl_union_pw_multi_aff_pullback_union_pw_multi_aff(
+//               kernel->copy_schedule, contraction);
+//   // debug
+// //  isl_printer_print_union_pw_multi_aff(printer, kernel->copy_schedule);
+// //  printf("\n");
+//   // debug
 
-  node = gpu_tree_move_up_to_kernel(node);
+//   node = gpu_tree_move_up_to_kernel(node);
 
-  /* Add copy in/out stmts. */
-  node = add_sync(kernel, node);
-  node = add_copies(kernel, node); 
+//   /* Add copy in/out stmts. */
+//   node = add_sync(kernel, node);
+//   node = add_copies(kernel, node); 
 
-  node = gpu_tree_move_down_to_shared(node, kernel->core);
-  node = isl_schedule_node_delete(node);
+//   node = gpu_tree_move_down_to_shared(node, kernel->core);
+//   node = isl_schedule_node_delete(node);
 
-  node = gpu_tree_move_down_to_thread(node, kernel->core);
-  node = isl_schedule_node_delete(node);
+//   node = gpu_tree_move_down_to_thread(node, kernel->core);
+//   node = isl_schedule_node_delete(node);
 
-  node = gpu_tree_move_up_to_kernel(node);
-  /* Update the local array variables. */
-  if (create_kernel_vars(kernel) < 0) 
-    node = isl_schedule_node_free(node);
+//   node = gpu_tree_move_up_to_kernel(node);
+//   /* Update the local array variables. */
+//   if (create_kernel_vars(kernel) < 0) 
+//     node = isl_schedule_node_free(node);
 
-  if (!single_statement)
-    node = isl_schedule_node_parent(node);
-  node = isl_schedule_node_parent(node);
+//   if (!single_statement)
+//     node = isl_schedule_node_parent(node);
+//   node = isl_schedule_node_parent(node);
 
-  /* Space-time Transformation */
+//   /* Space-time Transformation */
 
-  /* Latency Hiding */
+//   /* Latency Hiding */
 
-  /* SIMD Vectorization */
+//   /* SIMD Vectorization */
 
-  /* Array Partitioning */
+//   /* Array Partitioning */
 
-  /* Data Transfer Optimization */
+//   /* Data Transfer Optimization */
 
 
-  isl_id_free(id);
-  if (!id)
-    ppcg_kernel_free(kernel);
+//   isl_id_free(id);
+//   if (!id)
+//     ppcg_kernel_free(kernel);
 
-  return node;
-}
+//   return node;
+// }
 
-/* If "node" is the systolizable band that can be mapped to systolic array,
- * then mark the band as such, attaching a polysa_kernel to the mark.
- *
- * Create a kernel representing the domain instances that reach "node" and
- * insert a mark node pointing to the polysa_kernel before the band node.
- */
-static __isl_give isl_schedule_node *mark_systolizable(
-    __isl_take isl_schedule_node *node, void *user)
-{
-  struct gpu_gen *gen = user;
-  isl_bool is_kernel;
-  int scale;
-  isl_id *id;
-  int tile_len;
-  int *tile_size;
-  isl_multi_val *sizes = NULL;
+// /* If "node" is the systolizable band that can be mapped to systolic array,
+//  * then mark the band as such, attaching a polysa_kernel to the mark.
+//  *
+//  * Create a kernel representing the domain instances that reach "node" and
+//  * insert a mark node pointing to the polysa_kernel before the band node.
+//  */
+// static __isl_give isl_schedule_node *mark_systolizable(
+//     __isl_take isl_schedule_node *node, void *user)
+// {
+//   struct gpu_gen *gen = user;
+//   isl_bool is_kernel;
+//   int scale;
+//   isl_id *id;
+//   int tile_len;
+//   int *tile_size;
+//   isl_multi_val *sizes = NULL;
 
-//  // debug
-//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-//  isl_printer_print_schedule_node(printer, node);
-//  printf("\n");
-//  // debug
+// //  // debug
+// //  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+// //  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+// //  isl_printer_print_schedule_node(printer, node);
+// //  printf("\n");
+// //  // debug
 
-  is_kernel = is_systolizable(node, gen->prog);
-  if (is_kernel < 0)
-    return isl_schedule_node_free(node);
-  if (!is_kernel)
-    return node;
+//   is_kernel = is_systolizable(node, gen->prog);
+//   if (is_kernel < 0)
+//     return isl_schedule_node_free(node);
+//   if (!is_kernel)
+//     return node;
 
-//	tile_len = isl_schedule_node_band_n_member(node);
-//	tile_size = read_tile_sizes(gen, &tile_len);
-//	if (!tile_size)
-//		return isl_schedule_node_free(node);
-//	if (tile_len < isl_schedule_node_band_n_member(node))
-//		node = isl_schedule_node_band_split(node, tile_len);
-//	sizes = construct_band_tiles_sizes(node, tile_size);
-//	node = tile_band(node, isl_multi_val_copy(sizes));
-// 
-//	node = isl_schedule_node_child(node, 0);
-//	if (gen->options->unroll_gpu_tile)
-//		node = ppcg_set_schedule_node_type(node, isl_ast_loop_unroll);
+// //	tile_len = isl_schedule_node_band_n_member(node);
+// //	tile_size = read_tile_sizes(gen, &tile_len);
+// //	if (!tile_size)
+// //		return isl_schedule_node_free(node);
+// //	if (tile_len < isl_schedule_node_band_n_member(node))
+// //		node = isl_schedule_node_band_split(node, tile_len);
+// //	sizes = construct_band_tiles_sizes(node, tile_size);
+// //	node = tile_band(node, isl_multi_val_copy(sizes));
+// // 
+// //	node = isl_schedule_node_child(node, 0);
+// //	if (gen->options->unroll_gpu_tile)
+// //		node = ppcg_set_schedule_node_type(node, isl_ast_loop_unroll);
 
-  node = insert_empty_permutable_band(node);
+//   node = insert_empty_permutable_band(node);
 
-  id = isl_id_alloc(gen->ctx, "thread", NULL);
-	node = isl_schedule_node_insert_mark(node, id);
+//   id = isl_id_alloc(gen->ctx, "thread", NULL);
+// 	node = isl_schedule_node_insert_mark(node, id);
 
-//  node = insert_empty_permutable_band(node);
+// //  node = insert_empty_permutable_band(node);
 
-	node = isl_schedule_node_parent(node);
+// 	node = isl_schedule_node_parent(node);
 
-  // debug
-//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-//  isl_printer_print_schedule_node(printer, node);
-//  printf("\n");
-  // debug
+//   // debug
+// //  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+// //  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+// //  isl_printer_print_schedule_node(printer, node);
+// //  printf("\n");
+//   // debug
 
-	scale = gen->options->scale_tile_loops;
-	node = polysa_create_kernel(gen, node, scale, sizes);
+// 	scale = gen->options->scale_tile_loops;
+// 	node = polysa_create_kernel(gen, node, scale, sizes);
 
-  node = isl_schedule_node_child(node, 0);
-  // debug
-//  node = isl_schedule_node_child(node, 0);
-//  node = isl_schedule_node_child(node, 0);
-//  node = isl_schedule_node_child(node, 0);
-//  node = isl_schedule_node_child(node, 0);
+//   node = isl_schedule_node_child(node, 0);
+//   // debug
+// //  node = isl_schedule_node_child(node, 0);
+// //  node = isl_schedule_node_child(node, 0);
+// //  node = isl_schedule_node_child(node, 0);
+// //  node = isl_schedule_node_child(node, 0);
 
-//  isl_printer_print_schedule_node(printer, node);
-//  printf("\n");
-//  isl_printer_free(printer);
-//
-//  enum isl_schedule_node_type type = isl_schedule_node_get_type(node);
-//  switch(type) {
-//    case isl_schedule_node_band: 
-//      printf("band");
-//      break;
-//    case isl_schedule_node_context:
-//      printf("context");
-//      break;
-//    case isl_schedule_node_domain:
-//      printf("domain");
-//      break;
-//    case isl_schedule_node_expansion:
-//      printf("expansion");
-//      break;
-//    case isl_schedule_node_extension:
-//      printf("extension");
-//      break;
-//    case isl_schedule_node_filter:
-//      printf("filter");
-//      break;
-//    case isl_schedule_node_guard:
-//      printf("guard");
-//      break;
-//    case isl_schedule_node_leaf:
-//      printf("leaf");
-//      break;
-//    case isl_schedule_node_mark:
-//      printf("mark");
-//      break;
-//    case isl_schedule_node_sequence:
-//      printf("sequence");
-//      break;
-//    case isl_schedule_node_set:
-//      printf("set");
-//      break;
-//  }
-//  printf("\n");
-//  isl_printer_free(printer);
-//  // debug
+// //  isl_printer_print_schedule_node(printer, node);
+// //  printf("\n");
+// //  isl_printer_free(printer);
+// //
+// //  enum isl_schedule_node_type type = isl_schedule_node_get_type(node);
+// //  switch(type) {
+// //    case isl_schedule_node_band: 
+// //      printf("band");
+// //      break;
+// //    case isl_schedule_node_context:
+// //      printf("context");
+// //      break;
+// //    case isl_schedule_node_domain:
+// //      printf("domain");
+// //      break;
+// //    case isl_schedule_node_expansion:
+// //      printf("expansion");
+// //      break;
+// //    case isl_schedule_node_extension:
+// //      printf("extension");
+// //      break;
+// //    case isl_schedule_node_filter:
+// //      printf("filter");
+// //      break;
+// //    case isl_schedule_node_guard:
+// //      printf("guard");
+// //      break;
+// //    case isl_schedule_node_leaf:
+// //      printf("leaf");
+// //      break;
+// //    case isl_schedule_node_mark:
+// //      printf("mark");
+// //      break;
+// //    case isl_schedule_node_sequence:
+// //      printf("sequence");
+// //      break;
+// //    case isl_schedule_node_set:
+// //      printf("set");
+// //      break;
+// //  }
+// //  printf("\n");
+// //  isl_printer_free(printer);
+// //  // debug
 
-//	isl_multi_val_free(sizes);
-//	free(tile_size);
+// //	isl_multi_val_free(sizes);
+// //	free(tile_size);
 
-  return node;
-}
+//   return node;
+// }
 
-/* Insert "kernel" marks that points to a polysa_kernel structure 
- * in front of all systolizable band.
- */
-static __isl_give isl_schedule_node *polysa_mark_kernels(struct gpu_gen *gen,
-    __isl_take isl_schedule_node *node)
-{
-  return isl_schedule_node_map_descendant_bottom_up(node,
-      &mark_systolizable, gen);
-}
+// /* Insert "kernel" marks that points to a polysa_kernel structure 
+//  * in front of all systolizable band.
+//  */
+// static __isl_give isl_schedule_node *polysa_mark_kernels(struct gpu_gen *gen,
+//     __isl_take isl_schedule_node *node)
+// {
+//   return isl_schedule_node_map_descendant_bottom_up(node,
+//       &mark_systolizable, gen);
+// }
 
-/*
- * Update "schedule" for mapping to systolic array.
- *
- * In particular, insert a context node, create kernels for 
- * each systolizable band and introduce nodes for copying arrays
- * in and out of the device and for initializing and clearing the device.
- * If the child of the intial root points to a set node,
- * then children of this node that do not contain any systolizable bands 
- * are separated from the other children and are not mapped to 
- * the device.
- *
- * The systolic array code is generated in a context where at least one 
- * statement instance is executed. The corresponding guard is inserted 
- * around the entire schedule.
- */
-__isl_give isl_schedule *polysa_map_to_device(struct gpu_gen *gen,
-    __isl_take isl_schedule *schedule)
-{
-  isl_set *context;
-  isl_set *guard;
-  isl_union_set *domain;
-  isl_union_map *prefix;
-  isl_schedule_node *node;
-  isl_union_pw_multi_aff *contraction;
-  struct gpu_prog *prog;
+// /*
+//  * Update "schedule" for mapping to systolic array.
+//  *
+//  * In particular, insert a context node, create kernels for 
+//  * each systolizable band and introduce nodes for copying arrays
+//  * in and out of the device and for initializing and clearing the device.
+//  * If the child of the intial root points to a set node,
+//  * then children of this node that do not contain any systolizable bands 
+//  * are separated from the other children and are not mapped to 
+//  * the device.
+//  *
+//  * The systolic array code is generated in a context where at least one 
+//  * statement instance is executed. The corresponding guard is inserted 
+//  * around the entire schedule.
+//  */
+// __isl_give isl_schedule *polysa_map_to_device(struct gpu_gen *gen,
+//     __isl_take isl_schedule *schedule)
+// {
+//   isl_set *context;
+//   isl_set *guard;
+//   isl_union_set *domain;
+//   isl_union_map *prefix;
+//   isl_schedule_node *node;
+//   isl_union_pw_multi_aff *contraction;
+//   struct gpu_prog *prog;
 
-  context = isl_set_copy(gen->prog->context);
-  context = isl_set_from_params(context);
-  schedule = isl_schedule_insert_context(schedule, context);
+//   context = isl_set_copy(gen->prog->context);
+//   context = isl_set_from_params(context);
+//   schedule = isl_schedule_insert_context(schedule, context);
 
-  prog = gen->prog;
-  guard = isl_union_set_params(isl_union_set_copy(prog->scop->domain));
-  prog->context = isl_set_intersect(prog->context, isl_set_copy(guard));
-  guard = isl_set_from_params(guard);
+//   prog = gen->prog;
+//   guard = isl_union_set_params(isl_union_set_copy(prog->scop->domain));
+//   prog->context = isl_set_intersect(prog->context, isl_set_copy(guard));
+//   guard = isl_set_from_params(guard);
 
-  node = isl_schedule_get_root(schedule);
-  isl_schedule_free(schedule);
-  node = isl_schedule_node_child(node, 0);
-  node = isl_schedule_node_child(node, 0);
-//  // debug
-//  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
-//  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-//  isl_printer_print_schedule_node(printer, node);
-//  printf("\n");
-////  isl_printer_free(printer);
-//  // debug
+//   node = isl_schedule_get_root(schedule);
+//   isl_schedule_free(schedule);
+//   node = isl_schedule_node_child(node, 0);
+//   node = isl_schedule_node_child(node, 0);
+// //  // debug
+// //  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
+// //  isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
+// //  isl_printer_print_schedule_node(printer, node);
+// //  printf("\n");
+// ////  isl_printer_free(printer);
+// //  // debug
 
-  /* Isolate nodes with non systolizable subtrees and place
-   * them first before nodes with systolizable subtrees. 
-   */
-  node = isolate_systolizable_subtrees(node, gen->prog);
-  domain = isl_schedule_node_get_domain(node);
-  contraction = isl_schedule_node_get_subtree_contraction(node);
-  domain = isl_union_set_preimage_union_pw_multi_aff(domain,
-            isl_union_pw_multi_aff_copy(contraction));
-  prefix = isl_schedule_node_get_prefix_schedule_union_map(node);
-  prefix = isl_union_map_preimage_domain_union_pw_multi_aff(prefix,
-            contraction);
+//   /* Isolate nodes with non systolizable subtrees and place
+//    * them first before nodes with systolizable subtrees. 
+//    */
+//   node = isolate_systolizable_subtrees(node, gen->prog);
+//   domain = isl_schedule_node_get_domain(node);
+//   contraction = isl_schedule_node_get_subtree_contraction(node);
+//   domain = isl_union_set_preimage_union_pw_multi_aff(domain,
+//             isl_union_pw_multi_aff_copy(contraction));
+//   prefix = isl_schedule_node_get_prefix_schedule_union_map(node);
+//   prefix = isl_union_map_preimage_domain_union_pw_multi_aff(prefix,
+//             contraction);
 
-  node = polysa_mark_kernels(gen, node); // TODO
-  /* Add copy-in/out of outer arrays from device. */ 
-  node = add_to_from_device(node, domain, prefix, gen->prog);
-//  // debug
-//  isl_printer_print_schedule_node(printer, node);
-//  printf("\n");
-//  isl_printer_free(printer);
-//  // debug
+//   node = polysa_mark_kernels(gen, node); // TODO
+//   /* Add copy-in/out of outer arrays from device. */ 
+//   node = add_to_from_device(node, domain, prefix, gen->prog);
+// //  // debug
+// //  isl_printer_print_schedule_node(printer, node);
+// //  printf("\n");
+// //  isl_printer_free(printer);
+// //  // debug
 
-  node = isl_schedule_node_root(node);
-  node = isl_schedule_node_child(node, 0);
-  node = isl_schedule_node_child(node, 0);
-  node = isl_schedule_node_insert_guard(node, guard);
-  node = isl_schedule_node_child(node, 0);
+//   node = isl_schedule_node_root(node);
+//   node = isl_schedule_node_child(node, 0);
+//   node = isl_schedule_node_child(node, 0);
+//   node = isl_schedule_node_insert_guard(node, guard);
+//   node = isl_schedule_node_child(node, 0);
 
-  node = add_init_clear_device(node); 
-  schedule = isl_schedule_node_get_schedule(node);
-  isl_schedule_node_free(node);
+//   node = add_init_clear_device(node); 
+//   schedule = isl_schedule_node_get_schedule(node);
+//   isl_schedule_node_free(node);
 
-  return schedule;
-}
+//   return schedule;
+// }

@@ -72,7 +72,21 @@ ppcg_SOURCES = \
 	polysa_vsa.c \
 	polysa_vsa.h \
 	polysa_tree.c \
-	polysa_tree.h
+	polysa_tree.h \
+	polysa_group.c \
+	polysa_group.h \
+	polysa_utilities.c \
+	polysa_utilities.h \
+	polysa_array_tile.c \
+	polysa_array_tile.h \
+	polysa_print.c \
+	polysa_print.h \
+	polysa_trans.c \
+	polysa_trans.h \
+	polysa_device.c \
+	polysa_device.h \
+	polysa_codegen.c \
+	polysa_codegen.h
 
 TESTS = @extra_tests@
 EXTRA_TESTS = opencl_test.sh polybench_test.sh

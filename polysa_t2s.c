@@ -22,10 +22,6 @@
 #include "util.h"
 #include "polysa_t2s.h"
 
-struct t2s_stmt {
-  char *content;
-};
-
 static struct t2s_array_ref_group *t2s_array_ref_group_free(
   struct t2s_array_ref_group *group
 ) {
@@ -51,26 +47,6 @@ static struct t2s_group_data *t2s_group_data_free(struct t2s_group_data *d)
   return NULL;
 }
 
-struct polysa_stmt {
-  struct ppcg_stmt *stmt;
-  
-  /* T2S */
-  struct t2s_stmt *t_stmt;
-};
-
-/* Representation of a statement inside a generated AST.
- *
- * "stmt" refers to the original statement.
- * "ref2expr" maps the reference identifier of each access in
- * the statement to an AST expression that should be printed
- * at the place of the access.
- */
-struct ppcg_stmt {
-	struct pet_stmt *stmt;
-
-	isl_id_to_ast_expr *ref2expr;
-};
-
 static void ppcg_stmt_free(void *user)
 {
 	struct ppcg_stmt *stmt = user;
@@ -93,9 +69,9 @@ static void t2s_stmt_free(void *user)
   free(stmt);
 }
 
-static void polysa_stmt_free(void *user)
+static void polysa_t2s_stmt_free(void *user)
 {
-  struct polysa_stmt *p_stmt = user;
+  struct polysa_t2s_stmt *p_stmt = user;
   
   if (!p_stmt)
     return;
@@ -712,7 +688,7 @@ static __isl_give isl_schedule_node *tile(__isl_take isl_schedule_node *node,
 /* Tile "node", if it is a band node with at least 2 members.
  * The tile sizes are set from the "tile_size" option.
  */
-static __isl_give isl_schedule_node *tile_band(
+static __isl_give isl_schedule_node *t2s_tile_band(
 	__isl_take isl_schedule_node *node, void *user)
 {
 	struct ppcg_scop *scop = user;
@@ -851,7 +827,7 @@ static __isl_give isl_schedule *optionally_compute_schedule(void *user)
 /* Compute a schedule based on the dependences in "ps" and
  * tile it if requested by the user.
  */
-static __isl_give isl_schedule *get_schedule(struct ppcg_scop *ps,
+static __isl_give isl_schedule *t2s_get_schedule(struct ppcg_scop *ps,
 	struct ppcg_options *options)
 {
 	isl_ctx *ctx;
@@ -865,7 +841,7 @@ static __isl_give isl_schedule *get_schedule(struct ppcg_scop *ps,
 				    &optionally_compute_schedule, ps);
 	if (ps->options->tile)
 		schedule = isl_schedule_map_schedule_node_bottom_up(schedule,
-							&tile_band, ps);
+							&t2s_tile_band, ps);
 
 	return schedule;
 }
@@ -3766,7 +3742,7 @@ static isl_stat extract_anchor_domain(__isl_keep isl_schedule *schedule, struct 
 
 /* Generate T2S code from schedule. */
 static isl_stat print_t2s_with_schedule(
-    __isl_keep struct polysa_prog *prog,
+    __isl_keep struct polysa_kernel *prog,
     __isl_keep struct ppcg_scop *scop)
 {
   struct t2s_data *data;
@@ -3900,7 +3876,7 @@ static isl_bool t2s_legal_at_node(__isl_keep isl_schedule_node *node, void *user
   }
 }
 
-/* Check if there is only nested permuted band in the program.
+/* Check if there is only nested permutable band in the program.
  */
 static isl_bool t2s_legality_check(__isl_keep isl_schedule *schedule) {
   isl_schedule_node *root = isl_schedule_get_root(schedule);
@@ -3933,7 +3909,7 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
      * original schedule from the program is used. */
     options->reschedule = 0;
   }
-	schedule = get_schedule(scop, options);
+	schedule = t2s_get_schedule(scop, options);
 
 //  // debug
 //  isl_printer *p_debug = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
@@ -3959,7 +3935,7 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
     if (is_legal) {
       /* Generate systolic arrays using space-time mapping. */
       isl_size num_sa = 0;
-      struct polysa_prog **sa_candidates = sa_space_time_transform(schedule, scop, &num_sa);
+      struct polysa_kernel **sa_candidates = sa_space_time_transform(schedule, scop, &num_sa);
       if (num_sa > 0) {
         printf("[PolySA] %d systolic arrays generated.\n", num_sa);
       }
@@ -3967,12 +3943,13 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
       // TODO: All the SA candidates keep the same schedule tree. We need to duplicate them to 
       // seperate the transformation performed on each array.
   
-      /* Pick up one systolic array to preceed based on heuristics. */
-      struct polysa_prog *sa_opt = sa_candidates_smart_pick(sa_candidates, num_sa);
+      /* Pick up one systolic array to proceed based on heuristics. */
+      struct polysa_kernel *sa_opt = sa_candidates_smart_pick(sa_candidates, num_sa);
   
       if (t2s_tile_first_phase) {
+        bool opt_en[3] = {1, 1, 1};
         /* Apply PE optimization. */
-        sa_pe_optimize(sa_opt);
+        sa_pe_optimize(sa_opt, opt_en);
       }
   
   //    // debug
@@ -3992,10 +3969,10 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
       }
 
       schedule = isl_schedule_copy(sa_opt->schedule);  
-      polysa_prog_free(sa_opt);
+      polysa_kernel_free(sa_opt);
     }
   } else {
-    struct polysa_prog *sa = polysa_prog_from_schedule(schedule);
+    struct polysa_kernel *sa = polysa_kernel_from_schedule(schedule);
     sa->scop = scop;
     // TODO: sa->type
     // TODO: sa->array_dim
@@ -4005,7 +3982,7 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
 
     print_t2s_with_schedule(sa, scop);
     schedule = isl_schedule_copy(sa->schedule);
-    polysa_prog_free(sa);
+    polysa_kernel_free(sa);
   }
 
   /* Generate the transformed CPU program. */

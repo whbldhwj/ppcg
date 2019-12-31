@@ -1,0 +1,12 @@
+#include "cuda.h"
+
+__global__ void kernel0(int *best_gap_v_ext);
+__global__ void kernel1(char *alt, char *alt_ext);
+__global__ void kernel2(int *gap_size_v_ext);
+__global__ void kernel3(char *ref, char *ref_ext);
+__global__ void kernel4(char *alt_ext);
+__global__ void kernel5(char *ref_ext);
+__global__ void kernel6(char *alt_ext, char *ref_ext, int *sim_score_ext, int *step_diag_ext);
+__global__ void kernel7(int *best_gap_h_ext);
+__global__ void kernel8(int *gap_size_h_ext);
+__global__ void kernel9(int *H, int *H_ext, int *best_gap_h_ext, int *best_gap_v_ext, int *bt, int *gap_size_h_ext, int *gap_size_v_ext, int *sim_score_ext, int *step_diag_ext, int c0);

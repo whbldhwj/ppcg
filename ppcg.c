@@ -1565,9 +1565,8 @@ int main(int argc, char **argv)
   else if (options->ppcg->target == POLYSA_TARGET_T2S)
     r = generate_polysa_t2s(ctx, options->ppcg, options->input,
         options->output);
-//  else if (options->ppcg->target == POLYSA_TARGET_XILINX_HLS)
-//    r = generate_polysa_xilinx_hls(ctx, options->ppcg, options->input,
-//        options->output);
+	else if (options->ppcg->target == POLYSA_TARGET_XILINX_HLS)
+    r = generate_polysa_xilinx_hls(ctx, options->ppcg, options->input);
 //  else if (options->ppcg->target == POLYSA_TARGET_INTEL_OPENCL)
 //    r = generate_polysa_intel_opencl(ctx, options->ppcg, options->input,
 //        options->output);

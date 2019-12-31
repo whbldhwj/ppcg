@@ -1,15 +1,45 @@
 #include "polysa_common.h"
 
-struct polysa_node_band_prop {
-  int permutable;
-  int *coincident;
-  enum polysa_loop_type *pe_opt;
-  enum polysa_loop_type *space_time;
-  int n_member;
-  isl_multi_union_pw_aff *mupa;
-};
+/********************************************************************
+ * Band node related functions
+ ********************************************************************/
+static __isl_give isl_multi_val *multi_val_from_int_list(
+  __isl_take isl_space *space, int *list)
+{
+  int i, n;
+  isl_ctx *ctx;
+  isl_multi_val *mv;
 
-static struct polysa_node_band_prop *extract_node_band_prop(__isl_keep isl_schedule_node *node){
+  if (!space) 
+    return NULL;
+
+  ctx = isl_space_get_ctx(space);
+  n = isl_space_dim(space, isl_dim_set);
+  mv = isl_multi_val_zero(space);
+  for (i = 0; i < n; ++i) {
+    isl_val *v;
+
+    v = isl_val_int_from_si(ctx, list[i]);
+    mv = isl_multi_val_set_val(mv, i, v);
+  }
+
+  return mv;
+}
+
+__isl_give isl_multi_val *construct_band_tile_sizes(
+  __isl_keep isl_schedule_node *node, int *tile_size)
+{
+  isl_space *space;
+
+  if (!node)
+    return NULL;
+
+  space = isl_schedule_node_band_get_space(node);
+  return multi_val_from_int_list(space, tile_size);
+}
+
+struct polysa_node_band_prop *extract_node_band_prop(__isl_keep isl_schedule_node *node)
+{
   struct polysa_node_band_prop *prop = isl_calloc_type(isl_schedule_node_get_ctx(node), 
       struct polysa_node_band_prop);
   prop->mupa = isl_schedule_node_band_get_partial_schedule(node);
@@ -31,7 +61,7 @@ static struct polysa_node_band_prop *extract_node_band_prop(__isl_keep isl_sched
   return prop;
 }
 
-static struct polysa_node_band_prop *polysa_node_band_prop_free(__isl_take struct polysa_node_band_prop *prop)
+struct polysa_node_band_prop *polysa_node_band_prop_free(__isl_take struct polysa_node_band_prop *prop)
 {
   isl_multi_union_pw_aff_free(prop->mupa);
   free(prop->coincident);
@@ -43,76 +73,8 @@ static struct polysa_node_band_prop *polysa_node_band_prop_free(__isl_take struc
   return NULL;
 }
 
-static isl_stat concat_basic_map(__isl_take isl_map *el, void *user) 
-{
-  isl_basic_map_list **bmap_list = (isl_basic_map_list **)(user);
-  isl_basic_map_list *bmap_list_sub = isl_map_get_basic_map_list(el);
-  if (!(*bmap_list)) {
-    *bmap_list = bmap_list_sub;
-  } else {
-    *bmap_list = isl_basic_map_list_concat(*bmap_list, bmap_list_sub);
-  }
-
-  isl_map_free(el);
-  return isl_stat_ok;
-}
-
-__isl_give isl_basic_map_list *isl_union_map_get_basic_map_list(__isl_keep isl_union_map *umap)
-{
-  isl_map_list *map_list = isl_union_map_get_map_list(umap);
-  isl_basic_map_list *bmap_list = NULL;
-  isl_map_list_foreach(map_list, &concat_basic_map, &bmap_list);
-
-  isl_map_list_free(map_list);
-  return bmap_list;
-}
-
-static isl_stat acc_n_basic_map(__isl_take isl_map *el, void *user)
-{
-  isl_size *n = (isl_size *)(user);
-  isl_basic_map_list *bmap_list = isl_map_get_basic_map_list(el);
-  *n = *n + isl_basic_map_list_n_basic_map(bmap_list);
-
-//  // debug
-//  isl_printer *printer = isl_printer_to_file(isl_map_get_ctx(el), stdout);
-//  isl_printer_print_map(printer, el);
-//  printf("\n");  
-//  printf("%d\n", *n);
-//  // debug
-
-  isl_map_free(el);
-  isl_basic_map_list_free(bmap_list);
-  return isl_stat_ok;
-}
-
-isl_size isl_union_map_n_basic_map(__isl_keep isl_union_map *umap)
-{
-  isl_size n = 0;
-  isl_map_list *map_list = isl_union_map_get_map_list(umap);
-  isl_map_list_foreach(map_list, &acc_n_basic_map, &n);
-
-  isl_map_list_free(map_list);
-
-  return n;
-}
-
-__isl_give isl_basic_map *isl_basic_map_from_map(__isl_take isl_map *map)
-{
-  if (!map)
-    return NULL;
-
-  assert(isl_map_n_basic_map(map) == 1);
-  isl_basic_map_list *bmap_list = isl_map_get_basic_map_list(map);
-  isl_map_free(map);
-
-  isl_basic_map *bmap = isl_basic_map_list_get_basic_map(bmap_list, 0);
-  isl_basic_map_list_free(bmap_list);
-
-  return bmap;
-}
-
 /* Examines if the node is a permutable band node. */
-static isl_bool is_permutable_node(__isl_keep isl_schedule_node *node) 
+isl_bool is_permutable_node(__isl_keep isl_schedule_node *node) 
 {
   if (!node)
     return isl_bool_error;
@@ -131,7 +93,7 @@ static isl_bool is_permutable_node(__isl_keep isl_schedule_node *node)
  * since the schedule tree is visited top-down,
  * return such a node immediately.
  */
-isl_bool is_outermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)
+static isl_bool is_outermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)
 {
   isl_schedule_node **t_node = (isl_schedule_node **)(user);
   if (!node)
@@ -147,7 +109,7 @@ isl_bool is_outermost_permutable_node_update(__isl_keep isl_schedule_node *node,
   return isl_bool_true;
 }
 
-static isl_bool no_permutable_node(isl_schedule_node *node, void *user)
+isl_bool no_permutable_node(isl_schedule_node *node, void *user)
 {
   if (isl_schedule_node_get_type(node) == isl_schedule_node_band)
     return isl_bool_false;
@@ -159,7 +121,7 @@ static isl_bool no_permutable_node(isl_schedule_node *node, void *user)
  * since the schedule tree is visited bottom-up,
  * return the node immediately.
  */
-isl_bool is_innermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)
+static isl_bool is_innermost_permutable_node_update(__isl_keep isl_schedule_node *node, void *user)
 {
   isl_schedule_node **t_node = (isl_schedule_node **)(user);
   if (!node)
@@ -183,7 +145,7 @@ isl_bool is_innermost_permutable_node_update(__isl_keep isl_schedule_node *node,
 /* Examines if the node is a permutable band node. If so, 
  * increase the number of permutable node.
  */
-isl_bool is_permutable_node_cnt(__isl_keep isl_schedule_node *node, void *user) {
+static isl_bool is_permutable_node_cnt(__isl_keep isl_schedule_node *node, void *user) {
   isl_val *n_permutable_node = (isl_val *)(user);
   if (!node)
     return isl_bool_error;
@@ -325,19 +287,6 @@ isl_bool is_dep_uniform_at_node(__isl_keep isl_schedule_node *node, void *user)
   return is_uniform;
 }
 
-void print_mat(FILE *fp, __isl_keep isl_mat *mat) 
-{
-  isl_printer *printer = isl_printer_to_file(isl_mat_get_ctx(mat), fp);
-  for (int i = 0; i < isl_mat_rows(mat); i++) {
-    for (int j = 0; j < isl_mat_cols(mat); j++) {
-      isl_printer_print_val(printer, isl_mat_get_element_val(mat, i, j));
-      fprintf(fp, " ");
-    }
-    fprintf(fp, "\n");
-  }
-  isl_printer_free(printer);
-}
-
 /* Apply the schedule on the dependence and check if every dimension is a constant. 
  * Dep in the form of S1[]->S2[].
  */
@@ -468,35 +417,6 @@ isl_bool uniform_dep_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
   isl_bool all_rar_dep_uniform = isl_union_map_every_map(dep_rar, &is_dep_uniform_wrap, schedule);
   if (all_rar_dep_uniform != isl_bool_true)
     return isl_bool_false;  
-
-  return isl_bool_true;
-}
-
-/* A program is legal to be transformed to systolic array if and on if 
- * it satisfies the following constraints:
- * - one single fully permutable outermost band
- * - uniform dependency
- */
-isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop) {
-  /* Check if the root node point to a band node */
-  isl_bool single_p_band;
-  isl_schedule_node *node = isl_schedule_get_root(schedule);
-  node = isl_schedule_node_child(node, 0);
-  enum isl_schedule_node_type type;
-  type = isl_schedule_node_get_type(node);
-  single_p_band = (type == isl_schedule_node_band);
-  isl_schedule_node_free(node);
-  if (!single_p_band) {
-    printf("[PolySA] Single outermost permutable band not found.\n");
-    return isl_bool_false;
-  }
-
-  /* Check if all flow and rar dependences are uniform. */
-  isl_bool all_uniform_dep = uniform_dep_check(schedule, scop);
-  if (all_uniform_dep < 1) {
-    printf("[PolySA] Non-uniform dependence detected.\n");
-    return isl_bool_false;
-  }
 
   return isl_bool_true;
 }
@@ -690,184 +610,6 @@ __isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_kee
   return dep_dis;
 }
 
-/* Generate asynchronized systolic arrays with the given dimension. 
- * For async arrays, space loops are placed outside the time loops.
- */
-struct polysa_prog **sa_space_time_transform_at_dim_async(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
-    isl_size dim, isl_size *num_sa) 
-{
-  struct polysa_prog **sas = NULL;  
-
-  /* Select space loop candidates.
-   * Space loops carry dependences with distance less or equal to 1.
-   */
-  isl_schedule_node *band = get_outermost_permutable_node(schedule);
-  isl_size band_w = isl_schedule_node_band_n_member(band);
-  isl_size *is_space_loop = (isl_size *)malloc(band_w * sizeof(isl_size));
-  isl_union_map *dep_flow = scop->dep_flow;
-  isl_union_map *dep_rar = scop->dep_rar;
-  isl_union_map *dep_total = isl_union_map_union(isl_union_map_copy(dep_flow), isl_union_map_copy(dep_rar));
-
-  isl_basic_map_list *deps = isl_union_map_get_basic_map_list(dep_total);
-  isl_size ndeps = isl_union_map_n_basic_map(dep_total);
-
-  for (int h = 0; h < band_w; h++) {
-    int n;
-    for (n = 0; n < ndeps; n++) {
-      isl_basic_map *dep = isl_basic_map_list_get_basic_map(deps, n);
-      isl_vec *dep_dis = get_dep_dis_at_node(dep, band);
-      isl_val *val = isl_vec_get_element_val(dep_dis, h);
-      if (!(isl_val_is_one(val) || isl_val_is_zero(val))) {
-        isl_vec_free(dep_dis);
-        isl_val_free(val);
-        isl_basic_map_free(dep);
-        break;         
-      }
-
-      isl_val_free(val);
-      isl_vec_free(dep_dis);
-      isl_basic_map_free(dep);
-    }
-    is_space_loop[h] = (n == ndeps);
-  }
-
-  /* Perform loop permutation to generate all candidates. */
-//  // debug
-//  for (int i = 0; i < band_w; i++)
-//    printf("%d ", is_space_loop[i]);
-//  printf("\n");
-//  // debug
-  if (dim == 1) {
-    for (int i = 0; i < band_w; i++) {
-      if (is_space_loop[i]) {
-        isl_schedule *new_schedule = isl_schedule_copy(schedule);       
-        /* Make the loop i the outermost loop. */
-        for (int d = i; d > 0; d--) {
-//          // debug
-//          isl_printer *printer = isl_printer_to_file(isl_schedule_get_ctx(new_schedule), stdout);
-//          isl_printer_set_yaml_style(printer, ISL_YAML_STYLE_BLOCK);
-//          isl_printer_print_schedule(printer, new_schedule);
-//          printf("\n");
-//          // debug
-          isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
-          isl_schedule_free(new_schedule);
-          new_schedule = loop_interchange_at_node(band, d, d - 1);
-//          // debug
-//          isl_printer_print_schedule(printer, new_schedule);
-//          printf("\n");
-//          // debug
-        }
-
-        /* Update the hyperplane types. */
-        struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
-        sa->scop = scop;
-        sa->type = POLYSA_SA_TYPE_ASYNC;
-
-        /* Update the array dimension. */
-        sa->array_dim = dim;
-        sa->array_part_w = 0;
-        sa->space_w = dim;
-        sa->time_w = band_w - dim;
-
-        /* Add the new variant into the list. */
-        sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
-        sas[*num_sa] = sa;
-        *num_sa = *num_sa + 1;
-      } 
-    }
-  } else if (dim == 2) {
-    for (int i = 0; i < band_w; i++) {
-      if (is_space_loop[i]) {
-        for (int j = i + 1; j < band_w; j++) {
-          if (is_space_loop[j]) {
-            isl_schedule *new_schedule = isl_schedule_copy(schedule);
-            /* Make the loop i, j the outermost loops. */
-            for (int d = j; d > 0; d--) {
-              isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
-              isl_schedule_free(new_schedule);
-              new_schedule = loop_interchange_at_node(band, d, d - 1);
-            }
-            for (int d = i + 1; d > 0; d--) {
-              isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
-              isl_schedule_free(new_schedule);
-              new_schedule = loop_interchange_at_node(band, d, d - 1);
-            }
-
-            /* Update the hyperplane types. */
-            struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
-            sa->scop = scop;
-            sa->type = POLYSA_SA_TYPE_ASYNC;
-
-            /* Update the array dimension. */
-            sa->array_dim = dim;
-            sa->array_part_w = 0;
-            sa->space_w = dim;
-            sa->time_w = band_w - dim;
-
-            /* Add the new variant into the list. */
-            sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
-            sas[*num_sa] = sa;
-            *num_sa = *num_sa + 1;
-          }
-        }
-      }
-    }
-  } else if (dim == 3) {
-     for (int i = 0; i < band_w; i++) {
-      if (is_space_loop[i]) {
-        for (int j = i + 1; j < band_w; j++) {
-          if (is_space_loop[j]) {
-            for (int k = j + 1; k < band_w; k++) {
-              if (is_space_loop[k]) {
-                isl_schedule *new_schedule = isl_schedule_copy(schedule);
-                /* Make the loop i, j, k the outermost loops. */
-                for (int d = k; d > 0; d--) {
-                  isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
-                  isl_schedule_free(new_schedule);
-                  new_schedule = loop_interchange_at_node(band, d, d - 1);             
-                }
-                for (int d = j + 1; d > 0; d--) {
-                  isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
-                  isl_schedule_free(new_schedule);
-                  new_schedule = loop_interchange_at_node(band, d, d - 1);
-                }
-                for (int d = i + 2; d > 0; d--) {
-                  isl_schedule_node *band = get_outermost_permutable_node(new_schedule);
-                  isl_schedule_free(new_schedule);
-                  new_schedule = loop_interchange_at_node(band, d, d - 1);
-                }
-    
-                /* Update the hyperplane types. */
-                struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
-                sa->scop = scop;
-                sa->type = POLYSA_SA_TYPE_ASYNC;
-
-                /* Update the array dimension. */
-                sa->array_dim = dim;
-                sa->array_part_w = 0;
-                sa->space_w = dim;
-                sa->time_w = band_w - dim;
-    
-                /* Add the new variant into the list. */
-                sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
-                sas[*num_sa] = sa;
-                *num_sa = *num_sa + 1;
-              }
-            }
-          }
-        }
-      }
-    }   
-  }
-
-  isl_basic_map_list_free(deps);
-  isl_union_map_free(dep_total);
-  isl_schedule_node_free(band);
-  free(is_space_loop);
-
-  return sas;
-}
-
 /* Interchange the loop at level1 and level2 in the schedule node and returns the new schedule. */
 __isl_give isl_schedule *loop_interchange_at_node(__isl_take isl_schedule_node *node, isl_size level1, isl_size level2)
 {
@@ -921,179 +663,6 @@ __isl_give isl_schedule *loop_interchange_at_node(__isl_take isl_schedule_node *
   return schedule;
 }
 
-/* Generate syncrhonized systolic arrays with the given dimension.
- * For sync arrays, time loops are placed outside the space loops.
- */
-struct polysa_prog **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop,
-    isl_size dim, isl_size *num_sa)
-{
-  struct polysa_prog **sas = NULL;  
-
-  /* Select space loop candidates.
-   * Space loops carry dependences with distance less or equal to 1.
-   */
-  isl_schedule_node *band = get_innermost_permutable_node(schedule);
-  isl_size band_w = isl_schedule_node_band_n_member(band);
-  isl_size *is_space_loop = (isl_size *)malloc(band_w * sizeof(isl_size));
-  isl_union_map *dep_flow = scop->dep_flow;
-  isl_union_map *dep_rar = scop->dep_rar;
-  isl_union_map *dep_total = isl_union_map_union(isl_union_map_copy(dep_flow), isl_union_map_copy(dep_rar));
-
-  isl_basic_map_list *deps = isl_union_map_get_basic_map_list(dep_total);
-  isl_size ndeps = isl_union_map_n_basic_map(dep_total);
-
-  for (int h = 0; h < band_w; h++) {
-    int n;
-    for (n = 0; n < ndeps; n++) {
-      isl_basic_map *dep = isl_basic_map_list_get_basic_map(deps, n);
-      isl_vec *dep_dis = get_dep_dis_at_node(dep, band);
-      isl_val *val = isl_vec_get_element_val(dep_dis, h);
-      if (!(isl_val_is_one(val) || isl_val_is_zero(val))) {
-        isl_vec_free(dep_dis);
-        isl_val_free(val);
-        isl_basic_map_free(dep);
-        break;         
-      }
-
-      isl_val_free(val);
-      isl_vec_free(dep_dis);
-      isl_basic_map_free(dep);
-    }
-    is_space_loop[h] = (n == ndeps);
-  }
-
-  /* Perform loop permutation to generate all candidates. */
-  if (dim == 1) {
-    for (int i = 0; i < band_w; i++) {
-      if (is_space_loop[i]) {
-        isl_schedule *new_schedule = isl_schedule_copy(schedule);       
-        /* Make the loop i the innermost loop. */
-        for (int d = i; d < band_w - 1; d++) {
-          isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
-          isl_schedule_free(new_schedule);
-          new_schedule = loop_interchange_at_node(band, d, d + 1);
-        }
-
-        /* Update the hyperplane types. */
-        struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
-        sa->scop = scop;
-        sa->type = POLYSA_SA_TYPE_SYNC;
-
-        /* Update the array dimension. */
-        sa->array_dim = dim;
-        sa->array_part_w = 0;
-        sa->space_w = dim;
-        sa->time_w = band_w - dim;
-
-        /* Add the new variant into the list. */
-        sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
-        sas[*num_sa] = sa;
-        *num_sa = *num_sa + 1;
-      } 
-    }
-  } else if (dim == 2) {
-    for (int i = 0; i < band_w; i++) {
-      if (is_space_loop[i]) {
-        for (int j = i + 1; j < band_w; j++) {
-          if (is_space_loop[j]) {
-            isl_schedule *new_schedule = isl_schedule_copy(schedule);
-            /* Make the loop i, j the innermost loops. */
-            for (int d = i; d < band_w - 1; d++) {
-              isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
-              isl_schedule_free(new_schedule);
-              new_schedule = loop_interchange_at_node(band, d, d + 1);
-            }
-            for (int d = j - 1; d < band_w - 1; d++) {
-              isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
-              isl_schedule_free(new_schedule);
-              new_schedule = loop_interchange_at_node(band, d, d + 1);
-            }
-
-            /* Update the hyperplane types. */
-            struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
-            sa->scop = scop;
-            sa->type = POLYSA_SA_TYPE_SYNC;
-
-            /* Update the array dimension. */
-            sa->array_dim = dim;
-            sa->array_part_w = 0;
-            sa->space_w = dim;
-            sa->time_w = band_w - dim;
-
-            /* Add the new variant into the list. */
-            sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
-            sas[*num_sa] = sa;
-            *num_sa = *num_sa + 1;
-          }
-        }
-      }
-    }
-  } else if (dim == 3) {
-     for (int i = 0; i < band_w; i++) {
-      if (is_space_loop[i]) {
-        for (int j = i + 1; j < band_w; j++) {
-          if (is_space_loop[j]) {
-            for (int k = j + 1; k < band_w; k++) {
-              if (is_space_loop[k]) {
-                isl_schedule *new_schedule = isl_schedule_copy(schedule);
-                /* Make the loop i, j, k the innermost loops. */
-                for (int d = i; d < band_w - 1; d++) {
-                  isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
-                  isl_schedule_free(new_schedule);
-                  new_schedule = loop_interchange_at_node(band, d, d + 1);                    
-                }
-                for (int d = j - 1; d < band_w - 1; d++) {
-                  isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
-                  isl_schedule_free(new_schedule);
-                  new_schedule = loop_interchange_at_node(band, d, d + 1);
-                }
-                for (int d = k - 2; d < band_w - 1; d++) {
-                  isl_schedule_node *band = get_innermost_permutable_node(new_schedule);
-                  isl_schedule_free(new_schedule);
-                  new_schedule = loop_interchange_at_node(band, d, d + 1);
-                }
-    
-                /* Update the hyperplane types. */
-                struct polysa_prog *sa = polysa_prog_from_schedule(new_schedule);
-                sa->scop = scop;
-                sa->type = POLYSA_SA_TYPE_SYNC;
-
-                /* Update the array dimension. */
-                sa->array_dim = dim;
-                sa->array_part_w = 0;
-                sa->space_w = dim;
-                sa->time_w = band_w - dim;
-    
-                /* Add the new variant into the list. */
-                sas = (struct polysa_prog **)realloc(sas, (*num_sa + 1) * sizeof(struct polysa_prog *));
-                sas[*num_sa] = sa;
-                *num_sa = *num_sa + 1;
-              }
-            }
-          }
-        }
-      }
-    }   
-  }
-
-  isl_basic_map_list_free(deps);
-  isl_union_map_free(dep_total);
-  isl_schedule_node_free(band);
-  free(is_space_loop);
-
-  return sas;
-}
-
-struct polysa_prog **sa_space_time_transform_at_dim(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop, 
-    isl_size dim, isl_size *num_sa)
-{
-  if (scop->options->sa_type == POLYSA_SA_TYPE_ASYNC) {
-    return sa_space_time_transform_at_dim_async(schedule, scop, dim, num_sa);
-  } else if (scop->options->sa_type == POLYSA_SA_TYPE_SYNC) {
-    return sa_space_time_transform_at_dim_sync(schedule, scop, dim, num_sa);
-  }
-}
-
 /* Extracts the outermost permutable band node from the schedule tree.
  * When there are multiple nodes at the same level, extract the first one.
  */
@@ -1122,364 +691,9 @@ __isl_give isl_schedule_node *get_innermost_permutable_node(__isl_keep isl_sched
   return t_node;
 }
 
-/* Apply space-time transformation to generate different systolic array candidates. */
-struct polysa_prog **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop,
-    isl_size *num_sa) 
-{
-  struct polysa_prog **sa_list = NULL;
-  isl_size n_sa = 0;
-
-  isl_schedule_node *band = get_outermost_permutable_node(schedule);
-  isl_size band_w = isl_schedule_node_band_n_member(band); 
-  /* Explore 1D systolic array */
-  if (scop->options->max_sa_dim >= 1 && band_w >= 1) {
-    printf("[PolySA] Explore 1D systolic array.\n");
-    isl_size n_sa_dim = 0;
-    struct polysa_prog **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 1, &n_sa_dim);
-    printf("[PolySA] %d candidates generated.\n", n_sa_dim);
-    sa_list = (struct polysa_prog **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_prog *));
-    for (int i = 0; i < n_sa_dim; i++) {
-      sa_list[n_sa + i] = sa_dim_list[i];
-    }
-    free(sa_dim_list);
-    n_sa += n_sa_dim;
-  }
-  /* Explore 2D systolic array */
-  if (scop->options->max_sa_dim >= 2 && band_w >= 2) {
-    printf("[PolySA] Explore 2D systolic array.\n");
-    isl_size n_sa_dim = 0;
-    struct polysa_prog **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 2, &n_sa_dim);
-    printf("[PolySA] %d candidates generated.\n", n_sa_dim);
-    sa_list = (struct polysa_prog **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_prog *));
-    for (int i = 0; i < n_sa_dim; i++) {
-      sa_list[n_sa + i] = sa_dim_list[i];
-    }
-    free(sa_dim_list);
-    n_sa += n_sa_dim;
-  }
-  /* Explore 3D systolic array */
-  if (scop->options->max_sa_dim >= 3 && band_w >= 3) {
-    printf("[PolySA] Explore 3D systolic array.\n");
-    isl_size n_sa_dim = 0;
-    struct polysa_prog **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 3, &n_sa_dim);
-    printf("[PolySA] %d candidates generated.\n", n_sa_dim);
-    sa_list = (struct polysa_prog **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_prog *));
-    for (int i = 0; i < n_sa_dim; i++) {
-      sa_list[n_sa + i] = sa_dim_list[i];
-    }
-    free(sa_dim_list);
-    n_sa += n_sa_dim;
-  }
-
-//  // temp
-//  sa_list = (struct polysa_sa **)realloc(sa_list, 1 * sizeof(struct polysa_sa *))  ;
-//  sa_list[0] = isl_schedule_copy(schedule);
-//  n_sa = 1;
-//  // temp
-
-  isl_schedule_free(schedule);
-  isl_schedule_node_free(band);
-  *num_sa = n_sa;
-  return sa_list;
-}
-
-/* Select one systolic array design based on heuristics. */
-struct polysa_prog *sa_candidates_smart_pick(struct polysa_prog **sa_list, __isl_keep isl_size num_sa)
-{
-  assert(num_sa > 0);
-  struct polysa_prog *sa_opt = polysa_prog_copy(sa_list[3]);
-    
-  for (int i = 0; i < num_sa; i++)
-    polysa_prog_free(sa_list[i]);
-  free(sa_list);
-
-  return sa_opt;
-}
-
-/* Initialize the space_time and pe_opt to polysa_loop_default for all band nodes. */
-static __isl_give isl_schedule_node *init_band_node_sa_properties(__isl_take isl_schedule_node *node, void *user) 
-{
-  if (!node)
-    return NULL;
-
-  struct polysa_prog *sa = user;
-
-  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
-    int band_w = isl_schedule_node_band_n_member(node);
-    /* Initialize the SA properties. */
-    for (int i = 0; i < band_w; i++) {
-      node = isl_schedule_node_band_member_set_space_time(node, i, polysa_loop_time);
-      node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_default);
-    }
-  }
-
-  return node;
-}
-
-/* Initialize the fields of time_space and pe_opt for each band node in the schedule tree. */
-isl_stat sa_loop_init(struct polysa_prog *sa)
-{
-  isl_schedule *schedule = sa->schedule;
-  isl_schedule_node *root = isl_schedule_get_root(schedule);
-  root = isl_schedule_node_map_descendant_bottom_up(root, 
-      &init_band_node_sa_properties, sa);
-
-  schedule = isl_schedule_node_get_schedule(root);
-  isl_schedule_node_free(root);
-  isl_schedule_free(sa->schedule);
-  sa->schedule = schedule;
-
-  return isl_stat_ok;
-}
-
-/* Set up the space_time properties. As all the loops are initialized to be the time loop,
- * only the space loops are to be set.
- */
-isl_stat sa_space_time_loop_setup(struct polysa_prog *sa) 
-{
-  isl_schedule_node *node;
-  if (sa->type == POLYSA_SA_TYPE_SYNC) {
-    node = get_innermost_permutable_node(sa->schedule);
-    for (int i = isl_schedule_node_band_n_member(node) - sa->space_w; i < isl_schedule_node_band_n_member(node); i++) {
-      node = isl_schedule_node_band_member_set_space_time(node, i, polysa_loop_space);      
-    }
-  } else if (sa->type == POLYSA_SA_TYPE_ASYNC) {
-    node = get_outermost_permutable_node(sa->schedule);
-    for (int i = 0; i < sa->space_w; i++) {
-      node = isl_schedule_node_band_member_set_space_time(node, i, polysa_loop_space);
-    }
-  }
-
-  isl_schedule *schedule = isl_schedule_node_get_schedule(node);
-  isl_schedule_node_free(node);
-  isl_schedule_free(sa->schedule);
-  sa->schedule = schedule;
-
-  return isl_stat_ok;
-}
-
-static __isl_give isl_union_map *extract_sizes_from_str(isl_ctx *ctx, const char *str)
-{
-  if (!str)
-    return NULL;
-  return isl_union_map_read_from_str(ctx, str);
-}
-
-/* Apply PE optimization including:
- * - latency hiding
- * - SIMD vectorization
- * - array partitioning
- */
-isl_stat sa_pe_optimize(struct polysa_prog *sa)
-{
-  /* Prepartion before starting the optimization. */
-  /* Initialize the polysa_loop_types. */
-  sa_loop_init(sa);
-  /* Set up the space_time properties. */
-  sa_space_time_loop_setup(sa);
-  /* Extract the tile sizes. */
-  sa->sizes = extract_sizes_from_str(sa->ctx, sa->scop->options->sa_sizes);
-  /* Set the kernel id. */
-  sa->kernel_id = 0;
-  /* Set the core */
-  isl_schedule_node *root = isl_schedule_get_root(sa->schedule);
-  isl_union_set *domain = isl_schedule_node_get_domain(root);
-  sa->core = isl_union_set_universe(domain);
-  isl_schedule_node_free(root);
-
-  /* Array partitioning. */
-  sa_array_partitioning_optimize(sa);
-  /* Latency hiding. */
-  sa_latency_hiding_optimize(sa);
-  /* SIMD vectorization. */
-  sa_SIMD_vectorization_optimize(sa);
-}
-
-/* Apply SIMD vectorization. 
- * Go through all the loops, if there is any vectorizable loop (parallel or reduction loop
- * with stride-0/1 access), such a loop will be identified as SIMD loop candidate. We will rank
- * the loops by heuristics and pick up one loop to be tiled. The point loops will be permuated 
- * as the innermost loops to be unrolled.
- */
-isl_stat sa_SIMD_vectorization_optimize(struct polysa_prog *sa)
-{
-  printf("[PolySA] Apply SIMD vectorization.\n");
-  isl_schedule *schedule = sa->schedule; 
-
-  return isl_stat_ok;
-}
-
-/* Internal data structure for extract_size_of_type.
- * "type" specifies the name of the space that we want to extract.
- * "res" is used to store the subset of that space.
- */
-struct polysa_extract_size_data {
-	const char *type;
-	isl_set *res;
-};
-
-/* This function is called for each set in a union_set.
- * If the name of the set matches data->type, we store the
- * set in data->res.
- */
-static isl_stat extract_size_of_type(__isl_take isl_set *size, void *user)
-{
-  struct polysa_extract_size_data *data = user;
-  const char *name;
-
-  name = isl_set_get_tuple_name(size);
-  if (name && !strcmp(name, data->type)) {
-    data->res = size;
-    return isl_stat_error;
-  }
-
-  isl_set_free(size);
-  return isl_stat_ok;
-}
-
-/* Given a union map { kernel[i] -> *[...] },
- * return the range in the space called "type" for the kernel with 
- * sequence number "id".
- */
-static __isl_give isl_set *extract_sa_sizes(__isl_keep isl_union_map *sizes,
-    const char *type, int id)
-{
-  isl_space *space;
-  isl_set *dom;
-  isl_union_set *local_sizes;
-  struct polysa_extract_size_data data = { type, NULL};
-
-  if (!sizes)
-    return NULL;
-
-  space = isl_union_map_get_space(sizes);
-  space = isl_space_set_from_params(space);
-  space = isl_space_add_dims(space, isl_dim_set, 1);
-  space = isl_space_set_tuple_name(space, isl_dim_set, "kernel");
-  dom = isl_set_universe(space);
-  dom = isl_set_fix_si(dom, isl_dim_set, 0, id);
-
-  local_sizes = isl_union_set_apply(isl_union_set_from_set(dom),
-      isl_union_map_copy(sizes));
-  isl_union_set_foreach_set(local_sizes, &extract_size_of_type, &data);
-  isl_union_set_free(local_sizes);
-  return data.res;
-}
-
-/* Given a singleton set, extract the *len elements of the single integer tuple
- * into *sizes. 
- *
- * If the element value is "-1", the loop at the same position is not tiled.
- *  
- * If "set" is NULL, then the "sizes" array is not updated.
- */
-static isl_stat read_sa_sizes_from_set(__isl_take isl_set *set, int *sizes, int *len)
-{
-  int i;
-  int dim;
-
-  if (!set)
-    return isl_stat_ok;
-
-  dim = isl_set_dim(set, isl_dim_set);
-  if (dim < *len)
-    isl_die(isl_set_get_ctx(set), isl_error_invalid, 
-        "fewer sa_sizes than required", return isl_stat_error);
-
-  for (i = 0; i < *len; ++i) {
-    isl_val *v;
-
-    v = isl_set_plain_get_val_if_fixed(set, isl_dim_set, i);
-    if (!v)
-      goto error;
-    sizes[i] = isl_val_get_num_si(v);
-    isl_val_free(v);
-  }
-
-  isl_set_free(set);
-  return isl_stat_ok;
-error:
-  isl_set_free(set);
-  return isl_stat_error;
-}
-
-/* Add the map { kernel[id] -> type[sizes] } to gen->used-sizes 
- * if the option debug->dump_sa_sizes is set.
- */
-static void set_sa_used_sizes(struct polysa_prog *sa, const char *type, int id,
-    int *sizes, int len)
-{
-// TODO
-}
-
-/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
- * defaulting to option->sa_tile_size in each dimension.
- * *tile_len contains the maximum number of tile sizes needed.
- * Update *tile_len to the number of specified tile sizes, if any, and 
- * return a pointer to the tile sizes (or NULL on error).
- * And the effectively used sizes to sa->used_sizes.
- */
-static int *read_array_part_tile_sizes(struct polysa_prog *sa, int *tile_len)
-{
-  int n;
-  int *tile_size;
-  isl_set *size;
-
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
-  if (!tile_size)
-    return NULL;
-  for (n = 0; n < *tile_len; ++n)
-    tile_size[n] = sa->scop->options->sa_tile_size;
-  
-  size = extract_sa_sizes(sa->sizes, "array_part", sa->kernel_id);
-  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
-    goto error;
-  set_sa_used_sizes(sa, "array_part", sa->kernel_id, tile_size, *tile_len);
-
-  return tile_size;
-error:
-  free(tile_size);
-  return NULL;
-}
-
-static __isl_give isl_multi_val *multi_val_from_int_list(
-  __isl_take isl_space *space, int *list)
-{
-  int i, n;
-  isl_ctx *ctx;
-  isl_multi_val *mv;
-
-  if (!space) 
-    return NULL;
-
-  ctx = isl_space_get_ctx(space);
-  n = isl_space_dim(space, isl_dim_set);
-  mv = isl_multi_val_zero(space);
-  for (i = 0; i < n; ++i) {
-    isl_val *v;
-
-    v = isl_val_int_from_si(ctx, list[i]);
-    mv = isl_multi_val_set_val(mv, i, v);
-  }
-
-  return mv;
-}
-
-static __isl_give isl_multi_val *construct_band_tile_sizes(
-  __isl_keep isl_schedule_node *node, int *tile_size)
-{
-  isl_space *space;
-
-  if (!node)
-    return NULL;
-
-  space = isl_schedule_node_band_get_space(node);
-  return multi_val_from_int_list(space, tile_size);
-}
-
 /* Tile "band" with tile size specified by "sizes".
  */
-static __isl_give isl_schedule_node *tile_band(
+__isl_give isl_schedule_node *tile_band(
   __isl_take isl_schedule_node *node, __isl_take isl_multi_val *sizes)
 {
   isl_ctx *ctx = isl_schedule_node_get_ctx(node);
@@ -1538,7 +752,7 @@ __isl_give isl_schedule_node *polysa_tile_band(
 }
 
 /* Reset the pe_opt properties of all the band opts back to default. */
-static __isl_give isl_schedule_node *clear_pe_opt_prop(
+__isl_give isl_schedule_node *clear_pe_opt_prop(
   __isl_take isl_schedule_node *node, void *user)
 {
   if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
@@ -1550,174 +764,10 @@ static __isl_give isl_schedule_node *clear_pe_opt_prop(
   return node;
 }
 
-/* Apply array partitioning.
- * Apply loop tiling on the band that contains the space loops
- * Reorganize the array partitioning loops and place them following the
- * ascending order of the dependence distances. 
- */
-isl_stat sa_array_partitioning_optimize(struct polysa_prog *sa)
-{
-  int tile_len;
-  isl_schedule *schedule;
-  int *tile_size;
-  isl_id *id;
-
-  printf("[PolySA] Apply array partitioning.\n");
-  /* Fetch the band that contains the space loops. */
-  isl_schedule_node *node;
-  if (sa->type == POLYSA_SA_TYPE_SYNC) {
-    node = get_innermost_permutable_node(sa->schedule);
-  } else if (sa->type == POLYSA_SA_TYPE_ASYNC){
-    node = get_outermost_permutable_node(sa->schedule);
-  } else {
-    isl_die(sa->ctx, isl_error_invalid,
-    "no supported sa type", return isl_stat_error);
-  }
-
-//  // debug
-//  isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
-//  isl_multi_union_pw_aff *mupa = isl_schedule_node_band_get_partial_schedule(node);
-//  isl_space *space = isl_multi_union_pw_aff_get_space(mupa);
-//  p = isl_printer_print_space(p, space);
-//  printf("\n");
-//  // debug
-
-  /* Mark the loop properties. */
-  for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
-    node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_array_part);
-  }
-  schedule = isl_schedule_node_get_schedule(node);
-
-  if (sa->scop->options->debug->polysa_verbose) {
-    /* Display the candidate loops. */
-    isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
-    p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-    p = isl_printer_print_schedule(p, schedule);
-    printf("\n");
-    isl_printer_free(p);
-  }
-  isl_schedule_free(schedule);
-  
-  /* Tile the band. */
-  tile_len = isl_schedule_node_band_n_member(node);
-  tile_size = read_array_part_tile_sizes(sa, &tile_len);
-  if (!tile_size) {
-    isl_schedule_node_free(node);
-    return isl_stat_error;
-  }
-  node = polysa_tile_band(node, tile_size);
-
-  /* Add the array marker */
-  node = isl_schedule_node_child(node, 0);
-  id = isl_id_alloc(sa->ctx, "array", NULL);
-  node = isl_schedule_node_insert_mark(node, id);
-  node = isl_schedule_node_parent(node);
-
-//  // debug
-//  isl_printer *p_debug = isl_printer_to_file(sa->ctx, stdout);
-//  p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
-//  p_debug = isl_printer_print_schedule_node(p_debug, node);
-//  printf("\n");
-//  isl_printer_free(p_debug);
-//  // debug
-
-  /* Clean up the band pe_opt properties. */
-  schedule = isl_schedule_node_get_schedule(node);
-  isl_schedule_node_free(node);
-  schedule = isl_schedule_map_schedule_node_bottom_up(
-      schedule, &clear_pe_opt_prop, NULL);
-
-  isl_schedule_free(sa->schedule);
-  sa->schedule = schedule;
-
-//  // debug
-//  p_debug = isl_printer_to_file(sa->ctx, stdout);
-//  p_debug = isl_printer_set_yaml_style(p_debug, ISL_YAML_STYLE_BLOCK);
-//  p_debug = isl_printer_print_schedule(p_debug, schedule);
-//  printf("\n");
-//  isl_printer_free(p_debug);
-//  // debug
-
-  /* Clean up. */
-  free(tile_size);
-
-  return isl_stat_ok;
-}
-
-/* Mark parallel loop as latency_hiding candidate loop. 
- */
-static isl_schedule_node *detect_latency_hiding_loop(__isl_take isl_schedule_node *node, void *user)
-{
-  struct polysa_prog *sa = user;
-
-  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
-    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
-      if (isl_schedule_node_band_member_get_coincident(node, i)) {
-        node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_latency);
-      }
-    }
-  }
-
-  return node;
-}
-
-static isl_bool count_latency_hiding_loop(__isl_keep isl_schedule_node *node, void *user)
-{
-  int *cnt = user;
-  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
-    int n = isl_schedule_node_band_n_member(node);
-    for (int i = 0; i < n; i++) {
-      if (isl_schedule_node_band_member_get_pe_opt(node, i) == polysa_loop_latency) 
-        *cnt = *cnt + 1;
-    }
-  } 
-  
-  return isl_bool_true;
-}
-
-/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
- * defaulting to option->sa_tile_size in each dimension.
- * *tile_len contains the maximum number of tile sizes needed.
- * Update *tile_len to the number of specified tile sizes, if any, and
- * return a pointer to the tile sizes (or NULL on error).
- * And store the effectively used sizes to sa->used_sizes.
- */
-static int *read_latency_tile_sizes(struct polysa_prog *sa, int *tile_len)
-{
-  int n;
-  int *tile_size;
-  isl_set *size;
-
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
-  if (!tile_size)
-    return NULL;
-  for (n = 0; n < *tile_len; n++)
-    tile_size[n] = sa->scop->options->sa_tile_size / 2;
-
-  size = extract_sa_sizes(sa->sizes, "latency", sa->kernel_id);
-  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
-    goto error;
-  set_sa_used_sizes(sa, "latency", sa->kernel_id, tile_size, *tile_len);
-
-  return tile_size;
-error:
-  free(tile_size);
-  return NULL;
-}
-
-/* Internal structure for loop tiling in PE optimization.
- */
-struct polysa_pe_opt_tile_data {
-  int n_tiled_loop;
-  int n_touched_loop;
-  int tile_len;
-  int *tile_size;
-  struct polysa_prog *sa;
-};
-
 /* Except partial schedule, restore the rest band node properties. */
-static __isl_give isl_schedule_node *restore_node_band_prop(__isl_take isl_schedule_node *node, 
-  __isl_take struct polysa_node_band_prop *prop) {
+__isl_give isl_schedule_node *restore_node_band_prop(__isl_take isl_schedule_node *node, 
+  __isl_take struct polysa_node_band_prop *prop) 
+{
   node = isl_schedule_node_band_set_permutable(node, prop->permutable);
   for (int i = 0; i < prop->n_member; i++) {
     node = isl_schedule_node_band_member_set_coincident(node, i, prop->coincident[i]);
@@ -1746,7 +796,7 @@ static __isl_give isl_schedule_node *restore_node_band_prop(__isl_take isl_sched
  * N1
  * return a pointer to node N2.
  */
-static __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_node *node)
+__isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_node *node)
 {
   if (isl_schedule_node_n_children(node) == 0 || isl_schedule_node_n_children(node) > 1) {
     return node;
@@ -1770,489 +820,11 @@ static __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_sche
   return node;
 }
 
-static isl_stat unionize_pw_aff_space(__isl_take isl_pw_aff *pa, void *user)
-{
-  isl_space *space = user;
-  isl_space *space_i = isl_pw_aff_get_space(pa);
-  
-
-  isl_pw_aff_free(pa);
-}
-
-/* Given two nested nodes,
- * N1
- * |
- * N2
- * Merge them into one node.
- * N
- * return a pointer to N.
- */
-static __isl_give isl_schedule_node *polysa_node_merge(__isl_take isl_schedule_node *node)
-{
-  if (isl_schedule_node_n_children(node) == 0 || isl_schedule_node_n_children(node) > 1)
-    return node;
-  isl_schedule_node *parent = node;
-  isl_schedule_node *child = isl_schedule_node_child(isl_schedule_node_copy(node), 0);
-  if (isl_schedule_node_get_type(parent) != isl_schedule_node_band ||
-      isl_schedule_node_get_type(child) != isl_schedule_node_band) 
-    return node;
-
-  /* Save the node properties. */
-  struct polysa_node_band_prop *parent_prop = extract_node_band_prop(parent);
-  struct polysa_node_band_prop *child_prop = extract_node_band_prop(child);
-
-  /* Merge the partial schedules of two nodes. */
-  isl_union_pw_aff_list *upa_list = isl_union_pw_aff_list_alloc(
-    isl_schedule_node_get_ctx(node), 0);
-  isl_space *parent_space = isl_multi_union_pw_aff_get_space(parent_prop->mupa);
-  isl_space *child_space = isl_multi_union_pw_aff_get_space(child_prop->mupa);
-
-  for (int i = 0; i < parent_prop->n_member; i++) {
-    isl_union_pw_aff *upa = isl_multi_union_pw_aff_get_union_pw_aff(parent_prop->mupa, i);
-    upa_list = isl_union_pw_aff_list_add(
-      upa_list, upa);
-  }
-  for (int i = 0; i < child_prop->n_member; i++) {
-    isl_union_pw_aff *upa = isl_multi_union_pw_aff_get_union_pw_aff(child_prop->mupa, i);
-    upa_list = isl_union_pw_aff_list_add(
-      upa_list, upa);
-  }
-
-  isl_space *mupa_space = isl_space_add_dims(parent_space, isl_dim_set, isl_space_dim(child_space, isl_dim_set));
-  isl_space_free(child_space);
-
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//  p = isl_printer_print_multi_union_pw_aff(p, parent_prop->mupa);
-//  printf("\n");
-//  p = isl_printer_print_multi_union_pw_aff(p, child_prop->mupa);
-//  printf("\n");
-////  p = isl_printer_print_union_pw_aff_list(p, upa_list);
-////  printf("\n");
-//  p = isl_printer_print_space(p, mupa_space);
-//  printf("\n");
-//  // debug
-
-  isl_multi_union_pw_aff *mupa = isl_multi_union_pw_aff_from_union_pw_aff_list(
-    mupa_space,
-    upa_list);
-
-  /* Insert one new node. */
-  node = isl_schedule_node_insert_partial_schedule(node, mupa);
-  
-  /* Restore the node properties. */  
-  node = isl_schedule_node_band_set_permutable(node, 1);
-  for (int i = 0; i < parent_prop->n_member; i++) {
-    node = isl_schedule_node_band_member_set_coincident(node, i, parent_prop->coincident[i]);
-  }
-  for (int i = 0; i < parent_prop->n_member; i++) {
-    node = isl_schedule_node_band_member_set_space_time(node, i, parent_prop->space_time[i]);
-    node = isl_schedule_node_band_member_set_pe_opt(node, i, parent_prop->pe_opt[i]);
-  }
-  for (int i = 0; i < child_prop->n_member; i++) {
-    node = isl_schedule_node_band_member_set_coincident(node, i + parent_prop->n_member, child_prop->coincident[i]);
-  }
-  for (int i = 0; i < child_prop->n_member; i++) {
-    node = isl_schedule_node_band_member_set_space_time(node, i + parent_prop->n_member, child_prop->space_time[i]);
-    node = isl_schedule_node_band_member_set_pe_opt(node, i + parent_prop->n_member, child_prop->pe_opt[i]);
-  }
-
-  /* Delete the old nodes. */
-  node = isl_schedule_node_child(node, 0);
-  node = isl_schedule_node_delete(node);
-  node = isl_schedule_node_delete(node);
-  node = isl_schedule_node_parent(node);
-
-  free(parent_prop->coincident);
-  free(parent_prop->pe_opt);
-  free(parent_prop->space_time);
-  isl_multi_union_pw_aff_free(parent_prop->mupa);
-  free(parent_prop);
-
-  free(child_prop->coincident);
-  free(child_prop->pe_opt);
-  free(child_prop->space_time);
-  isl_multi_union_pw_aff_free(child_prop->mupa);
-  free(child_prop);
-
-  isl_schedule_node_free(child);
-
-//  // debug
-//  p = isl_printer_print_multi_union_pw_aff(p, mupa);
-//  printf("\n");
-//  // debug
-
-  return node;
-}
-
-/* Tile the loop at the "pos" position of the band with the size "tile_size".
- * The original band
- * B
- * is first splitted to
- * B1
- * |
- * p
- * |
- * B2
- * The loop p is tiled, and four band nodes are generated.
- * B1
- * |
- * p_tile
- * |
- * B2
- * |
- * p_point
- * The first three bands are then merged together.
- * B'
- * |
- * p_point
- * A pointer to B' is returned.
- */
-static __isl_give isl_schedule_node *polysa_node_band_tile_loop(
-  __isl_take isl_schedule_node *node, int tile_size, int pos)
-{
-  isl_multi_val *tile_sizes;
-  int n = isl_schedule_node_band_n_member(node);
-  int size[1];
-
-  size[0] = tile_size;
-  node = isl_schedule_node_band_split(node, pos);
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
-  node = isl_schedule_node_child(node, 0);
-  node = isl_schedule_node_band_split(node, 1);
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
-
-  tile_sizes = construct_band_tile_sizes(node, size);
-//  // debug
-//  p = isl_printer_print_multi_val(p, tile_sizes);
-//  printf("\n");
-//  // debug
-  node = tile_band(node, isl_multi_val_copy(tile_sizes));
-  isl_multi_val_free(tile_sizes);
-
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
-
-  /* Swap the order of the point band and the next band. */
-  node = isl_schedule_node_child(node, 0);
-  node = polysa_node_interchange(node);
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
-    
-  /* Merge the first three bands. */
-  node = isl_schedule_node_parent(node);
-  node = polysa_node_merge(node);
-  node = isl_schedule_node_parent(node);
-  node = polysa_node_merge(node);
-
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  isl_printer_free(p);
-//  // debug
-
-  return node;
-}
-
-/* Examine if the node is the last band node, if so, add a "latency" mark before the node. */
-static __isl_give isl_schedule_node *add_latency_mark(__isl_take isl_schedule_node *node,
-  void *user) {
-  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
-//    // debug
-//    isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//    p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-//    p = isl_printer_print_schedule_node(p, node);
-//    printf("\n");
-//    // debug
-    node = isl_schedule_node_child(node, 0);
-    isl_bool no_inner_band = isl_schedule_node_every_descendant(node,
-        &no_permutable_node, NULL);
-    node = isl_schedule_node_parent(node);
-    if (no_inner_band) {
-      /* Insert the "latency" mark. */
-      isl_id *id = isl_id_alloc(isl_schedule_node_get_ctx(node), "latency", NULL);
-//      // debug
-//      isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//      p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-//      p = isl_printer_print_schedule_node(p, node);
-//      printf("\n");
-//      // debug
-      node = isl_schedule_node_insert_mark(node, id);
-    }
-  }
-
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
-
-  return node;
-}
-
-/* Examine if the node contains any space loops. */
-static isl_bool node_has_space(__isl_keep isl_schedule_node *node) {
-  if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
-    return isl_bool_true;
-
-  int n = isl_schedule_node_band_n_member(node);
-  for (int i = 0; i < n; i++) {
-    if (isl_schedule_node_band_member_get_space_time(node, i) == polysa_loop_space) {
-      return isl_bool_true;
-    }
-  }
-
-  return isl_bool_false;
-}
-
-/* Move the current node which represents the latency hiding loop to the below the last time 
- * loop. 
- * If the array is async, then sink the node to the bottom.
- * If the array is sync, then lift it up and insert as the last loop in the time band.
- */
-static __isl_give isl_schedule_node *polysa_node_band_sink_time(__isl_take isl_schedule_node *node, struct polysa_prog *sa) {
-  if (sa->type == POLYSA_SA_TYPE_ASYNC) {
-    node = isl_schedule_node_band_sink(node);
-    /* Add the "latency" mark. */
-    node = isl_schedule_node_map_descendant_bottom_up(
-      node, &add_latency_mark, NULL);
-  } else if (sa->type == POLYSA_SA_TYPE_SYNC) {
-    /* Move up to the node that contains the space loop */
-//    while(!node_has_space(node)) {
-//      node = isl_schedule_node_parent(node);
-//    }
-    node = isl_schedule_node_parent(node);  
-
-    /* Find the position of the first space loop. */
-    int n_member = isl_schedule_node_band_n_member(node);
-    int space_pos;
-    for (int i = 0; i < n_member; i++) {
-      if (isl_schedule_node_band_member_get_space_time(node, i) == polysa_loop_space) {
-        space_pos = i;
-        break;
-      }
-    }
-    if (space_pos == 0) {
-      /* Interchange the current node with the child node. */
-      node = polysa_node_interchange(node);
-      /* Insert the "latency" mark. */
-      isl_id *id = isl_id_alloc(sa->ctx, "latency", NULL);
-      node = isl_schedule_node_insert_mark(node, id);
-      node = isl_schedule_node_child(node, 0);
-      node = isl_schedule_node_child(node, 0);
-    } else {
-      node = isl_schedule_node_band_split(node, space_pos);
-      node = isl_schedule_node_child(node, 0);
-      /* Interchange the current node with the child node. */
-      node = polysa_node_interchange(node);
-      /* Insert the "latency" mark. */
-      isl_id *id = isl_id_alloc(sa->ctx, "latency", NULL);
-      node = isl_schedule_node_insert_mark(node, id);
-      node = isl_schedule_node_child(node, 0);
-      node = isl_schedule_node_child(node, 0);
-    }
-  }
-
-  return node;
-}
-
-/* Given each node band, tile the candidate loop and permute it innermost in the time
- * loop band. If the tile size is -1, the candidate loop is skipped.
- * For each point loop, a "latency" mark is added.
- */
-static __isl_give isl_schedule_node *polysa_latency_tile_band_loop(
-  __isl_take isl_schedule_node *node, void *user)
-{
-  struct polysa_pe_opt_tile_data *data = user;
-  if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
-    return node;
-
-  int n;
-  isl_id *id;
-  n = isl_schedule_node_band_n_member(node);
-
-  for (int i = n - 1; i >= 0; i--) {
-    if (isl_schedule_node_band_member_get_pe_opt(node, i) == polysa_loop_latency) {      
-      int loop_tile_size = data->tile_size[data->tile_len - data->n_touched_loop - 1];
-      (data->n_touched_loop)++;
-      if (loop_tile_size > 0) {
-        /* Tile the current loop and permute it to be the innermost time loop. */
-
-//        // debug
-//        isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//        p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-//        p = isl_printer_print_schedule_node(p, node);
-//        printf("\n");
-//        // debug
-
-//        /* Insert the "anchor" mark. */
-//        id = isl_id_alloc(data->sa->ctx, "anchor", NULL);
-//        node = isl_schedule_node_insert_mark(node, id);
-//        node = isl_schedule_node_child(node, 0);
-
-        /* Tile the loop in the band at "i"th position with the size "loop_tile_size".
-         * The returned node points at the tile loop. */
-        node = polysa_node_band_tile_loop(node, loop_tile_size, i); 
-
-//        // debug
-//        p = isl_printer_print_schedule_node(p, node);
-//        printf("\n");
-//        // debug
-
-        /* Reset the candidate loop in the tile loop the pe_opt property to default. */
-        node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_default);
-        /* Reset the point loop space_time property to time loop. */
-        node = isl_schedule_node_child(node, 0);
-        node = isl_schedule_node_band_member_set_space_time(node, 0, polysa_loop_time);
-        /* Reset the point loop pe_opt property to default .*/
-        node = isl_schedule_node_band_member_set_pe_opt(node, 0, polysa_loop_default);
-
-        /* Move the single loop node to the bottom of the time band. */
-        node = polysa_node_band_sink_time(node, data->sa); 
-        
-//        // debug
-//        p = isl_printer_print_schedule_node(p, node);
-//        printf("\n");
-//        // debug
-
-//        /* Move up to the "anchor" mark. */
-//        node = polysa_tree_move_up_to_anchor(node);
-//
-//        /* Delete the "anchor" mark */
-//        node = isl_schedule_node_delete(node);
-
-//        // debug
-//        p = isl_printer_print_schedule_node(p, node);
-//        printf("\n");
-//        // debug
-
-        (data->n_tiled_loop)++;
-        return node;
-      }
-    }
-  }
-
-  return node;
-}
-
-static __isl_give isl_schedule_node *polysa_latency_tile_loop(__isl_take isl_schedule_node *node, struct polysa_prog *sa)
-{
-  /* Count the candidate loop number. */
-  int tile_len = 0;
-  isl_schedule_node_foreach_descendant_top_down(
-      node, &count_latency_hiding_loop, &tile_len);
-  // printf("%d\n", tile_len);
-
-  /* Read the tile sizes. */
-  int *tile_size;
-  tile_size = read_latency_tile_sizes(sa, &tile_len);
-
-  /* Tile the loop. */
-  struct polysa_pe_opt_tile_data tile_data = {0, 0, tile_len, tile_size, sa};
-  while (tile_data.n_touched_loop != tile_len) {
-    node = isl_schedule_node_map_descendant_bottom_up(
-      node, &polysa_latency_tile_band_loop, &tile_data);
-  }
-
-  free(tile_size);
-  return node;
-}
-
-// TODO
-isl_bool is_innermost_time_loop_parallel(__isl_keep isl_schedule_node *node, void *user)
-{
-  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
-    node = isl_schedule_node_child(isl_schedule_node_copy(node), 0);
-    isl_bool no_inner_band = isl_schedule_node_every_descendant(node,
-        &no_permutable_node, NULL);
-    if (!no_inner_band) {
-      node = isl_schedule_node_parent(node);
-      if (isl_schedule_node_band_member_get_coincident(node, isl_schedule_node_band_n_member(node) - 1) == 0) {
-        isl_schedule_node_free(node);
-        return isl_bool_false;
-      } else {
-        isl_schedule_node_free(node);
-        return isl_bool_true;
-      }
-    }
-    isl_schedule_node_free(node);
-  } 
-
-  return isl_bool_true;
-}
-
-/* Apply latency hiding. 
- * Go through all the loops, if there is any parallel loop (considering only RAW), 
- * such a loop will be identified as latency hiding loop candidate. Such loops will be
- * tiled. The point loops will be permuted as the innermost time loops.
- */
-isl_stat sa_latency_hiding_optimize(struct polysa_prog *sa)
-{
-  isl_schedule *schedule = sa->schedule;
-  isl_schedule_node *node = isl_schedule_get_root(schedule);
-  
-//  /* Detect if the innermost time loop carries RAW dependency. */
-//  isl_bool no_opt = isl_schedule_node_every_descendant(
-//    node, &is_innermost_time_loop_parallel, NULL);     
-  isl_bool no_opt = 0;
-
-  if (!no_opt) {
-    printf("[PolySA] Apply latency hiding.\n");
-    
-    /* Move down to the array marker. */
-    node = polysa_tree_move_down_to_array(node, sa->core);
-  
-    /* Detect all candidate loops. */
-    node = isl_schedule_node_map_descendant_bottom_up(
-      node, &detect_latency_hiding_loop, sa);
-  
-    /* Display the candidate loops. */
-    isl_schedule_free(schedule);
-    schedule = isl_schedule_node_get_schedule(node);
-    if (sa->scop->options->debug->polysa_verbose) {
-      isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
-      p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-      p = isl_printer_print_schedule(p, schedule);
-      printf("\n");
-      isl_printer_free(p);
-    }
-    isl_schedule_free(schedule);
-  
-    /* Tile the candidate loop. 
-     * For each candidate loop, if the loop is used for latency hiding,
-     * it is tiled and permuted to the innermost of the time loop band. 
-     * A latency hiding marker is added. */
-    node = polysa_latency_tile_loop(node, sa);
-  
-    /* Clean up the band pe_opt properties. */
-    schedule = isl_schedule_node_get_schedule(node);
-    isl_schedule_node_free(node);
-    schedule = isl_schedule_map_schedule_node_bottom_up(
-        schedule, &clear_pe_opt_prop, NULL);
-  
-    sa->schedule = schedule;
-  } else {
-    isl_schedule_node_free(node);
-  }
-
-  return isl_stat_ok;
-}
-
+/***************************************************************
+ * PolySA kernel related functions 
+ ***************************************************************/
 /* Free the polysa_sa struct. */
-void *polysa_prog_free(struct polysa_prog *sa) 
+void *polysa_kernel_free(struct polysa_kernel *sa) 
 {
   if (!sa)
     return NULL;
@@ -2267,8 +839,9 @@ void *polysa_prog_free(struct polysa_prog *sa)
 }
 
 /* Copy a new polysa_sa struct. */
-struct polysa_prog *polysa_prog_copy(struct polysa_prog *sa) {
-  struct polysa_prog *sa_dup = (struct polysa_prog *)malloc(sizeof(struct polysa_prog));
+struct polysa_kernel *polysa_kernel_copy(struct polysa_kernel *sa) 
+{
+  struct polysa_kernel *sa_dup = (struct polysa_kernel *)malloc(sizeof(struct polysa_kernel));
   sa_dup->ctx = sa->ctx;
   sa_dup->schedule = isl_schedule_copy(sa->schedule);
   sa_dup->scop = sa->scop;
@@ -2279,16 +852,16 @@ struct polysa_prog *polysa_prog_copy(struct polysa_prog *sa) {
   sa_dup->type = sa->type;
   sa_dup->sizes = isl_union_map_copy(sa->sizes);
   sa_dup->used_sizes = isl_union_map_copy(sa->used_sizes);
-  sa_dup->kernel_id = sa->kernel_id;
+  sa_dup->id = sa->id;
   sa_dup->core = isl_union_set_copy(sa->core);
 
   return sa_dup;
 }
 
 /* Allocate a new polysa_sa struct with the given schedule. */
-struct polysa_prog *polysa_prog_from_schedule(__isl_take isl_schedule *schedule)
+struct polysa_kernel *polysa_kernel_from_schedule(__isl_take isl_schedule *schedule)
 {
-  struct polysa_prog *sa = (struct polysa_prog *)malloc(sizeof(struct polysa_prog));
+  struct polysa_kernel *sa = (struct polysa_kernel *)malloc(sizeof(struct polysa_kernel));
   sa->ctx = isl_schedule_get_ctx(schedule);
   sa->schedule = schedule;
   sa->array_dim = 0;
@@ -2298,22 +871,22 @@ struct polysa_prog *polysa_prog_from_schedule(__isl_take isl_schedule *schedule)
   sa->type = 0;
   sa->sizes = NULL;
   sa->used_sizes = NULL;
-  sa->kernel_id = 0;
+  sa->id = 0;
   sa->core = NULL;
 
   return sa;
 }
 
-struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop) 
+struct polysa_kernel *polysa_kernel_alloc(isl_ctx *ctx, struct ppcg_scop *scop) 
 {
-  struct polysa_prog *prog;
+  struct polysa_kernel *prog;
   isl_space *space;
   isl_map *id;
 
   if (!scop)
     return NULL;
 
-  prog = isl_calloc_type(ctx, struct polysa_prog);
+  prog = isl_calloc_type(ctx, struct polysa_kernel);
   if (!prog)
     return NULL;
 
@@ -2325,6 +898,9 @@ struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop)
   prog->core = NULL;
 }
 
+/********************************************************************
+ * Other PolySA structs
+ ********************************************************************/
 void *polysa_acc_free(struct polysa_acc *acc) {
   if (!acc)
     return NULL;
@@ -2350,4 +926,1065 @@ __isl_null struct polysa_iter *polysa_iter_free(struct polysa_iter *iter) {
   free(iter);
 
   return NULL;
+}
+
+/**********************************************************************
+ * Schedule related functions
+ **********************************************************************/
+/* Construct schedule constraints from the dependences in prog->scop and
+ * the array order dependences in prog->array_order.
+ *
+ * If live range reordering is allowed, then we need to make sure
+ * that live ranges on arrays are not run in parallel since doing
+ * so would require array expansion.  We therefore add the array
+ * order dependences to the coincidence dependences.  Non-zero array
+ * order dependences will then prevent a schedule dimension from being
+ * considered parallel.
+ * Live ranges derived from scalars are allowed to be run in parallel
+ * since we force the scalars to be mapped to private memory in
+ * check_scalar_live_ranges.
+ * If live range reordering is allowed, then the false dependences
+ * are not added to the validity constraints as that would prevent
+ * reordering.  Instead, the external false dependences that enforce that reads
+ * from potentially live-in data precede any later write and
+ * that writes of potentially live-out data follow any other earlier write
+ * are added to the validity and the coincidence constraints.
+ * The false dependences are still added to the proximity constraints
+ * for consistency with the case where live range reordering is not allowed.
+ * The coincidence constraints then consist of flow dependences,
+ * external false dependences and array order dependences.
+ * The independences can be filtered out from the first two sets.
+ * They have already been filtered out from the array order dependences
+ * on a per array basis in collect_order_dependences.
+ * There is no need for a per array handling of the other two sets
+ * as there should be no flow or external false dependence on local
+ * variables that can be filtered out.
+ */
+static __isl_give isl_schedule_constraints *construct_schedule_constraints(
+	struct polysa_prog *prog)
+{
+	isl_union_set *domain;
+	isl_union_map *dep_raw, *dep;
+	isl_union_map *validity, *proximity, *coincidence;
+	isl_schedule_constraints *sc;
+
+	domain = isl_union_set_copy(prog->scop->domain);
+	sc = isl_schedule_constraints_on_domain(domain);
+	sc = isl_schedule_constraints_set_context(sc,
+				isl_set_copy(prog->scop->context));
+	if (prog->scop->options->live_range_reordering) {
+		sc = isl_schedule_constraints_set_conditional_validity(sc,
+			isl_union_map_copy(prog->scop->tagged_dep_flow),
+			isl_union_map_copy(prog->scop->tagged_dep_order));
+		proximity = isl_union_map_copy(prog->scop->dep_flow);
+		validity = isl_union_map_copy(proximity);
+		validity = isl_union_map_union(validity,
+			    isl_union_map_copy(prog->scop->dep_forced));
+		proximity = isl_union_map_union(proximity,
+			    isl_union_map_copy(prog->scop->dep_false));
+		coincidence = isl_union_map_copy(validity);
+		coincidence = isl_union_map_subtract(coincidence,
+			isl_union_map_copy(prog->scop->independence));
+		coincidence = isl_union_map_union(coincidence,
+				isl_union_map_copy(prog->array_order));
+    /* Add the RAR into the validity constraints for PolySA. */
+    if (prog->scop->options->polysa) {
+      validity = isl_union_map_union(validity,
+          isl_union_map_copy(prog->scop->dep_rar));
+    }
+	} else {
+		dep_raw = isl_union_map_copy(prog->scop->dep_flow);
+		dep = isl_union_map_copy(prog->scop->dep_false);
+		dep = isl_union_map_union(dep, dep_raw);
+		dep = isl_union_map_coalesce(dep);
+		proximity = isl_union_map_copy(dep);
+		coincidence = isl_union_map_copy(dep);
+		validity = dep;
+    /* Add the RAR into the validity constraints for PolySA. */
+    if (prog->scop->options->polysa) {
+      validity = isl_union_map_union(validity,
+          isl_union_map_copy(prog->scop->dep_rar));
+    }   
+	}
+	sc = isl_schedule_constraints_set_validity(sc, validity);
+	sc = isl_schedule_constraints_set_coincidence(sc, coincidence);
+	sc = isl_schedule_constraints_set_proximity(sc, proximity);
+
+	return sc;
+}
+
+/* Compute an appropriate schedule based on the accesses in
+ * gen->read and gen->write.
+ *
+ * We derive schedule constraints from the dependences in gen->prog->scop
+ * and then use isl to compute a schedule that has a parallel loop
+ * in each tilable band.
+ * During the schedule construction, some statement instances
+ * may be grouped first based on the input schedule.
+ */
+__isl_give isl_schedule *compute_schedule(struct polysa_gen *gen)
+{
+	isl_schedule_constraints *sc;
+	isl_schedule *schedule;
+
+	sc = construct_schedule_constraints(gen->prog);
+	schedule = gen->prog->scop->schedule;
+	schedule = ppcg_compute_schedule(sc, schedule, gen->options);
+
+	return schedule;
+}
+
+/* If the band node "node" has exactly one member then mark it permutable.
+ */
+static __isl_give isl_schedule_node *band_set_permutable(
+	__isl_take isl_schedule_node *node,
+	__isl_keep isl_schedule_constraints *sc)
+{
+	if (isl_schedule_node_band_n_member(node) == 1)
+		node = isl_schedule_node_band_set_permutable(node, 1);
+
+	return node;
+}
+
+/* Return the coincidence constraints between pairs of instances
+ * that are scheduled together by the ancestors of "node".
+ * That is, select those coincidence constraints that relate
+ * pairs of instances that have the same value for the prefix schedule.
+ * If the schedule depth is zero, then the prefix schedule does not
+ * contain any information, so we intersect domain and range
+ * of the schedule constraints with the reaching domain elements instead.
+ */
+static __isl_give isl_union_map *get_local_coincidence(
+	__isl_keep isl_schedule_node *node,
+	__isl_keep isl_schedule_constraints *sc)
+{
+	isl_union_map *coincidence;
+	isl_multi_union_pw_aff *prefix;
+	isl_union_pw_multi_aff *contraction;
+
+	coincidence = isl_schedule_constraints_get_coincidence(sc);
+	contraction = isl_schedule_node_get_subtree_contraction(node);
+	if (isl_schedule_node_get_schedule_depth(node) == 0) {
+		isl_union_set *domain;
+
+		domain = isl_schedule_node_get_domain(node);
+		domain = isl_union_set_preimage_union_pw_multi_aff(domain,
+						    contraction);
+		coincidence = isl_union_map_intersect_domain(coincidence,
+						    isl_union_set_copy(domain));
+		coincidence = isl_union_map_intersect_range(coincidence,
+						    domain);
+		return coincidence;
+	}
+
+	prefix = isl_schedule_node_get_prefix_schedule_multi_union_pw_aff(node);
+	prefix = isl_multi_union_pw_aff_pullback_union_pw_multi_aff(prefix,
+								contraction);
+	return isl_union_map_eq_at_multi_union_pw_aff(coincidence, prefix);
+}
+
+/* For each member in the band node "node", determine whether
+ * it is coincident with respect to the outer nodes and mark
+ * it accordingly.
+ *
+ * That is, for each coincidence constraint between pairs
+ * of instances that are scheduled together by the outer nodes,
+ * check that domain and range are assigned the same value
+ * by the band member.  This test is performed by checking
+ * that imposing the same value for the band member does not
+ * remove any elements from the set of coincidence constraints.
+ */
+static __isl_give isl_schedule_node *band_set_coincident(
+	__isl_take isl_schedule_node *node,
+	__isl_keep isl_schedule_constraints *sc)
+{
+	isl_union_map *coincidence;
+	isl_union_pw_multi_aff *contraction;
+	isl_multi_union_pw_aff *partial;
+	int i, n;
+
+	coincidence = get_local_coincidence(node, sc);
+
+	partial = isl_schedule_node_band_get_partial_schedule(node);
+	contraction = isl_schedule_node_get_subtree_contraction(node);
+	partial = isl_multi_union_pw_aff_pullback_union_pw_multi_aff(partial,
+								contraction);
+	n = isl_schedule_node_band_n_member(node);
+	for (i = 0; i < n; ++i) {
+		isl_union_map *coincidence_i;
+		isl_union_pw_aff *upa;
+		isl_multi_union_pw_aff *partial_i;
+		int subset;
+
+		upa = isl_multi_union_pw_aff_get_union_pw_aff(partial, i);
+		partial_i = isl_multi_union_pw_aff_from_union_pw_aff(upa);
+		coincidence_i = isl_union_map_copy(coincidence);
+		coincidence_i = isl_union_map_eq_at_multi_union_pw_aff(
+						    coincidence_i, partial_i);
+		subset = isl_union_map_is_subset(coincidence, coincidence_i);
+		isl_union_map_free(coincidence_i);
+
+		if (subset < 0)
+			break;
+		node = isl_schedule_node_band_member_set_coincident(node, i,
+								    subset);
+	}
+	if (i < n)
+		node = isl_schedule_node_free(node);
+	isl_multi_union_pw_aff_free(partial);
+	isl_union_map_free(coincidence);
+
+	return node;
+}
+
+/* If "node" is a band, then set its properties.
+ *
+ * In particular, if the band has exactly one member, then mark it permutable.
+ * Mark the band members coincident based on the coincidence constraints
+ * of "sc".
+ */
+static __isl_give isl_schedule_node *set_band_properties(
+	__isl_take isl_schedule_node *node, void *user)
+{
+	isl_schedule_constraints *sc = user;
+
+	if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
+		return node;
+	if (isl_schedule_node_band_n_member(node) == 0)
+		return node;
+
+	node = band_set_permutable(node, sc);
+	node = band_set_coincident(node, sc);
+
+	return node;
+}
+
+/* Return the original schedule with all bands marked permutable and
+ * all band members marked coincident based on the coincidence constraints.
+ * The bands are explicitly marked permutable so that they will be considered
+ * by mark_outer_permutable.
+ */
+static __isl_give isl_schedule *determine_properties_original_schedule(
+	struct polysa_gen *gen)
+{
+	isl_schedule *schedule;
+	isl_schedule_constraints *sc;
+
+	schedule = isl_schedule_copy(gen->prog->scop->schedule);
+	sc = construct_schedule_constraints(gen->prog);
+	schedule = isl_schedule_map_schedule_node_bottom_up(schedule,
+						    &set_band_properties, sc);
+	isl_schedule_constraints_free(sc);
+
+	return schedule;
+}
+
+/* Compute a schedule or determine the properties of the original schedule
+ * depending on the value of the "reschedule" option.
+ */
+static __isl_give isl_schedule *compute_or_set_properties(void *user)
+{
+  struct polysa_gen *gen = user;
+
+  if (gen->options->reschedule)
+    return compute_schedule(gen);
+  else
+    return determine_properties_original_schedule(gen);  
+}
+
+/* Obtain a schedule for the scop, by reading it from
+ * a file, by computing one or by determining the properties
+ * of the original schedule. 
+ */
+__isl_give isl_schedule *get_schedule(struct polysa_gen *gen)
+{
+  return ppcg_get_schedule(gen->ctx, gen->options,
+        &compute_or_set_properties, gen);
+}
+
+/****************************************************************
+ * PolySA array related functions
+ ****************************************************************/
+static void free_array_info(struct polysa_prog *prog)
+{
+	int i;
+
+	for (i = 0; i < prog->n_array; ++i) {
+		free(prog->array[i].type);
+		free(prog->array[i].name);
+		isl_multi_pw_aff_free(prog->array[i].bound);
+		isl_ast_expr_free(prog->array[i].bound_expr);
+		isl_space_free(prog->array[i].space);
+		isl_set_free(prog->array[i].declared_extent);
+		isl_set_free(prog->array[i].extent);
+		isl_ast_expr_free(prog->array[i].declared_size);
+		free(prog->array[i].refs);
+		isl_union_map_free(prog->array[i].dep_order);
+	}
+	free(prog->array);
+}
+
+/* Is the array "array" being extracted a read-only scalar?
+ *
+ * That is, is "array" a scalar that is never possibly written to.
+ * An array containing structures is never considered to be a scalar.
+ */
+static int is_read_only_scalar(struct polysa_array_info *array,
+	struct polysa_prog *prog)
+{
+	isl_set *space;
+	isl_union_map *write;
+	int empty;
+
+	if (array->has_compound_element)
+		return 0;
+	if (array->n_index != 0)
+		return 0;
+
+	write = isl_union_map_copy(prog->may_write);
+	space = isl_set_universe(isl_space_copy(array->space));
+	write = isl_union_map_intersect_range(write,
+						isl_union_set_from_set(space));
+	empty = isl_union_map_is_empty(write);
+	isl_union_map_free(write);
+
+	return empty;
+}
+
+/* Compute and return the extent of "array", taking into account the set of
+ * accessed elements.
+ *
+ * In particular, the extent in the outer dimension is taken
+ * from "accessed", while the extents in the remaining dimensions
+ * are taken from array->extent.
+ *
+ * The extent in the outer dimension cannot be taken from array->extent
+ * because that may be unbounded.  Furthermore, even if it is bounded,
+ * it may be larger than the piece of the array that is being accessed.
+ */
+static __isl_give isl_set *compute_extent(struct pet_array *array,
+	__isl_keep isl_set *accessed)
+{
+	int n_index;
+	isl_id *id;
+	isl_set *outer;
+	isl_set *extent;
+
+	extent = isl_set_copy(array->extent);
+
+	n_index = isl_set_dim(accessed, isl_dim_set);
+	if (n_index == 0)
+		return extent;
+
+	extent = isl_set_project_out(extent, isl_dim_set, 0, 1);
+	outer = isl_set_copy(accessed);
+	outer = isl_set_project_out(outer, isl_dim_set, 1, n_index - 1);
+	extent = isl_set_flat_product(outer, extent);
+	id = isl_set_get_tuple_id(accessed);
+	extent = isl_set_set_tuple_id(extent, id);
+
+	return extent;
+}
+
+/* Return the name of the outer array (of structs) accessed by "access".
+ */
+static const char *get_outer_array_name(__isl_keep isl_map *access)
+{
+	isl_space *space;
+	const char *name;
+
+	space = isl_space_range(isl_map_get_space(access));
+	while (space && isl_space_is_wrapping(space))
+		space = isl_space_domain(isl_space_unwrap(space));
+	name = isl_space_get_tuple_name(space, isl_dim_set);
+	isl_space_free(space);
+
+	return name;
+}
+
+/* Collect all references to the given array and store pointers to them
+ * in array->refs.
+ */
+static isl_stat collect_references(struct polysa_prog *prog,
+	struct polysa_array_info *array)
+{
+	int i;
+	int n;
+
+	n = 0;
+	for (i = 0; i < prog->n_stmts; ++i) {
+		struct polysa_stmt *stmt = &prog->stmts[i];
+		struct polysa_stmt_access *access;
+
+		for (access = stmt->accesses; access; access = access->next) {
+			const char *name;
+			name = get_outer_array_name(access->access);
+			if (name && !strcmp(array->name, name))
+				n++;
+		}
+	}
+
+	array->refs = isl_alloc_array(prog->ctx, struct polysa_stmt_access *, n);
+	if (!array->refs)
+		return isl_stat_error;
+	array->n_ref = n;
+
+	n = 0;
+	for (i = 0; i < prog->n_stmts; ++i) {
+		struct polysa_stmt *stmt = &prog->stmts[i];
+		struct polysa_stmt_access *access;
+
+		for (access = stmt->accesses; access; access = access->next) {
+			const char *name;
+			name = get_outer_array_name(access->access);
+			if (!name || strcmp(array->name, name))
+				continue;
+
+			array->refs[n++] = access;
+		}
+	}
+
+	return isl_stat_ok;
+}
+
+/* Is "array" only accessed as individual, fixed elements?
+ * That is, does each access to "array" access a single, fixed element?
+ */
+static isl_bool only_fixed_element_accessed(struct polysa_array_info *array)
+{
+	int i;
+
+	for (i = 0; i < array->n_ref; ++i)
+		if (!array->refs[i]->fixed_element)
+			return isl_bool_false;
+
+	return isl_bool_true;
+}
+
+static isl_stat extract_array_info(struct polysa_prog *prog,
+  struct polysa_array_info *info, struct pet_array *pa,
+  __isl_keep isl_union_set *arrays)
+{
+  int empty;
+  const char *name;
+  int n_index;
+  isl_multi_pw_aff *bounds;
+  isl_set *accessed, *extent;
+
+  n_index = isl_set_dim(pa->extent, isl_dim_set);
+  name = isl_set_get_tuple_name(pa->extent);
+
+  info->space = isl_set_get_space(pa->extent);
+  info->name = strdup(name);
+  info->n_index = n_index;
+  info->linearize = prog->scop->options->linearize_device_arrays;
+
+  info->type = strdup(pa->element_type);
+  info->size = pa->element_size;
+  info->local = pa->declared && !pa->exposed;
+  info->has_compound_element = pa->element_is_record;
+  info->read_only_scalar = is_read_only_scalar(info, prog); 
+
+  info->declared_extent = isl_set_copy(pa->extent);
+  accessed = isl_union_set_extract_set(arrays,
+                isl_space_copy(info->space));
+  empty = isl_set_is_empty(accessed); 
+  extent = compute_extent(pa, accessed); // TODO: to understand
+  isl_set_free(accessed);
+  info->extent = extent;
+  if (empty < 0)
+    return isl_stat_error;
+  info->accessed = !empty;
+  bounds = ppcg_size_from_extent(isl_set_copy(extent)); 
+	bounds = isl_multi_pw_aff_gist(bounds, isl_set_copy(prog->context));
+	if (!bounds)
+		return isl_stat_error;
+	if (!isl_multi_pw_aff_is_cst(bounds))
+		info->linearize = 1;
+	info->bound = bounds;
+
+	if (collect_references(prog, info) < 0) 
+		return isl_stat_error;
+	info->only_fixed_element = only_fixed_element_accessed(info); 
+
+	return isl_stat_ok;  
+}
+
+/* Can "array" be mapped to private memory?
+ * That is, is it only accessed as individual elements with
+ * constant index expressions?
+ */
+static isl_bool polysa_array_can_be_private(struct polysa_array_info *array)
+{
+	if (!array)
+		return isl_bool_error;
+	return array->only_fixed_element;
+}
+
+/* Remove independence from the order constraints "order" on array "array".
+ * Since the pairs of iterations in the filter relation of an independence
+ * are guaranteed to be completely independent by the user, there is
+ * no need to ensure that live ranges are ordered along those pairs.
+ * We make an exception for local variables, though, as the independence
+ * guarantee does not apply to those.
+ *
+ * The order constraints are used in two places.
+ * Those on scalars are used in check_scalar_live_ranges to check if
+ * we need to force the scalar to be private.  Any non-local scalar
+ * should not be forced scalar if it only appears in independent loops.
+ * Those on non-scalars are added to the coincidence constraints
+ * in compute_schedule because we do not support any array expansion.
+ * Accesses to non-local arrays should not prevent a loop from being
+ * considered coincident so we should indeed remove those constraints
+ * from the order constraints.
+ */
+static __isl_give isl_union_map *remove_independences(struct polysa_prog *prog,
+	struct polysa_array_info *array, __isl_take isl_union_map *order)
+{
+	int i;
+
+	for (i = 0; i < prog->scop->pet->n_independence; ++i) {
+		struct pet_independence *pi = prog->scop->pet->independences[i];
+		if (isl_union_set_contains(pi->local, array->space))
+			continue;
+
+		order = isl_union_map_subtract(order,
+						isl_union_map_copy(pi->filter));
+	}
+
+	return order;
+}
+
+/* For each array in "prog", store the (untagged) order dependences
+ * derived from the array in array->dep_order.
+ * In particular, consider all references that access the given array
+ * and take the order dependences that have one of these references
+ * as source.  (Since an order dependence relates two references to
+ * the same array, the target of these order dependences will also
+ * be one of these references.)
+ * Additionally, store the union of these array->dep_order relations
+ * for all arrays that cannot be mapped to private memory in prog->array_order.
+ */
+static void collect_order_dependences(struct polysa_prog *prog)
+{
+	int i;
+	isl_space *space;
+	isl_union_map *accesses;
+
+	space = isl_union_map_get_space(prog->read);
+	prog->array_order = isl_union_map_empty(space);
+
+	accesses = isl_union_map_copy(prog->scop->tagged_reads);
+	accesses = isl_union_map_union(accesses,
+			    isl_union_map_copy(prog->scop->tagged_may_writes));
+	accesses = isl_union_map_universe(accesses);
+	accesses = isl_union_map_apply_range(accesses,
+					    isl_union_map_copy(prog->to_outer));
+
+	for (i = 0; i < prog->n_array; ++i) {
+		struct polysa_array_info *array = &prog->array[i];
+		isl_set *set;
+		isl_union_set *uset;
+		isl_union_map *order;
+
+		set = isl_set_universe(isl_space_copy(array->space));
+		uset = isl_union_set_from_set(set);
+		uset = isl_union_map_domain(
+		    isl_union_map_intersect_range(isl_union_map_copy(accesses),
+						    uset));
+		order = isl_union_map_copy(prog->scop->tagged_dep_order);
+		order = isl_union_map_intersect_domain(order, uset);
+		order = isl_union_map_zip(order);
+		order = isl_union_set_unwrap(isl_union_map_domain(order));
+		order = remove_independences(prog, array, order);
+		array->dep_order = order;
+
+		if (polysa_array_can_be_private(array)) // TODO: handle in the future
+			continue;
+
+		prog->array_order = isl_union_map_union(prog->array_order,
+					isl_union_map_copy(array->dep_order));
+	}
+
+	isl_union_map_free(accesses);
+}
+
+/* Construct a polysa_array_info for each array referenced by prog->scop and
+ * collect them in prog->array.
+ * 
+ * The sizes are based on the extents and the set of possibly accessed
+ * elements by "prog".
+ * If there are any member accesses involves, then they are first mapped
+ * to the outer arrays of structs.
+ * Only extract polysa_array_info entries for these outer arrays.
+ * 
+ * If we are allowing live range reordering, then also set 
+ * the dep_order field. Otherwise leve it NULL.
+ */
+isl_stat collect_array_info(struct polysa_prog *prog)
+{
+  int i;
+  isl_stat r = isl_stat_ok;
+  isl_union_set *arrays;
+
+  prog->n_array = 0;
+  prog->array = isl_calloc_array(prog->ctx, 
+          struct polysa_array_info, prog->scop->pet->n_array);
+  if (!prog->array)
+    return isl_stat_error;
+  
+  arrays = isl_union_map_range(isl_union_map_copy(prog->read));
+  arrays = isl_union_set_union(arrays, 
+        isl_union_map_range(isl_union_map_copy(prog->may_write)));
+
+  arrays = isl_union_set_apply(arrays,
+          isl_union_map_copy(prog->to_outer));
+
+  arrays = isl_union_set_coalesce(arrays);
+
+  for (i = 0; i < prog->scop->pet->n_array; ++i) {
+    isl_bool field;
+
+    field = isl_set_is_wrapping(prog->scop->pet->arrays[i]->extent);
+    if (field < 0)
+      break;
+    if (field)
+      continue;
+    if (extract_array_info(prog, &prog->array[prog->n_array++],
+          prog->scop->pet->arrays[i], arrays) < 0)
+      r = isl_stat_error;      
+  }
+  if (i < prog->scop->pet->n_array)
+    r = isl_stat_error;
+  
+  isl_union_set_free(arrays);
+
+  if (prog->scop->options->live_range_reordering)
+    collect_order_dependences(prog);
+  
+  return r;
+}
+
+/* Is "array" a read-only scalar?
+ */
+int polysa_array_is_read_only_scalar(struct polysa_array_info *array)
+{
+	return array->read_only_scalar;
+}
+
+/* Check if a gpu array is a scalar.  A scalar is a value that is not stored
+ * as an array or through a pointer reference, but as a single data element.
+ * At the moment, scalars are represented as zero-dimensional arrays.
+ * Note that the single data element may be an entire structure.
+ */
+int polysa_array_is_scalar(struct polysa_array_info *array)
+{
+	return array->n_index == 0;
+}
+
+/* Compute the set of inner array elements that may have their values
+ * preserved by "prog".  In particular, collect the array elements of
+ * arrays that are not local to "prog" and remove those elements that
+ * are definitely killed or definitely written by "prog".
+ */
+static __isl_give isl_union_set *compute_may_persist(struct polysa_prog *prog)
+{
+	int i;
+	isl_union_set *may_persist, *killed;
+	isl_union_map *must_kill;
+
+	may_persist = isl_union_set_empty(isl_set_get_space(prog->context));
+	for (i = 0; i < prog->n_array; ++i) {
+		isl_set *extent;
+
+		if (prog->array[i].local)
+			continue;
+
+		extent = isl_set_copy(prog->array[i].extent);
+		may_persist = isl_union_set_add_set(may_persist, extent);
+	}
+
+	may_persist = isl_union_set_intersect_params(may_persist,
+						isl_set_copy(prog->context));
+	may_persist = isl_union_set_apply(may_persist,
+					isl_union_map_copy(prog->to_inner));
+	must_kill = isl_union_map_copy(prog->tagged_must_kill);
+	killed = isl_union_map_range(must_kill);
+	must_kill = isl_union_map_copy(prog->must_write);
+	killed = isl_union_set_union(killed, isl_union_map_range(must_kill));
+
+	may_persist = isl_union_set_subtract(may_persist, killed);
+	return may_persist;
+}
+
+/*****************************************************************
+ * PolySA stmts related functions
+ *****************************************************************/
+static void *free_stmts(struct polysa_stmt *stmts, int n)
+{
+  int i;
+
+  if (!stmts)
+    return NULL;
+
+  for (i = 0; i < n; ++i) {
+    struct polysa_stmt_access *access, *next;
+
+    for (access = stmts[i].accesses; access; access = next) {
+      next = access->next;
+      isl_id_free(access->ref_id);
+      isl_map_free(access->access);
+      isl_map_free(access->tagged_access);
+      free(access);
+    }
+
+    isl_id_free(stmts[i].id);
+  }
+  free(stmts);
+
+  return NULL;
+}
+
+/* Has statement "stmt" been killed from "scop"?
+ * That is, is the instance set of "scop" free from any
+ * instances of "stmt"?
+ */
+static isl_bool is_stmt_killed(struct ppcg_scop *scop, struct pet_stmt *stmt)
+{
+	isl_space *space;
+	isl_set *left;
+	isl_bool empty;
+
+	if (!scop || !stmt)
+		return isl_bool_error;
+	space = isl_set_get_space(stmt->domain);
+	left = isl_union_set_extract_set(scop->domain, space);
+	empty = isl_set_plain_is_empty(left);
+	isl_set_free(left);
+
+	return empty;
+}
+
+/* Given a tagged access relation to a single array "tagged", extract it
+ * as a map, taking into account that the input may be empty.
+ * If the access relation is empty, then it does not contain
+ * any space information, so we try to recover it from the index
+ * expression.
+ * The space of the index expression is of the form I -> A,
+ * with I the statement instances and A the array, or [I -> F] -> A,
+ * with F the filters corresponding to arguments.
+ * We first drop F, if present, obtaining I -> A.
+ * Then we construct I -> R, with R the reference tag,
+ * combine the two into I -> [R -> A] and uncurry to obtain
+ * the final result [I -> R] -> A.
+ * Note that the index expression may have a lower dimension
+ * than that of the array, but this dimension is not used
+ * if the access relation is empty.
+ */
+static __isl_give isl_map *extract_single_tagged_access(
+	__isl_take isl_union_map *tagged, __isl_keep pet_expr *expr)
+{
+	int empty;
+	isl_id *id;
+	isl_space *space, *space2;
+	isl_multi_pw_aff *index;
+
+	empty = isl_union_map_is_empty(tagged);
+	if (empty < 0)
+		goto error;
+	if (!empty)
+		return isl_map_from_union_map(tagged);
+	isl_union_map_free(tagged);
+
+	index = pet_expr_access_get_index(expr);
+	space = isl_multi_pw_aff_get_space(index);
+	isl_multi_pw_aff_free(index);
+	if (isl_space_domain_is_wrapping(space))
+		space = isl_space_domain_factor_domain(space);
+	space2 = isl_space_copy(space);
+	space2 = isl_space_from_domain(isl_space_domain(space));
+	id = pet_expr_access_get_ref_id(expr);
+	space2 = isl_space_set_tuple_id(space2, isl_dim_out, id);
+	space = isl_space_range_product(space2, space);
+	space = isl_space_uncurry(space);
+
+	return isl_map_empty(space);
+error:
+	isl_union_map_free(tagged);
+	return NULL;
+}
+
+/* Does the index expression "index" of "expr" represent an access
+ * to a single element?
+ * That is, is "index" completely specified?
+ *
+ * If "expr" accesses elements from different spaces (i.e., fields
+ * of a structure), then it does not access a single element.
+ * Otherwise, if the single space of the access matches the space
+ * of "index", then the index expression is completely specified
+ * (no pointer to a lower-dimensional slice of the accessed array)
+ * and a single element is being accessed.
+ */
+static isl_bool complete_index(__isl_keep pet_expr *expr,
+	__isl_keep isl_multi_pw_aff *index)
+{
+	isl_union_map *read, *write, *all;
+	isl_map *map;
+	isl_space *space1, *space2;
+	isl_bool complete;
+
+	read = pet_expr_access_get_may_read(expr);
+	write = pet_expr_access_get_may_write(expr);
+	all = isl_union_map_union(read, write);
+	if (!all)
+		return isl_bool_error;
+	if (isl_union_map_n_map(all) != 1) {
+		isl_union_map_free(all);
+		return isl_bool_false;
+	}
+	map = isl_map_from_union_map(all);
+	space1 = isl_map_get_space(map);
+	isl_map_free(map);
+	space2 = isl_multi_pw_aff_get_space(index);
+	complete = isl_space_tuple_is_equal(space1, isl_dim_out,
+					    space2, isl_dim_out);
+	isl_space_free(space1);
+	isl_space_free(space2);
+
+	return complete;
+}
+
+/* Does "expr" access a single, fixed element (independently of the statement
+ * instance)?
+ * That is, does it have a completely specified constant index expression?
+ *
+ * Note that it is not sufficient for the index expression to be
+ * piecewise constant.  isl_multi_pw_aff_is_cst can therefore not be used.
+ */
+static isl_bool accesses_fixed_element(__isl_keep pet_expr *expr)
+{
+	int i, n;
+	isl_multi_pw_aff *index;
+	isl_bool fixed = isl_bool_true;
+
+	index = pet_expr_access_get_index(expr);
+	if (index < 0)
+		return isl_bool_error;
+	n = isl_multi_pw_aff_dim(index, isl_dim_out);
+	for (i = 0; i < n; ++i) {
+		isl_pw_aff *pa;
+
+		pa = isl_multi_pw_aff_get_pw_aff(index, 0);
+		fixed = isl_pw_aff_n_piece(pa) == 1;
+		if (fixed)
+			fixed = isl_pw_aff_is_cst(pa);
+		isl_pw_aff_free(pa);
+		if (fixed < 0 || !fixed)
+			break;
+	}
+	if (fixed >= 0 && fixed)
+		fixed = complete_index(expr, index);
+	isl_multi_pw_aff_free(index);
+
+	return fixed;
+}
+
+/* Extract a polysa_stmt_access from "expr", append it to the list
+ * that ends in *data->next_access and update the end of the list.
+ * If the access expression performs a write, then it is considered
+ * exact only if it appears in a single expression statement and
+ * if its may access relation is equal to its must access relation.
+ *
+ * The combined set of may accesses may be a union if member accesses
+ * are involved, but the entire set is derived from a single reference and
+ * therefore from a single index expression.  These accesses therefore
+ * all map to the same outer array.
+ */
+static int extract_access(__isl_keep pet_expr *expr, void *user)
+{
+	struct ppcg_extract_access_data *data = user;
+	isl_union_map *tagged;
+	struct polysa_stmt_access *access;
+	isl_ctx *ctx = pet_expr_get_ctx(expr);
+	isl_multi_pw_aff *index;
+
+	access = isl_alloc_type(ctx, struct polysa_stmt_access);
+	if (!access)
+		return -1;
+	access->next = NULL;
+	access->read = pet_expr_access_is_read(expr);
+	access->write = pet_expr_access_is_write(expr);
+	tagged = pet_expr_access_get_tagged_may_read(expr);
+	tagged = isl_union_map_union(tagged,
+				pet_expr_access_get_tagged_may_write(expr));
+	tagged = isl_union_map_apply_range(tagged,
+					isl_union_map_copy(data->any_to_outer));
+	if (!access->write) {
+		access->exact_write = 1;
+	} else if (!data->single_expression) {
+		access->exact_write = 0;
+	} else {
+		isl_union_map *must, *may;
+		may = isl_union_map_copy(tagged);
+		may = isl_union_map_domain_factor_domain(may);
+		must = pet_expr_access_get_must_write(expr);
+		access->exact_write = isl_union_map_is_equal(must, may);
+		isl_union_map_free(must);
+		isl_union_map_free(may);
+	}
+	index = pet_expr_access_get_index(expr);
+	access->n_index = isl_multi_pw_aff_dim(index, isl_dim_out);
+	isl_multi_pw_aff_free(index);
+	access->ref_id = pet_expr_access_get_ref_id(expr);
+	access->tagged_access = extract_single_tagged_access(tagged, expr);
+	access->access = isl_map_copy(access->tagged_access);
+	access->access = isl_map_domain_factor_domain(access->access);
+	access->fixed_element = accesses_fixed_element(expr);
+
+	*data->next_access = access;
+	data->next_access = &(*data->next_access)->next;
+
+	if (!access->access || access->fixed_element < 0)
+		return -1;
+
+	return 0;
+}
+
+/* Construct a linked list of polysa_stmt_access objects,
+ * one for each access expression in the statement body.
+ * "any_to_outer" maps all intermediate arrays to their outer arrays.
+ */
+static int pet_stmt_extract_accesses(struct polysa_stmt *stmt,
+  __isl_keep isl_union_map *any_to_outer)
+{
+  struct ppcg_extract_access_data data;
+
+  stmt->accesses = NULL;
+  data.next_access = &stmt->accesses;
+  data.single_expression = 
+    pet_tree_get_type(stmt->stmt->body) == pet_tree_expr;
+  data.any_to_outer = any_to_outer;
+  return pet_tree_foreach_access_expr(stmt->stmt->body,
+              &extract_access, &data);
+}
+
+void polysa_kernel_stmt_free(void *user)
+{
+  struct polysa_kernel_stmt *stmt = user;
+
+  if (!stmt)
+    return;
+
+  switch (stmt->type) {
+    case POLYSA_KERNEL_STMT_COPY:
+      isl_ast_expr_free(stmt->u.c.index);
+      isl_ast_expr_free(stmt->u.c.local_index);
+      break;
+    case POLYSA_KERNEL_STMT_DOMAIN:
+      isl_id_to_ast_expr_free(stmt->u.d.ref2expr);
+      break;
+    case POLYSA_KERNEL_STMT_SYNC:
+      break;
+  }
+
+  free(stmt);
+}
+
+/* Return an array of polysa_stmt representing the statements in "scop".
+ * Do not collect array accesses for statements that have been killed.
+ */
+struct polysa_stmt *extract_stmts(isl_ctx *ctx, struct ppcg_scop *scop,
+  __isl_keep isl_union_map *any_to_outer) 
+{
+  int i;
+  struct polysa_stmt *stmts;
+
+  stmts = isl_calloc_array(ctx, struct polysa_stmt, scop->pet->n_stmt);
+  if (!stmts)
+    return NULL;
+
+  for (i = 0; i < scop->pet->n_stmt; ++i) {
+    struct polysa_stmt *s = &stmts[i];
+    isl_bool killed;
+
+    s->id = isl_set_get_tuple_id(scop->pet->stmts[i]->domain);
+    s->stmt = scop->pet->stmts[i];
+    killed = is_stmt_killed(scop, scop->pet->stmts[i]); 
+    if (killed < 0)
+      return free_stmts(stmts, i + 1); 
+    if (killed)
+      continue;
+    if (pet_stmt_extract_accesses(s, any_to_outer) < 0) 
+      return free_stmts(stmts, i + 1);
+  }
+
+  return stmts;
+}
+
+/*****************************************************************
+ * PolySA prog related functions
+ *****************************************************************/
+struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop)
+{
+  struct polysa_prog *prog;
+  isl_space *space;
+  isl_map *id;
+
+  if (!scop)
+    return NULL;
+
+  prog = isl_calloc_type(ctx, struct polysa_prog);
+  if (!prog)
+    return NULL;
+
+  prog->ctx = ctx;
+  prog->scop = scop;
+  prog->context = isl_set_copy(scop->context);
+  prog->n_stmts = scop->pet->n_stmt;
+  prog->any_to_outer = pet_scop_compute_outer_to_any(scop->pet);
+  prog->any_to_outer = isl_union_map_reverse(prog->any_to_outer);
+  space = isl_union_map_get_space(prog->any_to_outer);
+  space = isl_space_set_from_params(space);
+  space = isl_space_add_dims(space, isl_dim_set, 1);
+  space = isl_space_map_from_set(space);
+  id = isl_map_identity(space);
+  prog->any_to_outer = isl_union_map_add_map(prog->any_to_outer, id);
+	prog->stmts = extract_stmts(ctx, scop, prog->any_to_outer); 
+	prog->read = isl_union_map_copy(scop->reads);
+	prog->may_write = isl_union_map_copy(scop->may_writes);
+	prog->must_write = isl_union_map_copy(scop->must_writes);
+	prog->tagged_must_kill = isl_union_map_copy(scop->tagged_must_kills);
+	prog->to_inner = pet_scop_compute_outer_to_inner(scop->pet);
+	prog->to_outer = isl_union_map_copy(prog->to_inner);
+	prog->to_outer = isl_union_map_reverse(prog->to_outer);
+
+  if (!prog->stmts)
+    return polysa_prog_free(prog);
+
+  if (collect_array_info(prog) < 0) 
+    return polysa_prog_free(prog);
+  prog->may_persist = compute_may_persist(prog); // TODO
+
+  return prog;
+}
+
+void *polysa_prog_free(struct polysa_prog *prog)
+{
+	if (!prog)
+		return NULL;
+	free_array_info(prog);
+	free_stmts(prog->stmts, prog->n_stmts);
+	isl_union_map_free(prog->any_to_outer);
+	isl_union_map_free(prog->to_outer);
+	isl_union_map_free(prog->to_inner);
+	isl_union_map_free(prog->read);
+	isl_union_map_free(prog->may_write);
+	isl_union_map_free(prog->must_write);
+	isl_union_map_free(prog->tagged_must_kill);
+	isl_union_map_free(prog->array_order);
+	isl_union_set_free(prog->may_persist);
+	isl_set_free(prog->context);
+	free(prog);
+
+	return NULL;
 }

@@ -18,7 +18,7 @@
 #include "polysa_vsa.h"
 
 /* This function extracts the iterators for T2S program. */
-void vsa_t2s_iter_extract(struct polysa_prog *sa, struct polysa_vsa *vsa) {
+void vsa_t2s_iter_extract(struct polysa_kernel *sa, struct polysa_vsa *vsa) {
   isl_schedule_node *band = get_outermost_permutable_node(sa->schedule);
   isl_size band_w = isl_schedule_node_band_n_member(band);
   
@@ -75,7 +75,7 @@ static struct polysa_acc **extract_wacc_from_tagged_writes(__isl_keep isl_union_
   return waccs;
 }
 
-void vsa_t2s_var_extract(struct polysa_prog *sa, struct polysa_vsa *vsa) {
+void vsa_t2s_var_extract(struct polysa_kernel *sa, struct polysa_vsa *vsa) {
   isl_union_map *tagged_reads = sa->scop->tagged_reads;
   isl_union_map *tagged_may_writes = sa->scop->tagged_may_writes;
   isl_union_map *tagged_must_writes = sa->scop->tagged_must_writes;
@@ -127,7 +127,7 @@ void vsa_t2s_var_extract(struct polysa_prog *sa, struct polysa_vsa *vsa) {
    
 }
 
-void vsa_band_width_extract(struct polysa_prog *sa, struct polysa_vsa *vsa) {
+void vsa_band_width_extract(struct polysa_kernel *sa, struct polysa_vsa *vsa) {
 
 }
 

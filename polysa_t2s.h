@@ -6,26 +6,31 @@
 
 #include "ppcg.h"
 #include "polysa_common.h"
+#include "polysa_trans.h"
 #include "gpu.h"
 
-enum polysa_dep_type {
-  POLYSA_DEP_RAW,
-  POLYSA_DEP_RAR,
-  POLYSA_DEP_WAR,
-  POLYSA_DEP_WAW
+struct t2s_stmt {
+  char *content;
 };
 
-struct polysa_dep {
-  isl_id *src; 
-  isl_id *dest;
-  isl_vec *disvec;
-  enum polysa_dep_type type;
+/* Representation of a statement inside a generated AST.
+ *
+ * "stmt" refers to the original statement.
+ * "ref2expr" maps the reference identifier of each access in
+ * the statement to an AST expression that should be printed
+ * at the place of the access.
+ */
+struct ppcg_stmt {
+	struct pet_stmt *stmt;
 
-  isl_basic_map *isl_dep;
+	isl_id_to_ast_expr *ref2expr;
+};
 
-  /* Iteration domain in scheduling dimensions. */
-  isl_set *src_sched_domain;
-  isl_set *dest_sched_domain;
+struct polysa_t2s_stmt {
+  struct ppcg_stmt *stmt;
+  
+  /* T2S */
+  struct t2s_stmt *t_stmt;
 };
 
 struct t2s_stmt_data {
@@ -133,7 +138,7 @@ struct t2s_data {
 
   isl_ctx *ctx;
   
-  struct polysa_prog *prog;
+  struct polysa_kernel *prog;
 
   /* Flow deps. */
   struct polysa_dep **deps;

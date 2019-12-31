@@ -72,6 +72,15 @@ struct ppcg_options {
 
   /* Phases of T2S codegen for tiled program. */
   int t2s_tile_phase; 
+
+  /* Take advantage of FPGA local memory. */
+  int use_local_memory;
+
+  /* Maximal amount of local memory. */
+  int max_local_memory;
+
+  /* Unroll the code for copying to/from local memory */
+  int unroll_copy_local;
   /* PolySA Extended */
 
 	/* Generate OpenMP macros (C target only). */

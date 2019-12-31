@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "gpu_group.h": "c",
+    "*.tcc": "c",
+    "ostream": "c"
+  }
+}

@@ -3,8 +3,6 @@
  * Copyright 2012-2014 Ecole Normale Superieure
  * Copyright 2015      Sven Verdoolaege
  *
- * Use of this software is governed by the MIT license
- *
  * Written by Sven Verdoolaege, INRIA Saclay - Ile-de-France,
  * Parc Club Orsay Universite, ZAC des vignes, 4 rue Jacques Monod,
  * 91893 Orsay, France
