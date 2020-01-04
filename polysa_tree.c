@@ -47,6 +47,13 @@ static int node_is_local(__isl_keep isl_schedule_node *node)
   return is_marked(node, "local");
 }
 
+/* Is "node" a mark node with an identifier called "kernel"?
+ */
+static int node_is_kernel(__isl_keep isl_schedule_node *node)
+{
+  return is_marked(node, "kernel");
+}
+
 /* Assuming "node" is a filter node, does it correspond to the branch
  * that contains the "array" mark, i.e., does it contain any elements in
  * "core"?
@@ -109,7 +116,26 @@ static __isl_give isl_schedule_node *core_child(
     "core child not found", return isl_schedule_node_free(node));
 }
 
-/* Move down the branch between "kernel" and "arrray" until
+/* Move down the branch until the "kernel" mark is reached. 
+ * In PolySA, only one single kernel is identified, and it lies on the 
+ * linear branch below the domain node. Therefore, we can safely
+ * traverse down the branch until the "kernel" mark is found.
+ */
+__isl_give isl_schedule_node *polysa_tree_move_down_to_kernel(
+  __isl_take isl_schedule_node *node) 
+{
+  int is_kernel;
+
+  while ((is_kernel = node_is_kernel(node)) == 0)
+    node = isl_schedule_node_child(node, 0); 
+
+  if (is_kernel < 0)
+    node = isl_schedule_node_free(node);
+
+  return node;
+}
+
+/* Move down the branch between "kernel" and "array" until
  * the "local" mark is reached, where the branch containing the "local"
  * mark is identified by the domain elements in "core".
  */
@@ -229,12 +255,12 @@ __isl_give isl_schedule_node *polysa_tree_move_up_to_kernel(
   int is_kernel;
 
   while ((is_kernel = polysa_tree_node_is_kernel(node)) == 0) {
-    // debug
-    isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-    p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-    p = isl_printer_print_schedule_node(p, node);
-    printf("\n");
-    // debug
+//    // debug
+//    isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//    p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//    p = isl_printer_print_schedule_node(p, node);
+//    printf("\n");
+//    // debug
     node = isl_schedule_node_parent(node);
   }
   if (is_kernel < 0)

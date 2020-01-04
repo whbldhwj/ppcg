@@ -537,8 +537,8 @@ static __isl_give isl_printer *print_kernel_var(__isl_take isl_printer *p,
 	int j;
 
 	p = isl_printer_start_line(p);
-	if (var->type == POLYSA_ACCESS_SHARED)
-		p = isl_printer_print_str(p, "__shared__ ");
+	if (var->type == POLYSA_ACCESS_LOCAL)
+		p = isl_printer_print_str(p, "__local__ ");
 	p = isl_printer_print_str(p, var->array->type);
 	p = isl_printer_print_str(p, " ");
 	p = isl_printer_print_str(p,  var->name);

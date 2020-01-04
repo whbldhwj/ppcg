@@ -181,6 +181,9 @@ isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa)
     isl_schedule_node_free(node);
     return isl_stat_error;
   }
+  for (int i = 0; i < tile_len; i++) {
+    sa->sa_dim[i] = tile_size[i];
+  }
   node = polysa_tile_band(node, tile_size);
 
   /* Add the array marker */
@@ -995,7 +998,7 @@ struct polysa_kernel **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedu
         sa->type = POLYSA_SA_TYPE_SYNC;
 
         /* Update the array dimension. */
-        sa->array_dim = dim;
+        sa->n_sa_dim = dim;
         sa->array_part_w = 0;
         sa->space_w = dim;
         sa->time_w = band_w - dim;
@@ -1030,7 +1033,7 @@ struct polysa_kernel **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedu
             sa->type = POLYSA_SA_TYPE_SYNC;
 
             /* Update the array dimension. */
-            sa->array_dim = dim;
+            sa->n_sa_dim = dim;
             sa->array_part_w = 0;
             sa->space_w = dim;
             sa->time_w = band_w - dim;
@@ -1074,7 +1077,7 @@ struct polysa_kernel **sa_space_time_transform_at_dim_sync(__isl_keep isl_schedu
                 sa->type = POLYSA_SA_TYPE_SYNC;
 
                 /* Update the array dimension. */
-                sa->array_dim = dim;
+                sa->n_sa_dim = dim;
                 sa->array_part_w = 0;
                 sa->space_w = dim;
                 sa->time_w = band_w - dim;
@@ -1183,7 +1186,7 @@ struct polysa_kernel **sa_space_time_transform_at_dim_async(__isl_keep isl_sched
         sa->type = POLYSA_SA_TYPE_ASYNC;
 
         /* Update the array dimension. */
-        sa->array_dim = dim;
+        sa->n_sa_dim = dim;
         sa->array_part_w = 0;
         sa->space_w = dim;
         sa->time_w = band_w - dim;
@@ -1218,7 +1221,7 @@ struct polysa_kernel **sa_space_time_transform_at_dim_async(__isl_keep isl_sched
             sa->type = POLYSA_SA_TYPE_ASYNC;
 
             /* Update the array dimension. */
-            sa->array_dim = dim;
+            sa->n_sa_dim = dim;
             sa->array_part_w = 0;
             sa->space_w = dim;
             sa->time_w = band_w - dim;
@@ -1262,7 +1265,7 @@ struct polysa_kernel **sa_space_time_transform_at_dim_async(__isl_keep isl_sched
                 sa->type = POLYSA_SA_TYPE_ASYNC;
 
                 /* Update the array dimension. */
-                sa->array_dim = dim;
+                sa->n_sa_dim = dim;
                 sa->array_part_w = 0;
                 sa->space_w = dim;
                 sa->time_w = band_w - dim;
@@ -2148,6 +2151,64 @@ static isl_stat create_kernel_vars(struct polysa_kernel *kernel)
 	return isl_stat_ok;
 }
 
+/* Compute the effective sa size as a list of the sizes in each dimension.
+ *
+ * The sa size specified by the user or set by default
+ * in read_array_part_tile_sizes() and applied by the PE filter,
+ * may be too large for the given code in the sense that
+ * it may contain PEs that don't need to execute anything.
+ * We therefore don't return this sa size, but instead the
+ * smallest grid size that ensures that all blocks that actually
+ * execute code are included in the grid.
+ *
+ * We first extract a description of the grid, i.e., the possible values
+ * of the PE ids, from the domain elements in "domain" and
+ * kernel->pe_filter.
+ * The PE ids are parameters in kernel->pe_filter.
+ * We simply need to change them into set dimensions.
+ *
+ * Then, for each PE dimension, we compute the maximal value of the PE id
+ * and add one.
+ */
+static __isl_give isl_multi_pw_aff *extract_sa_grid_size(
+	struct polysa_kernel *kernel, __isl_take isl_union_set *domain)
+{
+	int i;
+	isl_set *grid;
+	isl_set *context;
+	isl_multi_pw_aff *size;
+
+	domain = isl_union_set_intersect(domain,
+				    isl_union_set_copy(kernel->pe_filter));
+
+	grid = isl_union_set_params(domain);
+	grid = isl_set_from_params(grid);
+	grid = isl_set_add_dims(grid, isl_dim_set, kernel->n_sa_dim);
+
+	for (i = 0; i < kernel->n_sa_dim; ++i) {
+		int pos;
+		isl_id *id;
+
+		if (!grid)
+			return NULL;
+
+		id = isl_id_list_get_id(kernel->pe_ids, i);
+		pos = isl_set_find_dim_by_id(grid, isl_dim_param, id);
+		isl_id_free(id);
+		if (pos < 0)
+			isl_die(isl_set_get_ctx(grid), isl_error_internal,
+				"missing constraints on PE identifier",
+				grid = isl_set_free(grid));
+		grid = isl_set_equate(grid, isl_dim_param, pos, isl_dim_set, i);
+		grid = isl_set_project_out(grid, isl_dim_param, pos, 1);
+	}
+
+	grid = isl_set_coalesce(grid);
+	size = ppcg_size_from_extent(grid);
+	context = isl_set_params(isl_set_copy(kernel->context));
+	return isl_multi_pw_aff_gist(size, context);
+}
+
 /* Compute the effective grid size as a list of the sizes in each dimension.
  *
  * The grid size specified by the user or set by default
@@ -2234,6 +2295,74 @@ static __isl_give isl_multi_pw_aff *extract_grid_size(
 //	return isl_multi_pw_aff_gist(size, context);
 }
 
+static __isl_give isl_schedule_node *sa_add_copies(
+    struct polysa_gen *gen, __isl_take isl_schedule_node *node) 
+{
+  struct polysa_kernel *kernel; 
+  isl_id *id;
+  isl_set *host_domain;
+  isl_union_pw_multi_aff *contraction;
+  int single_statement;
+  
+  id = isl_schedule_node_mark_get_id(node);
+  kernel = (struct polysa_kernel *)isl_id_get_user(id);
+  host_domain = kernel->host_domain;  
+  single_statement = kernel->single_statement;
+
+  if (polysa_group_references(kernel, node) < 0) 
+    node = isl_schedule_node_free(node);
+  /* Localize the array bounds using parameters from the host domain */
+  localize_bounds(kernel, host_domain); 
+  isl_set_free(host_domain);
+
+  check_local_memory_bound(kernel); 
+  mark_global_arrays(kernel); 
+  compute_group_tilings(kernel); 
+
+  /* Save a copy of copy_schedule */
+  node = polysa_tree_move_down_to_array(node, kernel->core);
+  kernel->copy_schedule_dim = isl_schedule_node_get_schedule_depth(node);
+  kernel->copy_schedule = 
+    isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(node);
+  contraction = isl_union_pw_multi_aff_copy(kernel->contraction);
+  kernel->copy_schedule = 
+    isl_union_pw_multi_aff_pullback_union_pw_multi_aff(
+        kernel->copy_schedule, contraction);
+
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+
+  node = polysa_tree_move_up_to_kernel(node);
+
+  /* Add the copy statements. */
+  node = add_copies(kernel, node); 
+
+  /* Delete the local node. */
+  node = polysa_tree_move_down_to_local(node, kernel->core); 
+  node = isl_schedule_node_delete(node);
+
+  node = polysa_tree_move_up_to_kernel(node);
+
+  if (create_kernel_vars(kernel) < 0) 
+    node = isl_schedule_node_free(node);
+
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+
+  if (!single_statement)
+    node = isl_schedule_node_parent(node);
+
+  isl_id_free(id);
+//  if (!id)
+//    polysa_kernel_free(kernel);
+
+  return node;
+}
+
 /* Create polysa_kernel represents the domain isntances that reach "node" and 
  * insert a mark node pointing to the polyhedral_kernel before "node".
  *
@@ -2304,12 +2433,12 @@ static __isl_give isl_schedule_node *mark_kernels(
   node = isl_schedule_node_child(node, 0);
   kernel = sa_opt;
 
-//  // debug
-//  isl_printer *p = isl_printer_to_file(gen->ctx, stdout);
-//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  // debug
+  isl_printer *p = isl_printer_to_file(gen->ctx, stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
 //  p = isl_printer_print_schedule_node(p, node);
 //  printf("\n");
-//  // debug
+  // debug
 
   /* Insert "local" mark. */
   node = polysa_tree_insert_local_before_array(node);
@@ -2325,6 +2454,7 @@ static __isl_give isl_schedule_node *mark_kernels(
   single_statement = isl_union_set_n_set(domain) == 1;
 
   /* Prepare some metadata. */
+  kernel->single_statement = single_statement;
   kernel->prog = gen->prog;
   kernel->options = gen->options;
   kernel->context = extract_context(node, gen->prog);
@@ -2348,6 +2478,7 @@ static __isl_give isl_schedule_node *mark_kernels(
 
   host_schedule = isl_schedule_node_get_prefix_schedule_union_map(node);
   host_domain = isl_set_from_union_set(isl_union_map_range(host_schedule));
+  kernel->host_domain = host_domain;
 
   /* Make all the host loops atomic so that kernel is only called once. */
   node = atomic_ancestors(node);
@@ -2367,57 +2498,328 @@ static __isl_give isl_schedule_node *mark_kernels(
   /* Current at the kernel mark, no need to move up */
   // node = polysa_tree_move_up_to_kernel(node);
 
-  if (polysa_group_references(kernel, node) < 0) 
-    node = isl_schedule_node_free(node);
-  /* Localize the array bounds using parameters from the host domain */
-  localize_bounds(kernel, host_domain); 
-  isl_set_free(host_domain);
-
-  check_local_memory_bound(kernel); 
-  mark_global_arrays(kernel); 
-  compute_group_tilings(kernel); 
-
-  /* Save a copy of copy_schedule */
-  node = polysa_tree_move_down_to_array(node, kernel->core);
-  kernel->copy_schedule_dim = isl_schedule_node_get_schedule_depth(node);
-  kernel->copy_schedule = 
-    isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(node);
-  contraction = isl_union_pw_multi_aff_copy(kernel->contraction);
-  kernel->copy_schedule = 
-    isl_union_pw_multi_aff_pullback_union_pw_multi_aff(
-        kernel->copy_schedule, contraction);
-
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
-
-  node = polysa_tree_move_up_to_kernel(node);
-  node = add_copies(kernel, node); 
-
-  /* Delete the local node */
-  node = polysa_tree_move_down_to_local(node, kernel->core); 
-  node = isl_schedule_node_delete(node);
-
-  node = polysa_tree_move_up_to_kernel(node);
-
-  if (create_kernel_vars(kernel) < 0) 
-    node = isl_schedule_node_free(node);
-
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
-
-  if (!single_statement)
-    node = isl_schedule_node_parent(node);
-//  node = isl_schedule_node_parent(node);
+//  /* The code below adds the copy statements. */
+//  if (polysa_group_references(kernel, node) < 0) 
+//    node = isl_schedule_node_free(node);
+//  /* Localize the array bounds using parameters from the host domain */
+//  localize_bounds(kernel, host_domain); 
+//  isl_set_free(host_domain);
+//
+//  check_local_memory_bound(kernel); 
+//  mark_global_arrays(kernel); 
+//  compute_group_tilings(kernel); 
+//
+//  /* Save a copy of copy_schedule */
+//  node = polysa_tree_move_down_to_array(node, kernel->core);
+//  kernel->copy_schedule_dim = isl_schedule_node_get_schedule_depth(node);
+//  kernel->copy_schedule = 
+//    isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(node);
+//  contraction = isl_union_pw_multi_aff_copy(kernel->contraction);
+//  kernel->copy_schedule = 
+//    isl_union_pw_multi_aff_pullback_union_pw_multi_aff(
+//        kernel->copy_schedule, contraction);
+//
+////  // debug
+////  p = isl_printer_print_schedule_node(p, node);
+////  printf("\n");
+////  // debug
+//
+//  node = polysa_tree_move_up_to_kernel(node);
+//
+//  /* Add the copy statements. */
+//  node = add_copies(kernel, node); 
+//
+//  /* Delete the local node. */
+//  node = polysa_tree_move_down_to_local(node, kernel->core); 
+//  node = isl_schedule_node_delete(node);
+//
+//  node = polysa_tree_move_up_to_kernel(node);
+//
+//  if (create_kernel_vars(kernel) < 0) 
+//    node = isl_schedule_node_free(node);
+//
+////  // debug
+////  p = isl_printer_print_schedule_node(p, node);
+////  printf("\n");
+////  // debug
+//
+//  if (!single_statement)
+//    node = isl_schedule_node_parent(node);
+////  node = isl_schedule_node_parent(node);
 
   isl_id_free(id);
   if (!id)
     polysa_kernel_free(kernel);
 
   return node;
+}
+
+/* Construct an isl_multi_val for use as tile sizes for tiling "node"
+ * from the elements in "tile_size".
+ */
+static __isl_give isl_multi_val *construct_band_tiles_sizes(
+	__isl_keep isl_schedule_node *node, int *tile_size)
+{
+	isl_space *space;
+
+	if (!node)
+		return NULL;
+
+	space = isl_schedule_node_band_get_space(node);
+	return ppcg_multi_val_from_int_list(space, tile_size);
+}
+
+/* Return an isl_multi_aff, with as elements the parameters in "space"
+ * that have the names specified by the elements in "names".
+ * If (some of) these parameters do not already appear in "space",
+ * then they are added first.
+ */
+static __isl_give isl_multi_aff *parameter_vector(__isl_take isl_space *space,
+	__isl_keep isl_id_list *names)
+{
+	int i, n;
+	isl_local_space *ls;
+	isl_multi_aff *ma;
+
+	if (!names)
+		space = isl_space_free(space);
+
+	n = isl_id_list_n_id(names);
+	for (i = 0; i < n; ++i) {
+		int pos;
+		isl_id *id;
+
+		id = isl_id_list_get_id(names, i);
+		pos = isl_space_find_dim_by_id(space, isl_dim_param, id);
+		if (pos >= 0) {
+			isl_id_free(id);
+			continue;
+		}
+		pos = isl_space_dim(space, isl_dim_param);
+		space = isl_space_add_dims(space, isl_dim_param, 1);
+		space = isl_space_set_dim_id(space, isl_dim_param, pos, id);
+	}
+	ma = isl_multi_aff_zero(isl_space_copy(space));
+	ls = isl_local_space_from_space(isl_space_domain(space));
+	for (i = 0; i < n; ++i) {
+		int pos;
+		isl_id *id;
+		isl_aff *aff;
+
+		id = isl_id_list_get_id(names, i);
+		pos = isl_space_find_dim_by_id(space, isl_dim_param, id);
+		isl_id_free(id);
+		aff = isl_aff_var_on_domain(isl_local_space_copy(ls),
+					    isl_dim_param, pos);
+		ma = isl_multi_aff_set_aff(ma, i, aff);
+	}
+	isl_local_space_free(ls);
+
+	return ma;
+}
+
+/* Return constraints on the domain elements that equate a sequence of
+ * parameters called "names", to the partial schedule
+ * of "node" modulo the integers in "size".
+ * The number of elements in the array "size" should be equal
+ * to the number of elements in "names".
+ * The number of members of the band node "node" should be smaller
+ * than or equal to this number.  If it is smaller, then the first
+ * elements of "names" are equated to zero.
+ */
+static __isl_give isl_union_set *set_schedule_modulo(
+	__isl_keep isl_schedule_node *node, __isl_keep isl_id_list *names,
+	int *size)
+{
+	int n, n_zero;
+	isl_space *space;
+	isl_multi_aff *ma;
+	isl_multi_union_pw_aff *mupa, *mupa2;
+	isl_multi_val *mv;
+	isl_union_set *domain;
+
+	if (!node)
+		return NULL;
+	n = isl_id_list_n_id(names);
+	if (n == 0)
+		return isl_schedule_node_get_universe_domain(node);
+	n_zero = n - isl_schedule_node_band_n_member(node);
+
+	mupa = isl_schedule_node_band_get_partial_schedule(node);
+	mv = construct_band_tiles_sizes(node, size + n_zero);
+	mupa = isl_multi_union_pw_aff_mod_multi_val(mupa, mv);
+//  // debug
+//  printf("%d %d\n", size[0], size[1]);
+//  isl_printer *printer = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//  isl_printer_print_multi_val(printer, mv);
+//  printf("\n");
+//  isl_printer_print_multi_union_pw_aff(printer, mupa);
+//  printf("\n");
+//  // debug
+
+	space = isl_multi_union_pw_aff_get_space(mupa);
+	space = isl_space_params(space);
+	space = isl_space_set_from_params(space);
+	space = isl_space_add_dims(space, isl_dim_set, n_zero);
+	ma = isl_multi_aff_zero(space);
+
+	domain = isl_schedule_node_get_universe_domain(node);
+	mupa2 = isl_multi_union_pw_aff_multi_aff_on_domain(
+						isl_union_set_copy(domain), ma);
+	mupa = isl_multi_union_pw_aff_range_product(mupa2, mupa);
+
+	space = isl_multi_union_pw_aff_get_space(mupa);
+	ma = parameter_vector(space, names);
+
+	mupa2 = isl_multi_union_pw_aff_multi_aff_on_domain(domain, ma);
+	mupa = isl_multi_union_pw_aff_sub(mupa, mupa2);
+
+	return isl_multi_union_pw_aff_zero_union_set(mupa);
+}
+
+/* If the band node "node" has more than "n" members, then split off
+ * the first "n" of them.
+ */
+static __isl_give isl_schedule_node *split_band(
+	__isl_take isl_schedule_node *node, int n)
+{
+	int dim;
+
+	dim = isl_schedule_node_band_n_member(node);
+	if (n < dim)
+		node = isl_schedule_node_band_split(node, n);
+
+	return node;
+}
+
+/* Add "len" parameters p[i] with identifiers "ids" and intersect "set"
+ * with
+ *
+ *	{ : 0 <= p[i] < size[i] }
+ *
+ * or an overapproximation.
+ */
+static __isl_give isl_set *add_bounded_parameters_dynamic(
+	__isl_take isl_set *set, __isl_keep isl_multi_pw_aff *size,
+	__isl_keep isl_id_list *ids)
+{
+	int i, len;
+	unsigned nparam;
+	isl_space *space;
+	isl_local_space *ls;
+
+	len = isl_multi_pw_aff_dim(size, isl_dim_out);
+	nparam = isl_set_dim(set, isl_dim_param);
+	set = isl_set_add_dims(set, isl_dim_param, len);
+
+	for (i = 0; i < len; ++i) {
+		isl_id *id;
+
+		id = isl_id_list_get_id(ids, i);
+		set = isl_set_set_dim_id(set, isl_dim_param, nparam + i, id);
+	}
+
+	space = isl_space_params(isl_set_get_space(set));
+	ls = isl_local_space_from_space(space);
+	for (i = 0; i < len; ++i) {
+		isl_pw_aff *param, *size_i, *zero;
+		isl_set *bound;
+
+		param = isl_pw_aff_var_on_domain(isl_local_space_copy(ls),
+						isl_dim_param, nparam + i);
+
+		size_i = isl_multi_pw_aff_get_pw_aff(size, i);
+		bound = isl_pw_aff_lt_set(isl_pw_aff_copy(param), size_i);
+		bound = isl_set_from_basic_set(isl_set_simple_hull(bound));
+		set = isl_set_intersect_params(set, bound);
+
+		zero = isl_pw_aff_zero_on_domain(isl_local_space_copy(ls));
+		bound = isl_pw_aff_ge_set(param, zero);
+		set = isl_set_intersect_params(set, bound);
+	}
+	isl_local_space_free(ls);
+
+	return set;
+}
+
+/* Insert a context node at "node" introducing the PE identifiers 
+ * along with their bounds, which are stored in kernel->sa_grid_size.
+ */
+static __isl_give isl_schedule_node *insert_context(struct polysa_kernel *kernel,
+	__isl_take isl_schedule_node *node)
+{
+	isl_set *context;
+
+	context = isl_set_universe(isl_set_get_space(kernel->context));
+
+	context = add_bounded_parameters_dynamic(context,
+					kernel->sa_grid_size, kernel->pe_ids);
+//	context = add_bounded_parameters(context,
+//					kernel->block_dim, kernel->thread_ids);
+
+	node = isl_schedule_node_insert_context(node, context);
+
+	return node;
+}
+
+/* Modify the input "schedule" to describe the PE module.
+ * Set the schedule dimensions of space loops as parameters.
+ *
+ * Allocate scratchpad memory for all accesses that require local memory.
+ */
+__isl_give isl_schedule *sa_modify_PE_schedule(struct polysa_gen *gen, __isl_take isl_schedule *schedule)
+{
+  isl_schedule_node *node;
+  isl_id *id;
+  struct polysa_kernel *kernel;
+  isl_schedule *new_schedule;
+  int single_statement;
+  isl_union_set *domain;
+
+  node = isl_schedule_get_root(schedule);
+  node = polysa_tree_move_down_to_kernel(node);
+  
+  id = isl_schedule_node_mark_get_id(node);
+  kernel = (struct polysa_kernel *)isl_id_get_user(id);
+  single_statement = kernel->single_statement;
+  domain = isl_schedule_node_get_domain(node);
+
+  node = polysa_tree_move_down_to_array(node, kernel->core);
+  node = isl_schedule_node_child(node, 0);
+  node = split_band(node, kernel->n_sa_dim);
+  kernel->pe_ids = ppcg_scop_generate_names(gen->prog->scop,
+      kernel->n_sa_dim, "p");
+  kernel->pe_filter = set_schedule_modulo(node, kernel->pe_ids,
+      kernel->sa_dim);
+  kernel->sa_grid_size = extract_sa_grid_size(kernel, isl_union_set_copy(domain));
+  // debug
+  isl_printer *p = isl_printer_to_file(gen->ctx, stdout);
+  p = isl_printer_print_multi_pw_aff(p, kernel->sa_grid_size);
+  printf("\n");
+  isl_space *t_space = isl_multi_pw_aff_get_space(kernel->sa_grid_size);
+  p = isl_printer_print_space(p, t_space);
+  printf("\n");
+  // debug
+
+  node = polysa_tree_move_up_to_kernel(node);
+  isl_schedule_node_child(node, 0);
+  node = insert_context(kernel, node); 
+  node = polysa_tree_move_down_to_array(node, kernel->core);
+  node = isl_schedule_node_child(node, 0);
+  node = isl_schedule_node_insert_filter(node, 
+      isl_union_set_copy(kernel->pe_filter));
+
+  isl_schedule_free(schedule);
+  new_schedule = isl_schedule_node_get_schedule(node);
+  isl_schedule_node_free(node);
+
+  // debug
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  p = isl_printer_print_schedule(p, new_schedule);
+  printf("\n");
+  // debug
+
+  return new_schedule;
 }
 
 /* Select the best "schedule" for mapping to FPGA.
@@ -2442,6 +2844,7 @@ __isl_give isl_schedule *sa_map_to_device(struct polysa_gen *gen,
   isl_union_map *prefix;
   isl_union_pw_multi_aff *contraction;
   struct polysa_prog *prog;
+  isl_schedule *hw_schedule;
 
   context = isl_set_copy(gen->prog->context);
   context = isl_set_from_params(context);
@@ -2464,13 +2867,37 @@ __isl_give isl_schedule *sa_map_to_device(struct polysa_gen *gen,
   prefix = isl_union_map_preimage_domain_union_pw_multi_aff(prefix,
             contraction);
   
-  node = mark_kernels(gen, node); 
+  node = mark_kernels(gen, node);
+
   // debug
   isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
   p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
   p = isl_printer_print_schedule_node(p, node);
   printf("\n");
   // debug
+  
+  schedule = isl_schedule_node_get_schedule(node);
+  
+  /* Build new schedules for each hardware components, add a mark
+   * after the "kernel" mark with the name of each hardware module.
+   */
+  gen->n_schedules = 2;
+  gen->schedules = isl_calloc_array(gen->ctx, isl_schedule*, gen->n_schedules);
+  gen->schedules[0] = schedule;
+  gen->schedules[1] = isl_schedule_dup(schedule);
+
+  for (int i = 1; i < gen->n_schedules; i++) {
+    // isl_schedule_node *node = isl_schedule_get_root(gen->schedules[i]);
+    // TODO: modify the schedule for the given hardware module 
+    gen->schedules[i] = sa_modify_PE_schedule(gen, gen->schedules[i]);
+  }
+
+  // test added
+  node = isl_schedule_get_root(gen->schedules[1]);
+  node = polysa_tree_move_down_to_kernel(node);
+  // test added
+
+  node = sa_add_copies(gen, node);
   node = sa_add_to_from_device(node, domain, prefix, gen->prog);
   node = isl_schedule_node_root(node);
   node = isl_schedule_node_child(node, 0);
@@ -2484,7 +2911,12 @@ __isl_give isl_schedule *sa_map_to_device(struct polysa_gen *gen,
   p = isl_printer_print_schedule_node(p, node);
   printf("\n");
   // debug
- 
+
+  // debug
+  p = isl_printer_print_schedule(p, gen->schedules[1]);
+  printf("\n");
+  // debug
+
   schedule = isl_schedule_node_get_schedule(node);
   isl_schedule_node_free(node);
 
@@ -2576,22 +3008,23 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
      */    
     schedule = sa_map_to_device(gen, schedule);
     /* Generate the AST tree. */
-    gen->tree = sa_generate_code(gen, schedule);
+    gen->n_trees = 2;
+    gen->trees = isl_calloc_array(gen->ctx, isl_ast_node*, gen->n_trees);
+    gen->trees[0] = sa_generate_code(gen, schedule);
 
     // debug
-    isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(gen->tree), stdout);
+    isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(gen->trees[0]), stdout);
     p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
-    p_d = isl_printer_print_ast_node(p_d, gen->tree);
+    p_d = isl_printer_print_ast_node(p_d, gen->trees[0]);
     printf("\n");
     // debug
 
     p = ppcg_set_macro_names(p);
     p = ppcg_print_exposed_declarations(p, prog->scop);
-    p = gen->print(p, gen->prog, gen->tree, &gen->types, 
+    p = gen->print(p, gen->prog, gen->trees[0], &gen->types, 
             gen->print_user);
 
-
-    isl_ast_node_free(gen->tree);
+    isl_ast_node_free(gen->trees[0]);
   }
 
   // TODO

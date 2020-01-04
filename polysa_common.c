@@ -845,7 +845,10 @@ struct polysa_kernel *polysa_kernel_copy(struct polysa_kernel *sa)
   sa_dup->ctx = sa->ctx;
   sa_dup->schedule = isl_schedule_copy(sa->schedule);
   sa_dup->scop = sa->scop;
-  sa_dup->array_dim = sa->array_dim;
+  sa_dup->n_sa_dim = sa->n_sa_dim;
+  for (int i = 0; i < sa->n_sa_dim; i++) {
+    sa_dup->sa_dim[i] = sa->sa_dim[i];
+  }
   sa_dup->array_part_w = sa->array_part_w;
   sa_dup->space_w = sa->space_w;
   sa_dup->time_w = sa->time_w;
@@ -864,7 +867,7 @@ struct polysa_kernel *polysa_kernel_from_schedule(__isl_take isl_schedule *sched
   struct polysa_kernel *sa = (struct polysa_kernel *)malloc(sizeof(struct polysa_kernel));
   sa->ctx = isl_schedule_get_ctx(schedule);
   sa->schedule = schedule;
-  sa->array_dim = 0;
+  sa->n_sa_dim = 0;
   sa->array_part_w = 0;
   sa->space_w = 0;
   sa->time_w = 0;

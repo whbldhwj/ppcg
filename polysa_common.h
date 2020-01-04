@@ -87,12 +87,15 @@ struct polysa_kernel {
   struct polysa_prog *prog;
   struct ppcg_options *options;
 
-  int array_dim;
+  int n_sa_dim;
+  int sa_dim[3];
   int array_part_w;
   int space_w;
   int time_w;
 
   int type; // POLYSA_SA_TYPE_ASYNC | POLYSA_SA_TYPE_SYNC
+
+  isl_multi_pw_aff *sa_grid_size;
 
   /* User specified (array_part/latency_hiding/simd) sizes for each kernel. */
   isl_union_map *sizes;
@@ -142,6 +145,15 @@ struct polysa_kernel {
   isl_id_list *block_ids;
   /* contains the list of thread identifiers for this kernel. */
   isl_id_list *thread_ids;
+  /* contains the list of PE identifers for this kernel. */
+  isl_id_list *pe_ids;
+
+  /* contains constraints on the domain elements in the kernel
+   * that encode the mapping to PE identifiers, where the PE identifiers
+   * are represented by "n_array" parameters with the names as the elements
+   * of "pe_ids".
+   */
+  isl_union_set *pe_filter;
 
   /* The first n_grid elements of grid_dim represent the specified size of 
    * the grid.
@@ -179,6 +191,10 @@ struct polysa_kernel {
    * that are involved in the kernel. 
    */
   isl_union_set *expanded_domain;
+
+  isl_set *host_domain;
+
+  int single_statement;
 };
 
 /* An access to an outer array element or an iterator.
@@ -429,7 +445,12 @@ struct polysa_gen {
 
   struct polysa_prog *prog;  
   /* The generated AST. */
-  isl_ast_node *tree;
+  isl_ast_node **trees;
+  int n_trees;
+
+  /* The modified schedule. */
+  isl_schedule **schedules;
+  int n_schedules;
 
   /* The sequence of types for which a definition has been printed. */
   struct polysa_types types;
