@@ -208,6 +208,7 @@ __isl_give isl_union_map *remove_local_accesses(
 //  p = isl_printer_print_union_map(p, prog->scop->tagged_dep_flow);
 //  printf("\n");
 //  // debug
+  /* Derive the local dependence set. */
 	local = isl_union_map_intersect(local,
 			isl_union_map_copy(prog->scop->tagged_dep_flow));
 //  // debug
@@ -242,13 +243,15 @@ __isl_give isl_union_map *remove_local_accesses(
 	if (read) {
 		tag_set = isl_union_map_range(external);
 		external = wrapped_reference_to_access(tag_set, tagged);
-		external = isl_union_map_union(external,
-				isl_union_map_copy(prog->scop->live_in));
+    /* Temporarily commented out, we don't consider live-in so far. */
+//		external = isl_union_map_union(external,
+//				isl_union_map_copy(prog->scop->live_in));
 	} else {
 		tag_set = isl_union_map_domain(external);
 		external = wrapped_reference_to_access(tag_set, tagged);
-		external = isl_union_map_union(external,
-				isl_union_map_copy(prog->scop->live_out));
+    /* Temporarily commented out, we don't consider live-out so far. */
+//		external = isl_union_map_union(external,
+//				isl_union_map_copy(prog->scop->live_out));
 	}
 
 	if (empty < 0)

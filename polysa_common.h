@@ -39,7 +39,26 @@ enum polysa_dep_type {
   POLYSA_DEP_RAW,
   POLYSA_DEP_RAR,
   POLYSA_DEP_WAR,
-  POLYSA_DEP_WAW
+  POLYSA_DEP_WAW,
+  POLYSA_DEP_UNKNOWN
+};
+
+enum polysa_io_type {
+  POLYSA_INT_IO,
+  POLYSA_EXT_IO,
+  POLYSA_UNKNOWN_IO
+};
+
+enum polysa_module_type {
+  PE_MODULE,
+  IO_MODULE
+};
+
+enum polysa_group_type {
+  POLYSA_IO_GROUP,
+  POLYSA_PE_GROUP,
+  POLYSA_DRAIN_GROUP,
+  POLYSA_UNKNOWN_GROUP
 };
 
 struct polysa_dep {
@@ -147,13 +166,20 @@ struct polysa_kernel {
   isl_id_list *thread_ids;
   /* contains the list of PE identifers for this kernel. */
   isl_id_list *pe_ids;
+  /* contains the list of data transferer identifiers for this kernel. */
+  isl_id_list *dt_ids;
 
   /* contains constraints on the domain elements in the kernel
    * that encode the mapping to PE identifiers, where the PE identifiers
-   * are represented by "n_array" parameters with the names as the elements
+   * are represented by "space_w" parameters with the names as the elements
    * of "pe_ids".
    */
   isl_union_set *pe_filter;
+  /* contains constraints on the domain elements in the kernel 
+   * that encode the mapping to data transferer identifiers, where the identifiers
+   * are represented by the parameter with the names as the elements of dt_ids.
+   */
+  isl_union_set *dt_filter;
 
   /* The first n_grid elements of grid_dim represent the specified size of 
    * the grid.
@@ -197,6 +223,15 @@ struct polysa_kernel {
   int single_statement;
 };
 
+struct polysa_io_info {
+  enum polysa_io_type io_type;
+//  isl_basic_map *dep;
+  struct polysa_dep *dep;
+  isl_vec *dir;
+  /* Old data transfer direction before interior I/O elimination */
+  isl_vec *old_dir;
+};
+
 /* An access to an outer array element or an iterator.
  * Accesses to iterators have an access relation that maps to an unnamed space.
  * An access may be both read and write.
@@ -223,6 +258,11 @@ struct polysa_stmt_access {
 	isl_map *tagged_access;
 	/* The reference id of the corresponding pet_expr. */
 	isl_id *ref_id;
+
+  /* PolySA extended */
+  struct polysa_io_info **io_info;
+  int n_io_info;
+  /* PolySA extended */
 
 	struct polysa_stmt_access *next;  
 };
@@ -358,6 +398,12 @@ struct polysa_array_ref_group {
 	/* References in this group; point to elements of a linked list. */
 	int n_ref;
 	struct polysa_stmt_access **refs;  
+
+  /* PolySA Extended */
+  enum polysa_io_type io_type;
+  isl_vec *dir;
+  enum polysa_group_type group_type;
+  /* PolySA Extended */
 };
 
 /* Represents an outer array accessed by a polysa_kernel, localized
@@ -375,8 +421,20 @@ struct polysa_array_ref_group {
 struct polysa_local_array_info {
 	struct polysa_array_info *array;
 
-	int n_group;
-	struct polysa_array_ref_group **groups;
+  /* PE groups */
+	int n_pe_group;
+	struct polysa_array_ref_group **pe_groups;
+
+  /* IO groups */
+  int n_io_group;
+  struct polysa_array_ref_group **io_groups;
+
+  /* Drain groups */
+  struct polysa_array_ref_group *drain_group;
+
+  /* Default groups */
+  int n_group;
+  struct polysa_array_ref_group **groups;
 
 	int force_private;
 	int global;
@@ -433,13 +491,25 @@ struct polysa_prog {
 	struct polysa_array_info *array;  
 };
 
+struct polysa_hw_module {
+  enum polysa_module_type type;
+  
+  /* PE module */
+  isl_schedule *pe_sched;
+
+  /* IO module */
+  isl_schedule *L1_sched; // PE
+  isl_schedule *L2_sched; // PE_ray
+  isl_schedule *L3_sched; // array
+};
+
 struct polysa_gen {
   isl_ctx *ctx;
   struct ppcg_options *options;
 
   /* Callback for printing of AST in appropriate format. */
   __isl_give isl_printer *(*print)(__isl_take isl_printer *p,
-    struct polysa_prog *prog, __isl_keep isl_ast_node *tree,
+    struct polysa_prog *prog, __isl_keep isl_ast_node **trees, int n_trees,
     struct polysa_types *types, void *user);
   void *print_user;
 
@@ -448,9 +518,12 @@ struct polysa_gen {
   isl_ast_node **trees;
   int n_trees;
 
-  /* The modified schedule. */
-  isl_schedule **schedules;
-  int n_schedules;
+  /* The default schedule */
+  isl_schedule *schedule;
+
+  /* The SA module schedule */
+  struct polysa_hw_module **hw_modules;
+  int n_hw_modules;
 
   /* The sequence of types for which a definition has been printed. */
   struct polysa_types types;

@@ -518,7 +518,9 @@ __isl_give isl_vec *get_dep_dis_at_schedule(__isl_keep isl_basic_map *dep, __isl
   return dep_dis;
 }
 
-/* Compute the dependence distance vector of the dependence under the partial schedule of the band node. */
+/* Compute the dependence distance vector of the dependence under the partial schedule of the band node. 
+ * The dependence "dep" is untagged.
+ */
 __isl_give isl_vec *get_dep_dis_at_node(__isl_keep isl_basic_map *dep, __isl_keep isl_schedule_node *band)
 {
   if (isl_schedule_node_get_type(band) != isl_schedule_node_band)
@@ -1409,6 +1411,10 @@ static isl_stat extract_array_info(struct polysa_prog *prog,
 	if (collect_references(prog, info) < 0) 
 		return isl_stat_error;
 	info->only_fixed_element = only_fixed_element_accessed(info); 
+
+  /* PolySA Extended */
+  
+  /* PolySA Extended */
 
 	return isl_stat_ok;  
 }

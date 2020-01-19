@@ -47,6 +47,13 @@ static int node_is_local(__isl_keep isl_schedule_node *node)
   return is_marked(node, "local");
 }
 
+/* Is "node" a mark node with an identifier called "pe"?
+ */
+static int node_is_pe(__isl_keep isl_schedule_node *node)
+{
+  return is_marked(node, "pe");
+}
+
 /* Is "node" a mark node with an identifier called "kernel"?
  */
 static int node_is_kernel(__isl_keep isl_schedule_node *node)
@@ -135,7 +142,25 @@ __isl_give isl_schedule_node *polysa_tree_move_down_to_kernel(
   return node;
 }
 
-/* Move down the branch between "kernel" and "array" until
+/* Move down the branch between "kernel" and "pe" until
+ * the "pe" mark is reached, where the branch containing the "pe"
+ * mark is identified by the domain elements in "core".
+ */
+__isl_give isl_schedule_node *polysa_tree_move_down_to_pe(
+  __isl_take isl_schedule_node *node, __isl_keep isl_union_set *core)
+{
+  int is_pe;
+
+  while ((is_pe = node_is_pe(node)) == 0)
+    node = core_child(node, core);
+  
+  if (is_pe < 0)
+    node = isl_schedule_node_free(node);
+
+  return node;
+}
+
+/* Move down the branch between "kernel" and "local" until
  * the "local" mark is reached, where the branch containing the "local"
  * mark is identified by the domain elements in "core".
  */

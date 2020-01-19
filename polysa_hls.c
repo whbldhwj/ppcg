@@ -702,6 +702,13 @@ static void print_kernel(struct polysa_prog *prog, struct polysa_kernel *kernel,
 	fprintf(hls->kernel_c, "}\n");
 }
 
+/* TODO */
+static __isl_give isl_printer *print_hw_module(__isl_take isl_printer *p,
+  __isl_take isl_ast_print_options *print_options,
+  __isl_keep isl_ast_node *node, void *user)
+{
+
+}
 
 /* Print the user statement of the host code to "p".
  *
@@ -783,20 +790,32 @@ static __isl_give isl_printer *print_host_user(__isl_take isl_printer *p,
 }
 
 static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
-  struct polysa_prog *prog, __isl_keep isl_ast_node *tree,
+  struct polysa_prog *prog, __isl_keep isl_ast_node **trees, int n_trees,
   struct hls_info *hls)
 {
   isl_ast_print_options *print_options;
-  isl_ctx *ctx = isl_ast_node_get_ctx(tree);
+  isl_ctx *ctx = isl_ast_node_get_ctx(trees[0]);
   struct print_host_user_data data = { hls, prog };
 
+  /* Print the default AST. */
   print_options = isl_ast_print_options_alloc(ctx);
   print_options = isl_ast_print_options_set_print_user(print_options,
                 &print_host_user, &data); 
 
   /* Print the macros definitions in the program. */
-  p = polysa_print_macros(p, tree); 
-  p = isl_ast_node_print(tree, p, print_options);
+  p = polysa_print_macros(p, trees[0]); 
+  p = isl_ast_node_print(trees[0], p, print_options);
+
+  /* Print all the rest ASTs. */
+  for (int i = 1; i < n_trees; i++) {
+    print_options = isl_ast_print_options_alloc(ctx);
+    print_options = isl_ast_print_options_set_print_user(print_options,
+                  &print_hw_module, &data); // TODO
+
+    /* Print the macros definitions in the program. */
+    p = polysa_print_macros(p, trees[i]);
+    p = isl_ast_node_print(trees[i], p, print_options);
+  }
 
   return p;
 }
@@ -807,7 +826,7 @@ static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
  * printed.
  */
 static __isl_give isl_printer *print_hls(__isl_take isl_printer *p,
-  struct polysa_prog *prog, __isl_keep isl_ast_node *tree,
+  struct polysa_prog *prog, __isl_keep isl_ast_node **trees, int n_trees,
   struct polysa_types *types, void *user)
 {
   struct hls_info *hls = user;
@@ -821,7 +840,7 @@ static __isl_give isl_printer *print_hls(__isl_take isl_printer *p,
   if (!kernel)
     return isl_printer_free(p);
 
-  p = print_host_code(p, prog, tree, hls); 
+  p = print_host_code(p, prog, trees, n_trees, hls); 
 
   return p;
 }
