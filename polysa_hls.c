@@ -693,6 +693,13 @@ static void print_kernel(struct polysa_prog *prog, struct polysa_kernel *kernel,
 	p = ppcg_set_macro_names(p);
 	p = polysa_print_macros(p, kernel->tree);
 
+  // debug
+  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(kernel->tree), stdout);
+  p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
+  p_d = isl_printer_print_ast_node(p_d, kernel->tree);
+  printf("\n");
+  // debug
+
 	print_options = isl_ast_print_options_alloc(ctx);
 	print_options = isl_ast_print_options_set_print_user(print_options,
 						    &print_kernel_stmt, NULL); 
@@ -806,16 +813,16 @@ static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
   p = polysa_print_macros(p, trees[0]); 
   p = isl_ast_node_print(trees[0], p, print_options);
 
-  /* Print all the rest ASTs. */
-  for (int i = 1; i < n_trees; i++) {
-    print_options = isl_ast_print_options_alloc(ctx);
-    print_options = isl_ast_print_options_set_print_user(print_options,
-                  &print_hw_module, &data); // TODO
-
-    /* Print the macros definitions in the program. */
-    p = polysa_print_macros(p, trees[i]);
-    p = isl_ast_node_print(trees[i], p, print_options);
-  }
+//  /* Print all the rest ASTs. */
+//  for (int i = 1; i < n_trees; i++) {
+//    print_options = isl_ast_print_options_alloc(ctx);
+//    print_options = isl_ast_print_options_set_print_user(print_options,
+//                  &print_hw_module, &data); // TODO
+//
+//    /* Print the macros definitions in the program. */
+//    p = polysa_print_macros(p, trees[i]);
+//    p = isl_ast_node_print(trees[i], p, print_options);
+//  }
 
   return p;
 }

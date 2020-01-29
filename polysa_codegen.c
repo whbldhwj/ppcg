@@ -176,14 +176,6 @@ static struct polysa_array_ref_group *find_ref_group(
 enum polysa_group_access_type polysa_array_ref_group_type(
 	struct polysa_array_ref_group *group)
 {
-//	if (group->private_tile && group->shared_tile &&
-//	    group->shared_tile->depth < group->private_tile->depth)
-//		return POLYSA_ACCESS_SHARED;
-//	if (group->private_tile)
-//		return POLYSA_ACCESS_PRIVATE;
-//	if (group->shared_tile)
-//		return POLYSA_ACCESS_SHARED;
-//	return POLYSA_ACCESS_GLOBAL;
   if (group->local_tile)
     return POLYSA_ACCESS_LOCAL;
   return POLYSA_ACCESS_GLOBAL;
@@ -196,14 +188,10 @@ struct polysa_array_tile *polysa_array_ref_group_tile(
 	struct polysa_array_ref_group *group)
 {
 	switch (polysa_array_ref_group_type(group)) {
-	case POLYSA_ACCESS_GLOBAL:
-		return NULL;
-  case POLYSA_ACCESS_LOCAL:
-    return group->local_tile;
-//	case POLYSA_ACCESS_SHARED:
-//		return group->shared_tile;
-//	case POLYSA_ACCESS_PRIVATE:
-//		return group->private_tile;
+	  case POLYSA_ACCESS_GLOBAL:
+		  return NULL;
+    case POLYSA_ACCESS_LOCAL:
+      return group->local_tile;
 	}
 }
 
@@ -577,12 +565,12 @@ static __isl_give isl_ast_node *create_domain_leaf(
 	if (!stmt)
 		return isl_ast_node_free(node);
 
-	schedule = isl_ast_build_get_schedule(build); // TODO: ?
+	schedule = isl_ast_build_get_schedule(build); 
 	map = isl_map_reverse(isl_map_from_union_map(schedule));
 	iterator_map = isl_pw_multi_aff_from_map(map);
 	if (kernel)
 		sched2copy = compute_sched_to_copy(kernel,
-					isl_pw_multi_aff_copy(iterator_map)); // TODO: ?
+					isl_pw_multi_aff_copy(iterator_map)); 
 	else
 		sched2copy = NULL;
 
@@ -968,6 +956,13 @@ static __isl_give isl_ast_node *after_mark(__isl_take isl_ast_node *node,
 	kernel->space = isl_ast_build_get_schedule_space(build);
 	kernel->tree = isl_ast_node_mark_get_node(node);
 	isl_ast_node_free(node);
+
+  // debug
+  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(kernel->tree), stdout);
+  p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
+  p_d = isl_printer_print_ast_node(p_d, kernel->tree);
+  printf("\n");
+  // debug
 
 	expr = isl_ast_expr_from_id(isl_id_copy(id));
 	list = isl_ast_expr_list_alloc(ctx, 0);

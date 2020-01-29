@@ -16,7 +16,13 @@ __isl_give isl_schedule_node *polysa_tree_move_down_to_kernel(
   __isl_take isl_schedule_node *node);
 __isl_give isl_schedule_node *polysa_tree_move_down_to_pe(
   __isl_take isl_schedule_node *node, __isl_keep isl_union_set *core);
+__isl_give isl_schedule_node *polysa_tree_move_down_to_mark(
+  __isl_take isl_schedule_node *node, __isl_keep isl_union_set *core, char *mark);
 
+__isl_give isl_schedule_node *polysa_tree_move_up_to_pe(
+  __isl_take isl_schedule_node *node);
+__isl_give isl_schedule_node *polysa_tree_move_up_to_mark(
+  __isl_take isl_schedule_node *node, char *mark);
 __isl_give isl_schedule_node *polysa_tree_move_up_to_anchor(
   __isl_take isl_schedule_node *node);
 __isl_give isl_schedule_node *polysa_tree_insert_local_before_array(

@@ -61,6 +61,11 @@ enum polysa_group_type {
   POLYSA_UNKNOWN_GROUP
 };
 
+enum polysa_array_type {
+  POLYSA_EXT_ARRAY,
+  POLYSA_INT_ARRAY
+};
+
 struct polysa_dep {
   isl_id *src; 
   isl_id *dest;
@@ -436,6 +441,8 @@ struct polysa_local_array_info {
   int n_group;
   struct polysa_array_ref_group **groups;
 
+  enum polysa_array_type array_type;
+
 	int force_private;
 	int global;
 
@@ -498,9 +505,12 @@ struct polysa_hw_module {
   isl_schedule *pe_sched;
 
   /* IO module */
-  isl_schedule *L1_sched; // PE
-  isl_schedule *L2_sched; // PE_ray
-  isl_schedule *L3_sched; // array
+  isl_schedule *L1_read_sched; // PE
+  isl_schedule *L1_write_sched; // PE
+  isl_schedule *L2_read_sched; // PE_ray
+  isl_schedule *L2_write_sched; // PE_ray
+  isl_schedule *L3_read_sched; // array
+  isl_schedule *L3_write_sched; // array
 };
 
 struct polysa_gen {

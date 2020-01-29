@@ -1,21 +1,21 @@
 #include "polysa_device.h"
 
-/* Construct the string "<a>_<b>".
- */
-static char *concat(isl_ctx *ctx, const char *a, const char *b)
-{
-	isl_printer *p;
-	char *s;
-
-	p = isl_printer_to_str(ctx);
-	p = isl_printer_print_str(p, a);
-	p = isl_printer_print_str(p, "_");
-	p = isl_printer_print_str(p, b);
-	s = isl_printer_get_str(p);
-	isl_printer_free(p);
-
-	return s;
-}
+///* Construct the string "<a>_<b>".
+// */
+//static char *concat(isl_ctx *ctx, const char *a, const char *b)
+//{
+//	isl_printer *p;
+//	char *s;
+//
+//	p = isl_printer_to_str(ctx);
+//	p = isl_printer_print_str(p, a);
+//	p = isl_printer_print_str(p, "_");
+//	p = isl_printer_print_str(p, b);
+//	s = isl_printer_get_str(p);
+//	isl_printer_free(p);
+//
+//	return s;
+//}
 
 /* Given a set of wrapped references "ref", return the corresponding
  * access relations based on the tagged access relations "tagged".
@@ -173,11 +173,11 @@ __isl_give isl_union_map *remove_local_accesses(
    * e.g., [S1[i,j,k]->_pet_ref_1[]] -> S1[(i),(j),(k)]
    */
 	tagger = isl_union_pw_multi_aff_copy(prog->scop->tagger);
-//  // debug
-//  isl_printer *p = isl_printer_to_file(prog->ctx, stdout);
+  // debug
+  isl_printer *p = isl_printer_to_file(prog->ctx, stdout);
 //  isl_printer_print_union_pw_multi_aff(p, tagger);
 //  printf("\n");
-//  // debug
+  // debug
 	domain = isl_union_map_domain(isl_union_map_copy(tagged));
 //  // debug
 //  p = isl_printer_print_union_map(p, domain);
@@ -240,18 +240,23 @@ __isl_give isl_union_map *remove_local_accesses(
 	external = isl_union_map_subtract(external, local);
   /* So far external contains only access non-local RAW pairs. */
 
+  // debug
+  p = isl_printer_print_union_map(p, external);
+  printf("\n");
+  // debug
+
 	if (read) {
 		tag_set = isl_union_map_range(external);
 		external = wrapped_reference_to_access(tag_set, tagged);
     /* Temporarily commented out, we don't consider live-in so far. */
-//		external = isl_union_map_union(external,
-//				isl_union_map_copy(prog->scop->live_in));
+		external = isl_union_map_union(external,
+				isl_union_map_copy(prog->scop->live_in));
 	} else {
 		tag_set = isl_union_map_domain(external);
 		external = wrapped_reference_to_access(tag_set, tagged);
     /* Temporarily commented out, we don't consider live-out so far. */
-//		external = isl_union_map_union(external,
-//				isl_union_map_copy(prog->scop->live_out));
+		external = isl_union_map_union(external,
+				isl_union_map_copy(prog->scop->live_out));
 	}
 
 	if (empty < 0)
@@ -259,12 +264,12 @@ __isl_give isl_union_map *remove_local_accesses(
 	else if (empty)
 		external = isl_union_map_universe(external);
 
-//  // debug
+  // debug
 //  p = isl_printer_print_union_map(p, access);
 //  printf("\n");
-//  p = isl_printer_print_union_map(p, external);
-//  printf("\n");
-//  // debug
+  p = isl_printer_print_union_map(p, external);
+  printf("\n");
+  // debug
 	access = isl_union_map_intersect(access, external);
 
 	return access;

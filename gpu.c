@@ -5459,7 +5459,7 @@ static __isl_give isl_schedule *map_to_device(struct gpu_gen *gen,
 //  isl_printer *printer = isl_printer_to_file(gen->ctx, stdout);
 //  isl_printer_print_set(printer, gen->prog->context);
 //  printf("\n");
-//  // debug
+  // debug
 
 	context = isl_set_copy(gen->prog->context);
 	context = isl_set_from_params(context);
@@ -5508,9 +5508,9 @@ static __isl_give isl_schedule *map_to_device(struct gpu_gen *gen,
 //  // debug
 
 	node = mark_kernels(gen, node);
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  // debug
+  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
 //  p = isl_printer_print_schedule_node(p, node);
 //  printf("\n");
 //  // debug
@@ -5523,10 +5523,10 @@ static __isl_give isl_schedule *map_to_device(struct gpu_gen *gen,
 
 	node = add_init_clear_device(node);
 
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
+  // debug
+  p = isl_printer_print_schedule_node(p, node);
+  printf("\n");
+  // debug
 
 	schedule = isl_schedule_node_get_schedule(node);
 	isl_schedule_node_free(node);

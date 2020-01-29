@@ -61,6 +61,13 @@ static int node_is_kernel(__isl_keep isl_schedule_node *node)
   return is_marked(node, "kernel");
 }
 
+/* Is "node" a mark node with an identifier called "mark"?
+ */
+static int node_is_mark(__isl_keep isl_schedule_node *node, char *mark)
+{
+  return is_marked(node, mark);
+}
+
 /* Assuming "node" is a filter node, does it correspond to the branch
  * that contains the "array" mark, i.e., does it contain any elements in
  * "core"?
@@ -196,6 +203,20 @@ __isl_give isl_schedule_node *polysa_tree_move_down_to_array(
   return node;
 }
 
+__isl_give isl_schedule_node *polysa_tree_move_down_to_mark(
+  __isl_take isl_schedule_node *node, __isl_keep isl_union_set *core, char *mark)
+{
+  int is_mark;
+
+  while ((is_mark = node_is_mark(node, mark)) == 0)
+    node = core_child(node, core);
+
+  if (is_mark < 0)
+    node = isl_schedule_node_free(node);
+
+  return node;
+}
+
 /* Move down from the "kernel" mark (or at least a node with schedule
  * depth smaller than or equal to "depth") to a band node at schedule
  * depth "depth".  The "array" mark is assumed to have a schedule
@@ -241,6 +262,20 @@ __isl_give isl_schedule_node *polysa_tree_move_down_to_depth(
 	return node;
 }
 
+__isl_give isl_schedule_node *polysa_tree_move_up_to_mark(
+  __isl_take isl_schedule_node *node, char *mark)
+{
+  int is_mark;
+
+  while ((is_mark = node_is_mark(node, mark)) == 0)
+    node = isl_schedule_node_parent(node);
+
+  if (is_mark < 0)
+    node = isl_schedule_node_free(node);
+
+  return node;
+}
+
 /* Move up the tree underneath the "array" mark until the "array" mark is reached. 
  */
 __isl_give isl_schedule_node *polysa_tree_move_up_to_array(
@@ -251,6 +286,21 @@ __isl_give isl_schedule_node *polysa_tree_move_up_to_array(
     node = isl_schedule_node_parent(node);
   
   if (is_array < 0)
+    node = isl_schedule_node_free(node);
+
+  return node;
+}
+
+/* Move up the tree underneath the "array" mark until the "pe" mark is reached. 
+ */
+__isl_give isl_schedule_node *polysa_tree_move_up_to_pe(
+  __isl_take isl_schedule_node *node) {
+  int is_pe;
+
+  while ((is_pe = node_is_pe(node)) == 0)
+    node = isl_schedule_node_parent(node);
+  
+  if (is_pe < 0)
     node = isl_schedule_node_free(node);
 
   return node;

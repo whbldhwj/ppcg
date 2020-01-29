@@ -119,3 +119,152 @@ int isl_vec_cmp(__isl_keep isl_vec *vec1, __isl_keep isl_vec *vec2)
 
   return 0;
 }
+
+/* Return a union set containing those elements in the domains
+ * of the elements of "mupa" where they are all nonnegative.
+ *
+ * If there are no elements, then simply return the entire domain.
+ */
+__isl_give isl_union_set *isl_multi_union_pw_aff_nonneg_union_set(
+  __isl_take isl_multi_union_pw_aff *mupa)
+{
+  int i;
+  isl_size n;
+  isl_union_pw_aff *upa;
+  isl_union_set *nonneg;
+
+  n = isl_multi_union_pw_aff_dim(mupa, isl_dim_set);
+  if (n < 0)
+    mupa = isl_multi_union_pw_aff_free(mupa);
+  if (!mupa)
+    return NULL;
+
+  if (n == 0)
+    return isl_multi_union_pw_aff_domain(mupa);
+
+  upa = isl_multi_union_pw_aff_get_union_pw_aff(mupa, 0);
+  nonneg = isl_union_pw_aff_nonneg_union_set(upa);
+
+  for (i = 1; i < n; ++i) {
+    isl_union_set *nonneg_i;
+
+    upa = isl_multi_union_pw_aff_get_union_pw_aff(mupa, i);
+    nonneg_i = isl_union_pw_aff_nonneg_union_set(upa);
+
+    nonneg = isl_union_set_intersect(nonneg, nonneg_i);
+  }
+
+  isl_multi_union_pw_aff_free(mupa);
+  return nonneg;
+}
+
+/* Computet the set of elements in the domain of "pa" where it is nonnegative 
+ * and add this set to "uset".
+ */
+static isl_stat nonneg_union_set(__isl_take isl_pw_aff *pa, void *user)
+{
+  isl_union_set **uset = (isl_union_set **)user;
+
+  *uset = isl_union_set_add_set(*uset, isl_pw_aff_nonneg_set(pa));
+
+  return *uset ? isl_stat_ok : isl_stat_error;
+}
+
+/* Return a union_set containing those elements in the domain
+ * of "upa" where it is nonnegative.
+ */
+__isl_give isl_union_set *isl_union_pw_aff_nonneg_union_set(
+  __isl_take isl_union_pw_aff *upa)
+{
+  isl_union_set *nonneg;
+
+  nonneg = isl_union_set_empty(isl_union_pw_aff_get_space(upa));
+  if (isl_union_pw_aff_foreach_pw_aff(upa, &nonneg_union_set, &nonneg) < 0)
+    nonneg = isl_union_set_free(nonneg);
+
+  isl_union_pw_aff_free(upa);
+  return nonneg;
+}
+
+/* Return a union set containing those elements in the domains
+ * of the elements of "mupa" where they are all non zero.
+ *
+ * If there are no elements, then simply return the entire domain.
+ */
+__isl_give isl_union_set *isl_multi_union_pw_aff_non_zero_union_set(
+  __isl_take isl_multi_union_pw_aff *mupa)
+{
+  int i;
+  isl_size n;
+  isl_union_pw_aff *upa;
+  isl_union_set *non_zero;
+
+  n = isl_multi_union_pw_aff_dim(mupa, isl_dim_set);
+  if (n < 0)
+    mupa = isl_multi_union_pw_aff_free(mupa);
+  if (!mupa)
+    return NULL;
+
+  if (n == 0)
+    return isl_multi_union_pw_aff_domain(mupa);
+
+  upa = isl_multi_union_pw_aff_get_union_pw_aff(mupa, 0);
+  non_zero = isl_union_pw_aff_non_zero_union_set(upa);
+
+  for (i = 1; i < n; ++i) {
+    isl_union_set *non_zero_i;
+
+    upa = isl_multi_union_pw_aff_get_union_pw_aff(mupa, i);
+    non_zero_i = isl_union_pw_aff_nonneg_union_set(upa);
+
+    non_zero = isl_union_set_intersect(non_zero, non_zero_i);
+  }
+
+  isl_multi_union_pw_aff_free(mupa);
+  return non_zero;
+}
+
+/* Computet the set of elements in the domain of "pa" where it is non zero
+ * and add this set to "uset".
+ */
+static isl_stat non_zero_union_set(__isl_take isl_pw_aff *pa, void *user)
+{
+  isl_union_set **uset = (isl_union_set **)user;
+
+  *uset = isl_union_set_add_set(*uset, isl_pw_aff_non_zero_set(pa));
+
+  return *uset ? isl_stat_ok : isl_stat_error;
+}
+
+/* Return a union_set containing those elements in the domain
+ * of "upa" where it is non zero.
+ */
+__isl_give isl_union_set *isl_union_pw_aff_non_zero_union_set(
+  __isl_take isl_union_pw_aff *upa)
+{
+  isl_union_set *non_zero;
+
+  non_zero = isl_union_set_empty(isl_union_pw_aff_get_space(upa));
+  if (isl_union_pw_aff_foreach_pw_aff(upa, &non_zero_union_set, &non_zero) < 0)
+    non_zero = isl_union_set_free(non_zero);
+
+  isl_union_pw_aff_free(upa);
+  return non_zero;
+}
+
+/* Construct the string "<a>_<b>".
+ */
+char *concat(isl_ctx *ctx, const char *a, const char *b)
+{
+	isl_printer *p;
+	char *s;
+
+	p = isl_printer_to_str(ctx);
+	p = isl_printer_print_str(p, a);
+	p = isl_printer_print_str(p, "_");
+	p = isl_printer_print_str(p, b);
+	s = isl_printer_get_str(p);
+	isl_printer_free(p);
+
+	return s;
+}
