@@ -1,5 +1,6 @@
 #include "polysa_codegen.h"
 #include "polysa_array_tile.h"
+#include "polysa_group.h"
 
 /* Internal data structure for at_domain.
  * "prog" represents the entire scop.
@@ -10,6 +11,7 @@
 struct polysa_at_domain_data {
   struct polysa_prog *prog;
   struct polysa_kernel *kernel;
+  struct polysa_hw_module *module;
 };
 
 /* Internal data structure for the index and AST expression transformation
@@ -39,7 +41,9 @@ struct polysa_transform_data {
 
 	struct polysa_array_info *array;
 	int global;
+  int reg;
 	struct polysa_local_array_info *local_array;
+  struct polysa_array_ref_group *group;
 };
 
 /* Set *depth (initialized to 0 by the caller) to the maximum
@@ -313,6 +317,10 @@ static __isl_give isl_multi_pw_aff *transform_index(
 	isl_pw_multi_aff *pma;
 	isl_pw_multi_aff *sched2depth;
 
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_id_get_ctx(ref_id), stdout);
+//  // debug
+
 	data->array = NULL;
 
 	iterator_map = isl_pw_multi_aff_copy(data->iterator_map);
@@ -324,7 +332,7 @@ static __isl_give isl_multi_pw_aff *transform_index(
 	access = find_access(data->accesses, ref_id);
 	if (!access)
 		return index;
-	if (!isl_map_has_tuple_name(access->access, isl_dim_out)) // ?
+	if (!isl_map_has_tuple_name(access->access, isl_dim_out)) 
 		return index;
 
 	name = get_outer_array_name(access->access);
@@ -338,14 +346,22 @@ static __isl_give isl_multi_pw_aff *transform_index(
 	data->local_array = &data->kernel->array[i];
 	data->array = data->local_array->array;
 
+//  // debug
+//  p = isl_printer_print_map(p, access->access);
+//  printf("\n");
+//  // debug
+
 	group = find_ref_group(data->local_array, access);
+  data->group = group;
 	if (!group) {
 		data->global = 1;
+    data->reg = 1;
 		return index;
 	}
 
 	tile = polysa_array_ref_group_tile(group);
 	data->global = !tile;
+  data->reg = !tile;
 	if (!tile)
 		return index;
 
@@ -512,6 +528,7 @@ static __isl_give isl_ast_expr *transform_expr(__isl_take isl_ast_expr *expr,
 
 	if (!data->array)
 		return expr;
+
 	if (!data->array->accessed) {
 		isl_ctx *ctx;
 
@@ -530,6 +547,91 @@ static __isl_give isl_ast_expr *transform_expr(__isl_take isl_ast_expr *expr,
 
 	return polysa_local_array_info_linearize_index(data->local_array, expr);
 }
+
+/* AST expression transformation callback for pet_stmt_build_ast_exprs.
+ *
+ * If the AST expression refers to an array that is not accessed
+ * at all, then this means the value of the expression is not used,
+ * so we might as well print zero (NULL pointer) instead.
+ *
+ * If the AST expression refers to a global scalar that is not
+ * a read-only scalar, then its address was passed to the kernel and
+ * we need to dereference it.
+ *
+ * If the AST expression refers to an array reference that is put in 
+ * the registers. We will modify the expr to a register access.
+ *
+ * If the AST expression refers to an access to a global array,
+ * then we linearize the access exploiting the bounds in data->local_array.
+ */
+static __isl_give isl_ast_expr *transform_expr_module(__isl_take isl_ast_expr *expr,
+	__isl_keep isl_id *id, void *user)
+{
+	struct polysa_transform_data *data = user;
+
+	if (!data->array)
+		return expr; 
+
+	if (!data->array->accessed) {
+		isl_ctx *ctx;
+
+		ctx = isl_ast_expr_get_ctx(expr);
+		isl_ast_expr_free(expr);
+		return isl_ast_expr_from_val(isl_val_zero(ctx));
+	}
+	if (polysa_array_is_read_only_scalar(data->array))
+		return expr;
+//	if (!data->global)
+//		return expr;
+  if (!data->reg)
+    return expr;
+  if (data->reg) {
+    isl_ctx *ctx;
+    char *local_name;
+    char buf[50];
+    isl_id *id;
+    isl_ast_expr *array;
+    isl_ast_expr_list *indices;
+    isl_ast_expr *indice;
+
+    ctx = isl_ast_expr_get_ctx(expr);
+//    // debug
+//    isl_printer *p = isl_printer_to_file(ctx, stdout);
+//    p = isl_printer_print_ast_expr(p, expr);
+//    printf("\n");
+//    // debug
+    isl_ast_expr_free(expr);
+    
+    /* Create a register access. */
+    isl_printer *p_str = isl_printer_to_str(ctx);    
+	  p_str = polysa_array_ref_group_print_name(data->group, p_str);
+    local_name = isl_printer_get_str(p_str);
+    isl_printer_free(p_str);
+    sprintf(buf, "%s", local_name);
+    free(local_name);
+
+    id = isl_id_alloc(ctx, buf, NULL);
+    array = isl_ast_expr_from_id(id);
+
+    indice = isl_ast_expr_from_val(isl_val_zero(ctx));
+    indices = isl_ast_expr_list_from_ast_expr(indice);
+    expr = isl_ast_expr_access(array, indices);
+
+//    // debug
+//    p = isl_printer_print_ast_expr(p, expr);
+//    printf("\n");
+//    // debug
+
+    return expr;
+  }
+	if (data->array->n_index == 0)
+		return dereference(expr);
+	if (!data->array->linearize)
+		return expr;
+
+	return polysa_local_array_info_linearize_index(data->local_array, expr);
+}
+
 
 /* This function is called for each instance of a user statement
  * in the kernel "kernel", identified by "polysa_stmt".
@@ -584,6 +686,57 @@ static __isl_give isl_ast_node *create_domain_leaf(
 	stmt->u.d.ref2expr = pet_stmt_build_ast_exprs(stmt->u.d.stmt->stmt,
 					    build, &transform_index, &data,
 					    &transform_expr, &data);
+
+	isl_pw_multi_aff_free(iterator_map);
+	isl_pw_multi_aff_free(sched2copy);
+
+	id = isl_id_alloc(ctx, "user", stmt);
+	id = isl_id_set_free_user(id, &polysa_kernel_stmt_free);
+	if (!id)
+		polysa_kernel_stmt_free(stmt);
+	return isl_ast_node_set_annotation(node, id);
+}
+
+static __isl_give isl_ast_node *create_domain_leaf_module(
+	struct polysa_kernel *kernel, __isl_take isl_ast_node *node,
+	__isl_keep isl_ast_build *build, struct polysa_stmt *polysa_stmt)
+{
+	struct polysa_transform_data data;
+	struct polysa_kernel_stmt *stmt;
+	isl_ctx *ctx;
+	isl_id *id;
+	isl_pw_multi_aff *sched2copy;
+	isl_map *map;
+	isl_pw_multi_aff *iterator_map;
+	isl_union_map *schedule;
+
+	if (!node)
+		return NULL;
+	ctx = isl_ast_node_get_ctx(node);
+
+	stmt = isl_calloc_type(ctx, struct polysa_kernel_stmt);
+	if (!stmt)
+		return isl_ast_node_free(node);
+
+	schedule = isl_ast_build_get_schedule(build); 
+	map = isl_map_reverse(isl_map_from_union_map(schedule));
+	iterator_map = isl_pw_multi_aff_from_map(map);
+	if (kernel)
+		sched2copy = compute_sched_to_copy(kernel,
+					isl_pw_multi_aff_copy(iterator_map)); 
+	else
+		sched2copy = NULL;
+
+	stmt->type = POLYSA_KERNEL_STMT_DOMAIN;
+	stmt->u.d.stmt = polysa_stmt;
+
+	data.kernel = kernel;
+	data.accesses = stmt->u.d.stmt->accesses;
+	data.iterator_map = iterator_map;
+	data.sched2copy = sched2copy;
+	stmt->u.d.ref2expr = pet_stmt_build_ast_exprs(stmt->u.d.stmt->stmt,
+					    build, &transform_index, &data,
+					    &transform_expr_module, &data);
 
 	isl_pw_multi_aff_free(iterator_map);
 	isl_pw_multi_aff_free(sched2copy);
@@ -654,6 +807,147 @@ static __isl_give isl_ast_node *build_array_bounds(
 	}
 
 	return node;
+}
+
+/* Given the input in the format of "in.fifoX",
+ * extract the string after the '.'.
+ */
+__isl_give char *fifo_suffix(const char *type) {
+  int prefix_len;
+  char *fifo_name;
+  
+  if (!prefixcmp(type, "in")) {
+    prefix_len = 2;
+  } else if (!prefixcmp(type, "out")) {
+    prefix_len = 3;
+  }
+
+  fifo_name = (char *)malloc(strlen(type) - prefix_len - 1 + 1);
+  strncpy(fifo_name, type + prefix_len + 1, (strlen(type) - prefix_len - 1));
+  return fifo_name;
+}
+
+/* This function is called for each statement node in the AST
+ * for transferring through fifos.
+ * Attach a pointer to a polysa_kernel_stmt representing the io
+ * statemet to the node.
+ * The statement name is "in" or "out", depending on whether we are 
+ * transferring in or out via fifos.
+ *
+ * The schedule is of the form
+ *
+ *  type[D -> A] -> L
+ *
+ * where D corresponds to the outer tile->depth dimensions of 
+ * the kernel schedule, A to the global array and L to the outer 
+ * generated AST schedule.
+ * We compute the inverse and strip off the type, resulting in
+ *
+ *  L -> [D -> A]
+ *
+ * We combine this mapping with the group tiling
+ *
+ *  [D -> A] -> T
+ *
+ * resulting in
+ *   
+ *  L -> T
+ *
+ * and store the corresponding expressions in stmt->local_index,
+ * where stmt points to the ppcg_kernel_stmt that is attached to the node.
+ */
+static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, __isl_take isl_ast_node *node,
+  __isl_keep isl_ast_build *build)
+{
+  struct polysa_kernel_stmt *stmt;
+  struct polysa_array_tile *tile;
+  isl_map *access;
+  const char *type;
+  isl_pw_multi_aff *pma, *pma2;
+  isl_space *space;
+  isl_ast_expr *expr;
+  isl_id *id;
+
+  stmt = isl_calloc_type(kernel->ctx, struct polysa_kernel_stmt);
+  if (!stmt)
+    return isl_ast_node_free(node);
+
+  /* type[D -> A] -> L */
+  access = isl_map_from_union_map(isl_ast_build_get_schedule(build));
+//  // debug
+//  isl_printer *p = isl_printer_to_file(kernel->ctx, stdout);
+//  p = isl_printer_print_map(p, access);
+//  printf("\n");
+//  // debug
+  type = isl_map_get_tuple_name(access, isl_dim_in);
+  stmt->u.i.in = type && !prefixcmp(type, "in");
+  /* L -> type[D -> A] */
+  access = isl_map_reverse(access);
+  pma = isl_pw_multi_aff_from_map(access);
+  pma = isl_pw_multi_aff_reset_tuple_id(pma, isl_dim_out);
+
+//  space = isl_space_range(isl_pw_multi_aff_get_space(pma));
+//  space = isl_space_unwrap(space);
+
+  tile = polysa_array_ref_group_tile(group);
+  if (tile) {
+    /* [D -> A] -> T */
+    pma2 = isl_pw_multi_aff_from_multi_aff(
+              isl_multi_aff_copy(tile->tiling));
+    /* L -> T */
+    pma2 = isl_pw_multi_aff_pullback_pw_multi_aff(pma2, pma);
+    expr = isl_ast_build_access_from_pw_multi_aff(build, pma2);
+    stmt->u.i.local_index = expr;
+  } else {
+    isl_printer *p_str;
+    char *local_name;
+    char buf[50];
+    isl_ast_expr *array, *indice;
+    isl_ast_expr_list *indices;
+
+    isl_pw_multi_aff_free(pma);
+    p_str = isl_printer_to_str(kernel->ctx);
+    p_str = polysa_array_ref_group_print_name(group, p_str);
+    local_name = isl_printer_get_str(p_str);
+    isl_printer_free(p_str);
+    sprintf(buf, "%s", local_name);
+    free(local_name);
+
+    id = isl_id_alloc(kernel->ctx, buf, NULL);
+    array = isl_ast_expr_from_id(id);
+    indice = isl_ast_expr_from_val(isl_val_zero(kernel->ctx));
+    indices = isl_ast_expr_list_from_ast_expr(indice);
+    expr = isl_ast_expr_access(array, indices);
+    
+    stmt->u.i.local_index = expr;
+  }
+
+  // debug
+//  p = isl_printer_print_str(p, type);
+//  printf("\n");
+//  printf("%s\n", type);
+  // debug
+
+  stmt->u.i.fifo_name = fifo_suffix(type);
+  stmt->u.i.array = group->array;
+  stmt->u.i.local_array = group->local_array;
+  stmt->type = POLYSA_KERNEL_STMT_IO;
+
+//  // debug
+//  p = isl_printer_print_ast_expr(p, stmt->u.i.local_index);
+//  printf("\n");
+//  // debug
+
+//  // debug
+//  isl_printer_free(p);
+//  // debug
+
+  id = isl_id_alloc(kernel->ctx, "io", stmt);
+  id = isl_id_set_free_user(id, &polysa_kernel_stmt_free);
+  if (!id)
+    polysa_kernel_stmt_free(stmt);
+  return isl_ast_node_set_annotation(node, id);
 }
 
 /* This function is called for each statement node in the AST
@@ -803,31 +1097,51 @@ static __isl_give isl_ast_node *at_domain(__isl_take isl_ast_node *node,
   }
 
   return node;
-
-//	is_sync = gpu_tree_id_is_sync(id, data->kernel);
-//	isl_id_free(id);
-//
-//	if (gpu_stmt)
-//		return create_domain_leaf(data->kernel, node, build, gpu_stmt);
-//
-//	if (!prefixcmp(name, "to_device_") || !prefixcmp(name, "from_device_"))
-//		return node;
-//	if (!strcmp(name, "init_device"))
-//		return build_array_bounds(node, data->prog, build);
-//	if (!strcmp(name, "clear_device"))
-//		return node;
-//	if (is_sync < 0)
-//		return isl_ast_node_free(node);
-//	if (!strcmp(name, "read") || !strcmp(name, "write")) {
-//		struct gpu_array_ref_group *group = p;
-//		return create_access_leaf(data->kernel, group, node, build);
-//	}
-//	if (!is_sync)
-//		isl_die(data->prog->ctx, isl_error_internal,
-//			"unknown statement type",
-//			return isl_ast_node_free(node));
-//	return create_sync_leaf(data->kernel, node, build);
 }
+
+static __isl_give isl_ast_node *at_domain_module(__isl_take isl_ast_node *node,
+	__isl_keep isl_ast_build *build, void *user)
+{
+	struct polysa_at_domain_data *data = user;
+	struct polysa_stmt *device_stmt;
+	isl_ast_expr *expr, *arg;
+	isl_id *id;
+	int is_sync;
+	const char *name;
+	void *p;
+
+	expr = isl_ast_node_user_get_expr(node);
+	arg = isl_ast_expr_get_op_arg(expr, 0);
+	id = isl_ast_expr_get_id(arg);
+	name = isl_id_get_name(id);
+	p = isl_id_get_user(id);
+	isl_ast_expr_free(expr);
+	isl_ast_expr_free(arg);
+
+	device_stmt = find_stmt(data->prog, id);
+  isl_id_free(id);
+
+  if (device_stmt)
+    return create_domain_leaf_module(data->kernel, node, build, device_stmt); 
+
+  if (!prefixcmp(name, "to_device_") || !prefixcmp(name, "from_device_"))
+    return node;
+  if (!strcmp(name, "init_device"))
+    return build_array_bounds(node, data->prog, build); 
+  if (!strcmp(name, "clear_device"))
+    return node;
+  if (!strcmp(name, "read") || !strcmp(name, "write")) {
+    struct polysa_array_ref_group *group = p;
+    return create_access_leaf(data->kernel, group, node, build);
+  }
+  if (!prefixcmp(name, "in") || !prefixcmp(name, "out")) {
+    struct polysa_array_ref_group *group = p;
+    return create_io_leaf(data->kernel, group, node, build);
+  }
+
+  return node;
+}
+
 
 ///* Build an access AST expression for the effective grid size using "build".
 // * Store the result in kernel->grid_size_expr.
@@ -957,12 +1271,12 @@ static __isl_give isl_ast_node *after_mark(__isl_take isl_ast_node *node,
 	kernel->tree = isl_ast_node_mark_get_node(node);
 	isl_ast_node_free(node);
 
-  // debug
-  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(kernel->tree), stdout);
-  p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
-  p_d = isl_printer_print_ast_node(p_d, kernel->tree);
-  printf("\n");
-  // debug
+//  // debug
+//  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(kernel->tree), stdout);
+//  p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
+//  p_d = isl_printer_print_ast_node(p_d, kernel->tree);
+//  printf("\n");
+//  // debug
 
 	expr = isl_ast_expr_from_id(isl_id_copy(id));
 	list = isl_ast_expr_list_alloc(ctx, 0);
@@ -972,6 +1286,90 @@ static __isl_give isl_ast_node *after_mark(__isl_take isl_ast_node *node,
 
 	return node;
 }
+
+/* This function is called before the AST generator starts traversing
+ * the schedule subtree of a node with mark "mark".
+ *
+ * If the mark is called "kernel", store the kernel pointer in data->kernel
+ * for use in at_domain_module.
+ * If the mark is called "module", store the kernel pointer in data->module
+ * for use in at_domain_module.
+ */
+static isl_stat before_mark_module(__isl_keep isl_id *mark,
+	__isl_keep isl_ast_build *build, void *user)
+{
+	struct polysa_at_domain_data *data = user;
+
+	if (!mark)
+		return isl_stat_error;
+  if (!strcmp(isl_id_get_name(mark), "kernel")) {
+    data->kernel = isl_id_get_user(mark);
+  }
+	if (!strcmp(isl_id_get_name(mark), "module")) {
+		data->module = isl_id_get_user(mark);
+	}
+	return isl_stat_ok;
+}
+
+/* This function is called after the AST generator has finished traversing
+ * the schedule subtree of a mark node.  "node" points to the corresponding
+ * mark AST node.
+ *
+ * If the mark is called "module", then replace "node" by a user node
+ * that "calls" the module, representing the launch of the module.
+ * The original "node" is stored inside the module object so that
+ * it can be used to print the device code.
+ * Also clear data->module.
+ */
+static __isl_give isl_ast_node *after_mark_module(__isl_take isl_ast_node *node,
+        __isl_keep isl_ast_build *build, void *user)
+{
+	isl_ctx *ctx;
+	isl_id *id;
+	isl_ast_expr *expr;
+	isl_ast_expr_list *list;
+	struct polysa_kernel *kernel;
+	struct polysa_at_domain_data *data = user;
+  struct polysa_hw_module *module;
+
+	ctx = isl_ast_node_get_ctx(node);
+	id = isl_ast_node_mark_get_id(node);
+	if (!id)
+		return isl_ast_node_free(node);
+  if (!strcmp(isl_id_get_name(id), "kernel")) {
+    isl_id_free(id);
+    data->kernel = NULL;
+    return node;
+  }
+	if (strcmp(isl_id_get_name(id), "module") || !data->module) {
+		isl_id_free(id);
+		return node;
+	}
+  module = data->module;
+//  kernel = data->kernel;
+//	data->kernel = NULL;
+  data->module = NULL;
+//	kernel->space = isl_ast_build_get_schedule_space(build);
+//	kernel->tree = isl_ast_node_mark_get_node(node);
+  module->device_tree = isl_ast_node_mark_get_node(node);
+	isl_ast_node_free(node);
+
+//  // debug
+//  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(kernel->tree), stdout);
+//  p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
+//  p_d = isl_printer_print_ast_node(p_d, kernel->tree);
+//  printf("\n");
+//  // debug
+
+	expr = isl_ast_expr_from_id(isl_id_copy(id));
+	list = isl_ast_expr_list_alloc(ctx, 0);
+	expr = isl_ast_expr_call(expr, list);
+	node = isl_ast_node_alloc_user(expr);
+	node = isl_ast_node_set_annotation(node, id);
+
+	return node;
+}
+
 
 /* Use isl to generate code for both the host and the device
  * from "schedule".
@@ -990,8 +1388,18 @@ __isl_give isl_ast_node *sa_generate_code(struct polysa_gen *gen,
   isl_id_list *iterators;
   int depth;
 
+  if (schedule == NULL)
+    return NULL;
+
   data.prog = gen->prog;
   data.kernel = NULL;
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule(p, schedule);
+//  printf("\n");
+//  // debug
 
   depth = 0;
   if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth, 
@@ -1003,6 +1411,56 @@ __isl_give isl_ast_node *sa_generate_code(struct polysa_gen *gen,
   build = isl_ast_build_set_at_each_domain(build, &at_domain, &data);
   build = isl_ast_build_set_before_each_mark(build, &before_mark, &data);
   build = isl_ast_build_set_after_each_mark(build, &after_mark, &data);
+  if (gen->prog->scop->options->debug->dump_final_schedule)
+    isl_schedule_dump(schedule);
+  tree = isl_ast_build_node_from_schedule(build, schedule);
+  isl_ast_build_free(build);
+
+  return tree;
+}
+
+/* Use isl to generate code for the hw module from "schedule".
+ * The device code of the hw module is marked by "module" mark nodes in the schedule tree,
+ * containing a pointer to a polysa_hw_module object.
+ * The returned AST only contains the AST for the host code.
+ * The ASTs for the device code are embedded in polysa_hw_module objects
+ * attached to the leaf nodes that call "module".
+ */
+__isl_give isl_ast_node *sa_module_generate_code(struct polysa_gen *gen,
+    __isl_take isl_schedule *schedule)
+{
+  struct polysa_at_domain_data data;
+  isl_ast_build *build;
+  isl_ast_node *tree;
+  isl_id_list *iterators;
+
+  int depth;
+
+  if (schedule == NULL)
+    return NULL;
+
+  data.prog = gen->prog;
+  data.kernel = NULL;
+  data.module = NULL;
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule(p, schedule);
+//  printf("\n");
+//  p = isl_printer_free(p);
+//  // debug
+
+  depth = 0;
+  if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth,
+        &depth) < 0)
+    schedule = isl_schedule_free(schedule);
+  build = isl_ast_build_alloc(gen->prog->ctx);
+  iterators = ppcg_scop_generate_names(gen->prog->scop, depth, "c");
+  build = isl_ast_build_set_iterators(build, iterators);
+  build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
+  build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
+  build = isl_ast_build_set_after_each_mark(build, &after_mark_module, &data);
   if (gen->prog->scop->options->debug->dump_final_schedule)
     isl_schedule_dump(schedule);
   tree = isl_ast_build_node_from_schedule(build, schedule);

@@ -35,6 +35,10 @@ __isl_give isl_union_map *remove_local_accesses(
 	struct polysa_prog *prog, __isl_take isl_union_map *tagged,
 	__isl_take isl_union_map *access, __isl_take isl_union_map *sched,
 	int read);
+__isl_give isl_union_map *remove_local_accesses_flow(
+	struct polysa_prog *prog, __isl_take isl_union_map *tagged,
+	__isl_take isl_union_map *access, __isl_take isl_union_map *sched,
+	int read);
 
 #endif
 

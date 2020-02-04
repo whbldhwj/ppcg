@@ -32,7 +32,8 @@ enum polysa_group_access_type {
 enum polysa_kernel_stmt_type {
   POLYSA_KERNEL_STMT_COPY,
   POLYSA_KERNEL_STMT_DOMAIN,
-  POLYSA_KERNEL_STMT_SYNC
+  POLYSA_KERNEL_STMT_SYNC,
+  POLYSA_KERNEL_STMT_IO
 };
 
 enum polysa_dep_type {
@@ -51,7 +52,15 @@ enum polysa_io_type {
 
 enum polysa_module_type {
   PE_MODULE,
-  IO_MODULE
+  L1_IN_IO_MODULE,
+  L2_IN_IO_MODULE,
+  L3_IN_IO_MODULE,
+  L1_OUT_IO_MODULE,
+  L2_OUT_IO_MODULE,
+  L3_OUT_IO_MODULE,
+  L1_DRAIN_MODULE,
+  L2_DRAIN_MODULE,
+  L3_DRAIN_MODULE
 };
 
 enum polysa_group_type {
@@ -171,8 +180,6 @@ struct polysa_kernel {
   isl_id_list *thread_ids;
   /* contains the list of PE identifers for this kernel. */
   isl_id_list *pe_ids;
-  /* contains the list of data transferer identifiers for this kernel. */
-  isl_id_list *dt_ids;
 
   /* contains constraints on the domain elements in the kernel
    * that encode the mapping to PE identifiers, where the PE identifiers
@@ -180,11 +187,6 @@ struct polysa_kernel {
    * of "pe_ids".
    */
   isl_union_set *pe_filter;
-  /* contains constraints on the domain elements in the kernel 
-   * that encode the mapping to data transferer identifiers, where the identifiers
-   * are represented by the parameter with the names as the elements of dt_ids.
-   */
-  isl_union_set *dt_filter;
 
   /* The first n_grid elements of grid_dim represent the specified size of 
    * the grid.
@@ -500,17 +502,18 @@ struct polysa_prog {
 
 struct polysa_hw_module {
   enum polysa_module_type type;
-  
-  /* PE module */
-  isl_schedule *pe_sched;
+  /* Module name */
+  char *name;
 
-  /* IO module */
-  isl_schedule *L1_read_sched; // PE
-  isl_schedule *L1_write_sched; // PE
-  isl_schedule *L2_read_sched; // PE_ray
-  isl_schedule *L2_write_sched; // PE_ray
-  isl_schedule *L3_read_sched; // array
-  isl_schedule *L3_write_sched; // array
+  /* Module schedule */
+  isl_schedule *sched;
+
+  /* Module AST */
+  isl_ast_node *tree;
+  isl_ast_node *device_tree;
+
+  /* Array reference group for I/O or drain module */
+  struct polysa_array_ref_group *group;
 };
 
 struct polysa_gen {
@@ -519,14 +522,14 @@ struct polysa_gen {
 
   /* Callback for printing of AST in appropriate format. */
   __isl_give isl_printer *(*print)(__isl_take isl_printer *p,
-    struct polysa_prog *prog, __isl_keep isl_ast_node **trees, int n_trees,
+    struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
+    struct polysa_hw_module **modules, int n_modules,
     struct polysa_types *types, void *user);
   void *print_user;
 
   struct polysa_prog *prog;  
-  /* The generated AST. */
-  isl_ast_node **trees;
-  int n_trees;
+  /* The default AST */
+  isl_ast_node *tree;
 
   /* The default schedule */
   isl_schedule *schedule;
@@ -549,7 +552,7 @@ struct polysa_gen {
 };
 
 /* Representation of special statements, in particular copy statements
- * and __syncthreads statements, inside a kernel.
+ * ,__syncthreads statements, and I/O statements, inside a kernel.
  *
  * type represents the kind of statement
  *
@@ -573,6 +576,17 @@ struct polysa_gen {
  *
  * n_access is the number of accesses in stmt
  * access is an array of local information about the accesses
+ *
+ * for polysa_kernel_io statements we have
+ *
+ * in is set if the statement should read data from fifo 
+ * to local array or registers.
+ *
+ * local_index expresses the corresponding element in the tile
+ *
+ * array refers to the original array being transferred
+ * local_array is a pointer to the appropriate element in the "array"
+ *  array of the polysa_kernel to which this copy access belongs
  */
 struct polysa_kernel_stmt {
 	enum polysa_kernel_stmt_type type;
@@ -589,6 +603,13 @@ struct polysa_kernel_stmt {
 			struct polysa_stmt *stmt;
 			isl_id_to_ast_expr *ref2expr;
 		} d;
+    struct {
+      int in;
+      char *fifo_name;
+      isl_ast_expr *local_index;
+      struct polysa_array_info *array;
+      struct polysa_local_array_info *local_array;
+    } i;
 	} u;
 };
 
@@ -647,6 +668,9 @@ struct polysa_kernel *polysa_kernel_alloc(isl_ctx *ctx, struct ppcg_scop *scop);
 void *polysa_acc_free(struct polysa_acc *acc);
 __isl_null struct polysa_iter *polysa_iter_free(struct polysa_iter *iter);
 
+/* PolySA dep related functions */
+void *polysa_dep_free(__isl_take struct polysa_dep *dep);
+
 /* Schedule related functions */
 __isl_give isl_schedule *compute_schedule(struct polysa_gen *gen);
 __isl_give isl_schedule *get_schedule(struct polysa_gen *gen);
@@ -664,5 +688,8 @@ void polysa_kernel_stmt_free(void *user);
 /* PolySA prog related functions */
 struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop);
 void *polysa_prog_free(struct polysa_prog *prog);
+
+/* PolySA hw module related functions */
+void *polysa_hw_module_free(struct polysa_hw_module *module);
 
 #endif

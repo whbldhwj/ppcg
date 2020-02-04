@@ -34,6 +34,11 @@ struct print_host_user_data {
 	struct polysa_prog *prog;
 };
 
+struct print_hw_module_data {
+  struct hls_info *hls;
+  struct polysa_prog *prog;
+};
+
 static __isl_give isl_printer *print_cuda_macros(__isl_take isl_printer *p)
 {
 	const char *macros =
@@ -644,6 +649,37 @@ __isl_give isl_printer *polysa_kernel_print_copy(__isl_take isl_printer *p,
 	return p;
 }
 
+/* Print an I/O statement.
+ *
+ * An in I/O statement is printed as
+ *
+ *  local = fifo.read();
+ *
+ * while an out I/O statement is printed as
+ *
+ *  fifo.write(local);
+ */
+__isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
+  struct polysa_kernel_stmt *stmt)
+{
+  p = isl_printer_start_line(p);
+  if (stmt->u.i.in) {
+    p = stmt_print_local_index(p, stmt);
+    p = isl_printer_print_str(p, " = ");
+    printf("%s\n", stmt->u.i.fifo_name);
+    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
+    p = isl_printer_print_str(p, ".read()");
+  } else {
+    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
+    p = isl_printer_print_str(p, ".write(");
+    p = stmt_print_local_index(p, stmt);    
+  }
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
+
+  return p;
+}
+
 /* This function is called for each user statement in the AST,
  * i.e., for each kernel body statement, copy statement or sync statement.
  */
@@ -672,6 +708,33 @@ static __isl_give isl_printer *print_kernel_stmt(__isl_take isl_printer *p,
 	return p;
 }
 
+static __isl_give isl_printer *print_module_stmt(__isl_take isl_printer *p,
+  __isl_take isl_ast_print_options *print_options,
+  __isl_keep isl_ast_node *node, void *user)
+{
+  isl_id *id;
+  struct polysa_kernel_stmt *stmt;
+
+  id = isl_ast_node_get_annotation(node);
+  stmt = isl_id_get_user(id);
+  isl_id_free(id);
+
+  isl_ast_print_options_free(print_options);
+
+  switch (stmt->type) {
+    case POLYSA_KERNEL_STMT_COPY:
+      return polysa_kernel_print_copy(p, stmt);
+    case POLYSA_KERNEL_STMT_SYNC:
+      return print_sync(p, stmt);
+    case POLYSA_KERNEL_STMT_DOMAIN:
+      return polysa_kernel_print_domain(p, stmt);
+    case POLYSA_KERNEL_STMT_IO:
+      return polysa_kernel_print_io(p, stmt);
+  }
+
+  return p;
+}
+
 static void print_kernel(struct polysa_prog *prog, struct polysa_kernel *kernel,
 	struct hls_info *hls)
 {
@@ -688,17 +751,18 @@ static void print_kernel(struct polysa_prog *prog, struct polysa_kernel *kernel,
 	p = isl_printer_set_output_format(p, ISL_FORMAT_C);
 	p = isl_printer_indent(p, 4);
 
-	p = print_kernel_vars(p, kernel);
+//	p = print_kernel_vars(p, kernel);
 	p = isl_printer_end_line(p);
 	p = ppcg_set_macro_names(p);
 	p = polysa_print_macros(p, kernel->tree);
 
-  // debug
-  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(kernel->tree), stdout);
-  p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
-  p_d = isl_printer_print_ast_node(p_d, kernel->tree);
-  printf("\n");
-  // debug
+//  // debug
+//  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(kernel->tree), stdout);
+//  p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
+//  p_d = isl_printer_print_ast_node(p_d, kernel->tree);
+//  printf("\n");
+//  p_d = isl_printer_free(p_d);
+//  // debug
 
 	print_options = isl_ast_print_options_alloc(ctx);
 	print_options = isl_ast_print_options_set_print_user(print_options,
@@ -709,12 +773,70 @@ static void print_kernel(struct polysa_prog *prog, struct polysa_kernel *kernel,
 	fprintf(hls->kernel_c, "}\n");
 }
 
+static void print_module(struct polysa_prog *prog, struct polysa_hw_module *module,
+  struct hls_info *hls)
+{
+  isl_ctx *ctx = isl_ast_node_get_ctx(module->device_tree);
+  isl_ast_print_options *print_options;
+  isl_printer *p;
+
+  /* TODO: print module headers */
+//  print_module_headers(prog, module, hls);
+  fprintf(hls->kernel_c, "{\n");
+
+  p = isl_printer_to_file(ctx, hls->kernel_c);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = isl_printer_indent(p, 4);
+
+  /* TODO */
+//  p = print_module_vars(p, kernel);
+  p = isl_printer_end_line(p);
+ 
+//  // debug
+//  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(module->device_tree), stdout);
+//  p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
+//  p_d = isl_printer_print_ast_node(p_d, module->device_tree);
+//  printf("\n");
+//  p_d = isl_printer_free(p_d);
+//  // debug
+
+	print_options = isl_ast_print_options_alloc(ctx);
+	print_options = isl_ast_print_options_set_print_user(print_options,
+						    &print_module_stmt, NULL); // TODO 
+	p = isl_ast_node_print(module->device_tree, p, print_options);
+	isl_printer_free(p);
+
+	fprintf(hls->kernel_c, "}\n");
+}
+
 /* TODO */
 static __isl_give isl_printer *print_hw_module(__isl_take isl_printer *p,
   __isl_take isl_ast_print_options *print_options,
   __isl_keep isl_ast_node *node, void *user)
 {
+  isl_id *id;
+  int is_user;
+  struct polysa_hw_module *module;
+  struct print_hw_module_data *data;
 
+  isl_ast_print_options_free(print_options);
+  
+  data = (struct print_hw_module_data *) user;
+
+  id = isl_ast_node_get_annotation(node);
+  if (!id)
+    return p;
+
+  is_user = !strcmp(isl_id_get_name(id), "user");
+  module = is_user ? NULL : isl_id_get_user(id);
+  isl_id_free(id);
+
+  if (is_user)
+    return p;
+
+  print_module(data->prog, module, data->hls);
+
+  return p;
 }
 
 /* Print the user statement of the host code to "p".
@@ -797,12 +919,14 @@ static __isl_give isl_printer *print_host_user(__isl_take isl_printer *p,
 }
 
 static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
-  struct polysa_prog *prog, __isl_keep isl_ast_node **trees, int n_trees,
+  struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
+  struct polysa_hw_module **modules, int n_modules,
   struct hls_info *hls)
 {
   isl_ast_print_options *print_options;
-  isl_ctx *ctx = isl_ast_node_get_ctx(trees[0]);
+  isl_ctx *ctx = isl_ast_node_get_ctx(tree);
   struct print_host_user_data data = { hls, prog };
+  struct print_hw_module_data hw_data = { hls, prog };
 
   /* Print the default AST. */
   print_options = isl_ast_print_options_alloc(ctx);
@@ -810,19 +934,18 @@ static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
                 &print_host_user, &data); 
 
   /* Print the macros definitions in the program. */
-  p = polysa_print_macros(p, trees[0]); 
-  p = isl_ast_node_print(trees[0], p, print_options);
+  p = polysa_print_macros(p, tree); 
+  p = isl_ast_node_print(tree, p, print_options);
 
-//  /* Print all the rest ASTs. */
-//  for (int i = 1; i < n_trees; i++) {
-//    print_options = isl_ast_print_options_alloc(ctx);
-//    print_options = isl_ast_print_options_set_print_user(print_options,
-//                  &print_hw_module, &data); // TODO
-//
-//    /* Print the macros definitions in the program. */
-//    p = polysa_print_macros(p, trees[i]);
-//    p = isl_ast_node_print(trees[i], p, print_options);
-//  }
+  /* Print the hw module ASTs. */
+  for (int i = 0; i < n_modules; i++) {
+//  for (int i = 0; i < 1; i++) {
+    print_options = isl_ast_print_options_alloc(ctx);
+    print_options = isl_ast_print_options_set_print_user(print_options,
+                  &print_hw_module, &hw_data);
+
+    p = isl_ast_node_print(modules[i]->tree, p, print_options);
+  }
 
   return p;
 }
@@ -833,7 +956,8 @@ static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
  * printed.
  */
 static __isl_give isl_printer *print_hls(__isl_take isl_printer *p,
-  struct polysa_prog *prog, __isl_keep isl_ast_node **trees, int n_trees,
+  struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
+  struct polysa_hw_module **modules, int n_modules,
   struct polysa_types *types, void *user)
 {
   struct hls_info *hls = user;
@@ -847,7 +971,7 @@ static __isl_give isl_printer *print_hls(__isl_take isl_printer *p,
   if (!kernel)
     return isl_printer_free(p);
 
-  p = print_host_code(p, prog, trees, n_trees, hls); 
+  p = print_host_code(p, prog, tree, modules, n_modules, hls); 
 
   return p;
 }

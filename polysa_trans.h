@@ -51,7 +51,8 @@ struct polysa_kernel **sa_space_time_transform(__isl_take isl_schedule *schedule
 int generate_sa(isl_ctx *ctx, const char *input, FILE *out, 
   struct ppcg_options *options,
   __isl_give isl_printer *(*print)(__isl_take isl_printer *p,
-    struct polysa_prog *prog, __isl_keep isl_ast_node **trees, int n_trees,
+    struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
+    struct polysa_hw_module **modules, int n_modules,
     struct polysa_types *types, void *user), void *user);
 __isl_give isl_schedule *sa_map_to_device(struct polysa_gen *gen,
     __isl_take isl_schedule *schedule);

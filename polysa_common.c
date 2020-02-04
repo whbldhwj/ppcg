@@ -826,17 +826,52 @@ __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_no
  * PolySA kernel related functions 
  ***************************************************************/
 /* Free the polysa_sa struct. */
-void *polysa_kernel_free(struct polysa_kernel *sa) 
+void *polysa_kernel_free(struct polysa_kernel *kernel) 
 {
-  if (!sa)
+  if (!kernel)
     return NULL;
   
-  isl_schedule_free(sa->schedule); 
-  isl_union_map_free(sa->sizes);
-  isl_union_map_free(sa->used_sizes);
-  isl_union_set_free(sa->core);
+  isl_schedule_free(kernel->schedule); 
+  isl_union_map_free(kernel->sizes);
+  isl_union_map_free(kernel->used_sizes);
+  isl_union_set_free(kernel->core);
+  isl_set_free(kernel->context);
+  isl_multi_pw_aff_free(kernel->sa_grid_size);
+  isl_union_set_free(kernel->arrays);
+  isl_union_pw_multi_aff_free(kernel->copy_schedule);
+  isl_space_free(kernel->space);
+  isl_id_list_free(kernel->block_ids);
+  isl_id_list_free(kernel->thread_ids);
+  isl_id_list_free(kernel->pe_ids);
+  isl_union_set_free(kernel->pe_filter);
+  isl_multi_pw_aff_free(kernel->grid_size);
+  isl_ast_expr_free(kernel->grid_size_expr);
+  isl_union_pw_multi_aff_free(kernel->contraction);
+  isl_union_set_free(kernel->expanded_domain);
+  isl_set_free(kernel->host_domain);
+  for (int i = 0; i < kernel->n_array; ++i) {
+    struct polysa_local_array_info *array = &kernel->array[i];
+    for (int j = 0; j < array->n_pe_group; ++j)
+      polysa_array_ref_group_free(array->pe_groups[j]);
+    free(array->pe_groups);
+    for (int j = 0; j < array->n_io_group; ++j)
+      polysa_array_ref_group_free(array->io_groups[j]);
+    free(array->io_groups);
+    free(array->drain_group);
 
-  free(sa);
+    isl_multi_pw_aff_free(array->bound);
+    isl_ast_expr_free(array->bound_expr);
+  }
+  if (kernel->array)
+    free(kernel->array);
+
+  for (int i = 0; i < kernel->n_var; i++) {
+    free(kernel->var[i].name);
+    isl_vec_free(kernel->var[i].size);
+  }
+  free(kernel->var);
+
+  free(kernel);
   return NULL;
 }
 
@@ -847,6 +882,7 @@ struct polysa_kernel *polysa_kernel_copy(struct polysa_kernel *sa)
   sa_dup->ctx = sa->ctx;
   sa_dup->schedule = isl_schedule_copy(sa->schedule);
   sa_dup->scop = sa->scop;
+  sa_dup->options = sa->options;
   sa_dup->n_sa_dim = sa->n_sa_dim;
   for (int i = 0; i < sa->n_sa_dim; i++) {
     sa_dup->sa_dim[i] = sa->sa_dim[i];
@@ -855,10 +891,39 @@ struct polysa_kernel *polysa_kernel_copy(struct polysa_kernel *sa)
   sa_dup->space_w = sa->space_w;
   sa_dup->time_w = sa->time_w;
   sa_dup->type = sa->type;
+  sa_dup->sa_grid_size = isl_multi_pw_aff_copy(sa->sa_grid_size);
   sa_dup->sizes = isl_union_map_copy(sa->sizes);
   sa_dup->used_sizes = isl_union_map_copy(sa->used_sizes);
   sa_dup->id = sa->id;
   sa_dup->core = isl_union_set_copy(sa->core);
+  sa_dup->arrays = isl_union_set_copy(sa->arrays);
+  sa_dup->n_array = sa->n_array;
+  sa_dup->array = sa->array;
+  sa_dup->copy_schedule = isl_union_pw_multi_aff_copy(sa->copy_schedule);
+  sa_dup->copy_schedule_dim = sa->copy_schedule_dim;
+  sa_dup->space = isl_space_copy(sa->space);
+  sa_dup->tree = isl_ast_node_copy(sa->tree);
+  sa_dup->n_var = sa->n_var;
+  sa_dup->var = sa->var;
+  sa_dup->block_ids = isl_id_list_copy(sa->block_ids);
+  sa_dup->thread_ids = isl_id_list_copy(sa->thread_ids);
+  sa_dup->pe_ids = isl_id_list_copy(sa->pe_ids);
+  sa_dup->pe_filter = isl_union_set_copy(sa->pe_filter);
+  sa_dup->n_grid = sa->n_grid;
+  sa_dup->n_block = sa->n_block;
+  for (int i = 0; i < sa->n_grid; i++) {
+    sa_dup->grid_dim[i] = sa->grid_dim[i];
+  }
+  for (int i = 0; i < sa->n_block; i++) {
+    sa_dup->block_dim[i] = sa->block_dim[i];
+  }
+  sa_dup->grid_size = isl_multi_pw_aff_copy(sa->grid_size);
+  sa_dup->grid_size_expr = isl_ast_expr_copy(sa->grid_size_expr);
+  sa_dup->context = isl_set_copy(sa->context);
+  sa_dup->contraction = isl_union_pw_multi_aff_copy(sa->contraction);
+  sa_dup->expanded_domain = isl_union_set_copy(sa->expanded_domain);
+  sa_dup->host_domain = isl_set_copy(sa->host_domain);
+  sa_dup->single_statement = sa->single_statement;
 
   return sa_dup;
 }
@@ -866,41 +931,99 @@ struct polysa_kernel *polysa_kernel_copy(struct polysa_kernel *sa)
 /* Allocate a new polysa_sa struct with the given schedule. */
 struct polysa_kernel *polysa_kernel_from_schedule(__isl_take isl_schedule *schedule)
 {
-  struct polysa_kernel *sa = (struct polysa_kernel *)malloc(sizeof(struct polysa_kernel));
-  sa->ctx = isl_schedule_get_ctx(schedule);
-  sa->schedule = schedule;
-  sa->n_sa_dim = 0;
-  sa->array_part_w = 0;
-  sa->space_w = 0;
-  sa->time_w = 0;
-  sa->type = 0;
-  sa->sizes = NULL;
-  sa->used_sizes = NULL;
-  sa->id = 0;
-  sa->core = NULL;
+  struct polysa_kernel *kernel = (struct polysa_kernel *)malloc(sizeof(struct polysa_kernel));
+  kernel->ctx = isl_schedule_get_ctx(schedule);
+  kernel->schedule = schedule;
+  kernel->scop = NULL;
+  kernel->prog = NULL;
+  kernel->options = NULL;
+  kernel->n_sa_dim = 0;
+  kernel->array_part_w = 0;
+  kernel->space_w = 0;
+  kernel->time_w = 0;
+  kernel->type = 0;
+  kernel->sa_grid_size = NULL;
+  kernel->sizes = NULL;
+  kernel->used_sizes = NULL;
+  kernel->id = 0;
+  kernel->core = NULL;
+  kernel->arrays = NULL;
+  kernel->n_array = 0;
+  kernel->array = NULL;
+  kernel->copy_schedule = NULL;
+  kernel->copy_schedule_dim = -1;
+  kernel->space = NULL;
+  kernel->tree = NULL;
+  kernel->n_var = 0;
+  kernel->var = NULL;
+  kernel->block_ids = NULL;
+  kernel->thread_ids = NULL;
+  kernel->pe_ids = NULL;
+  kernel->pe_filter = NULL;
+  kernel->n_grid = 0;
+  kernel->n_block = 0;
+  kernel->grid_size = NULL;
+  kernel->grid_size_expr = NULL;
+  kernel->context = NULL;
+  kernel->contraction = NULL;
+  kernel->expanded_domain = NULL;
+  kernel->host_domain = NULL;
+  kernel->single_statement = 0;
 
-  return sa;
+  return kernel;
 }
 
 struct polysa_kernel *polysa_kernel_alloc(isl_ctx *ctx, struct ppcg_scop *scop) 
 {
-  struct polysa_kernel *prog;
+  struct polysa_kernel *kernel;
   isl_space *space;
   isl_map *id;
 
   if (!scop)
     return NULL;
 
-  prog = isl_calloc_type(ctx, struct polysa_kernel);
-  if (!prog)
+  kernel = isl_calloc_type(ctx, struct polysa_kernel);
+  if (!kernel)
     return NULL;
 
-  prog->ctx = ctx;
-  prog->scop = scop;
-  prog->schedule = NULL;
-  prog->sizes = NULL;
-  prog->used_sizes = NULL;
-  prog->core = NULL;
+  kernel->ctx = ctx;
+  kernel->scop = scop;
+  kernel->prog = NULL;
+  kernel->options = NULL;
+  kernel->n_sa_dim = 0;
+  kernel->array_part_w = 0;
+  kernel->space_w = 0;
+  kernel->time_w = 0;
+  kernel->type = 0;
+  kernel->sa_grid_size = NULL;
+  kernel->sizes = NULL;
+  kernel->used_sizes = NULL;
+  kernel->id = 0;
+  kernel->core = NULL;
+  kernel->arrays = NULL;
+  kernel->n_array = 0;
+  kernel->array = NULL;
+  kernel->copy_schedule = NULL;
+  kernel->copy_schedule_dim = -1;
+  kernel->space = NULL;
+  kernel->tree = NULL;
+  kernel->n_var = 0;
+  kernel->var = NULL;
+  kernel->block_ids = NULL;
+  kernel->thread_ids = NULL;
+  kernel->pe_ids = NULL;
+  kernel->pe_filter = NULL;
+  kernel->n_grid = 0;
+  kernel->n_block = 0;
+  kernel->grid_size = NULL;
+  kernel->grid_size_expr = NULL;
+  kernel->context = NULL;
+  kernel->contraction = NULL;
+  kernel->expanded_domain = NULL;
+  kernel->host_domain = NULL;
+  kernel->single_statement = 0;
+
+  return kernel;
 }
 
 /********************************************************************
@@ -929,6 +1052,33 @@ __isl_null struct polysa_iter *polysa_iter_free(struct polysa_iter *iter) {
   isl_aff_free(iter->ub);
 
   free(iter);
+
+  return NULL;
+}
+
+/********************************************************************
+ * PolySA dep related functions
+ ********************************************************************/
+/* Free up the dependence. */
+void *polysa_dep_free(__isl_take struct polysa_dep *dep)
+{
+  if (!dep)
+    return NULL;
+
+  if (dep->src)
+    dep->src = isl_id_free(dep->src);
+  if (dep->dest)
+    dep->dest = isl_id_free(dep->dest);
+  if (dep->disvec)
+    isl_vec_free(dep->disvec);
+  if (dep->src_sched_domain)
+    isl_set_free(dep->src_sched_domain);
+  if (dep->dest_sched_domain)
+    isl_set_free(dep->dest_sched_domain);
+  if (dep->isl_dep)
+    isl_basic_map_free(dep->isl_dep);
+
+  free(dep);
 
   return NULL;
 }
@@ -1210,6 +1360,16 @@ __isl_give isl_schedule *get_schedule(struct polysa_gen *gen)
 /****************************************************************
  * PolySA array related functions
  ****************************************************************/
+static void *free_polysa_io_info(struct polysa_io_info *io_info) 
+{
+  polysa_dep_free(io_info->dep);
+  isl_vec_free(io_info->dir);
+  isl_vec_free(io_info->old_dir);
+
+  free(io_info);
+  return NULL;
+}
+
 static void free_array_info(struct polysa_prog *prog)
 {
 	int i;
@@ -1644,6 +1804,11 @@ static void *free_stmts(struct polysa_stmt *stmts, int n)
       isl_id_free(access->ref_id);
       isl_map_free(access->access);
       isl_map_free(access->tagged_access);
+
+      for (int k = 0; k < access->n_io_info; k++)
+        free_polysa_io_info(access->io_info[k]);
+      free(access->io_info);
+
       free(access);
     }
 
@@ -1850,6 +2015,9 @@ static int extract_access(__isl_keep pet_expr *expr, void *user)
 	access->access = isl_map_domain_factor_domain(access->access);
 	access->fixed_element = accesses_fixed_element(expr);
 
+  access->n_io_info = 0;
+  access->io_info = NULL;
+
 	*data->next_access = access;
 	data->next_access = &(*data->next_access)->next;
 
@@ -1893,6 +2061,10 @@ void polysa_kernel_stmt_free(void *user)
       isl_id_to_ast_expr_free(stmt->u.d.ref2expr);
       break;
     case POLYSA_KERNEL_STMT_SYNC:
+      break;
+    case POLYSA_KERNEL_STMT_IO:
+      free(stmt->u.i.fifo_name);
+      isl_ast_expr_free(stmt->u.i.local_index);
       break;
   }
 
@@ -1996,4 +2168,19 @@ void *polysa_prog_free(struct polysa_prog *prog)
 	free(prog);
 
 	return NULL;
+}
+
+/*****************************************************************
+ * PolySA hw module related functions
+ *****************************************************************/
+void *polysa_hw_module_free(struct polysa_hw_module *module)
+{
+  if (!module) 
+    return NULL;
+
+  free(module->name);
+  isl_ast_node_free(module->tree);
+  free(module);
+
+  return NULL;
 }

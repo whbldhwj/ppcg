@@ -173,48 +173,19 @@ __isl_give isl_union_map *remove_local_accesses(
    * e.g., [S1[i,j,k]->_pet_ref_1[]] -> S1[(i),(j),(k)]
    */
 	tagger = isl_union_pw_multi_aff_copy(prog->scop->tagger);
-  // debug
-  isl_printer *p = isl_printer_to_file(prog->ctx, stdout);
-//  isl_printer_print_union_pw_multi_aff(p, tagger);
-//  printf("\n");
-  // debug
 	domain = isl_union_map_domain(isl_union_map_copy(tagged));
-//  // debug
-//  p = isl_printer_print_union_map(p, domain);
-//  printf("\n");
-//  // debug
 	tagger = isl_union_pw_multi_aff_intersect_domain(tagger,
 					isl_union_set_copy(domain));
-//  // debug
-//  p = isl_printer_print_union_pw_multi_aff(p, tagger);
-//  printf("\n");
-//  p = isl_printer_print_union_map(p, sched);
-//  printf("\n");
-//  // debug
 	sched = isl_union_map_preimage_domain_union_pw_multi_aff(sched, tagger);
-//  // debug
-//  p = isl_printer_print_union_map(p, sched);
-//  printf("\n");
-//  // debug
 
   /* Construct the relation "local"
    * [[D -> R] -> [D' -> R']]
    */
 	local = isl_union_map_apply_range(sched,
 			    isl_union_map_reverse(isl_union_map_copy(sched)));
-//  // debug
-//  p = isl_printer_print_union_map(p, local);
-//  printf("\n");
-//  p = isl_printer_print_union_map(p, prog->scop->tagged_dep_flow);
-//  printf("\n");
-//  // debug
   /* Derive the local dependence set. */
 	local = isl_union_map_intersect(local,
 			isl_union_map_copy(prog->scop->tagged_dep_flow));
-//  // debug
-//  p = isl_printer_print_union_map(p, local);
-//  printf("\n");
-//  // debug
 
 	empty = isl_union_map_is_empty(local);
 
@@ -222,12 +193,6 @@ __isl_give isl_union_map *remove_local_accesses(
 	universe = isl_union_map_universe(isl_union_map_copy(access));
 	access_domain = isl_union_map_domain(universe);
 	domain = isl_union_set_universe(domain);
-//  // debug
-//  p = isl_printer_print_union_set(p, access_domain);
-//  printf("\n");
-//  p = isl_printer_print_union_set(p, domain);
-//  printf("\n");
-//  // debug
 	universe = isl_union_set_unwrap(domain);
 	universe = isl_union_map_intersect_domain(universe, access_domain);
 	domain = isl_union_map_wrap(universe);
@@ -239,11 +204,6 @@ __isl_give isl_union_map *remove_local_accesses(
 				isl_set_copy(prog->scop->context));
 	external = isl_union_map_subtract(external, local);
   /* So far external contains only access non-local RAW pairs. */
-
-  // debug
-  p = isl_printer_print_union_map(p, external);
-  printf("\n");
-  // debug
 
 	if (read) {
 		tag_set = isl_union_map_range(external);
@@ -264,16 +224,93 @@ __isl_give isl_union_map *remove_local_accesses(
 	else if (empty)
 		external = isl_union_map_universe(external);
 
-  // debug
-//  p = isl_printer_print_union_map(p, access);
-//  printf("\n");
-  p = isl_printer_print_union_map(p, external);
-  printf("\n");
-  // debug
 	access = isl_union_map_intersect(access, external);
 
 	return access;
 }
+
+/* Extended from remove_local_accesses.
+ * Excluding live-in and live-out, this function only considers
+ * RAW deps.
+ */
+__isl_give isl_union_map *remove_local_accesses_flow(
+	struct polysa_prog *prog, __isl_take isl_union_map *tagged,
+	__isl_take isl_union_map *access, __isl_take isl_union_map *sched,
+	int read)
+{
+	int empty;
+	isl_union_pw_multi_aff *tagger;
+	isl_union_set *domain, *access_domain;
+	isl_union_map *local, *external, *universe;
+	isl_union_set *tag_set;
+
+	if (isl_union_map_is_empty(access)) {
+		isl_union_map_free(sched);
+		isl_union_map_free(tagged);
+		return access;
+	}
+
+  /* Tagger maps the tagged iteration domain to untagged iteration domain. 
+   * Iteration domain is tagged to the access function.
+   * e.g., [S1[i,j,k]->_pet_ref_1[]] -> S1[(i),(j),(k)]
+   */
+	tagger = isl_union_pw_multi_aff_copy(prog->scop->tagger);
+	domain = isl_union_map_domain(isl_union_map_copy(tagged));
+	tagger = isl_union_pw_multi_aff_intersect_domain(tagger,
+					isl_union_set_copy(domain));
+	sched = isl_union_map_preimage_domain_union_pw_multi_aff(sched, tagger);
+
+  /* Construct the relation "local"
+   * [[D -> R] -> [D' -> R']]
+   */
+	local = isl_union_map_apply_range(sched,
+			    isl_union_map_reverse(isl_union_map_copy(sched)));
+  /* Derive the local dependence set. */
+	local = isl_union_map_intersect(local,
+			isl_union_map_copy(prog->scop->tagged_dep_flow));
+
+	empty = isl_union_map_is_empty(local);
+
+	external = isl_union_map_copy(prog->scop->tagged_dep_flow);
+	universe = isl_union_map_universe(isl_union_map_copy(access));
+	access_domain = isl_union_map_domain(universe);
+	domain = isl_union_set_universe(domain);
+	universe = isl_union_set_unwrap(domain);
+	universe = isl_union_map_intersect_domain(universe, access_domain);
+	domain = isl_union_map_wrap(universe);
+	if (read)
+		external = isl_union_map_intersect_range(external, domain);
+	else
+		external = isl_union_map_intersect_domain(external, domain);
+	external = isl_union_map_intersect_params(external,
+				isl_set_copy(prog->scop->context));
+	external = isl_union_map_subtract(external, local);
+  /* So far external contains only access non-local RAW pairs. */
+
+	if (read) {
+		tag_set = isl_union_map_range(external);
+		external = wrapped_reference_to_access(tag_set, tagged);
+//    /* Temporarily commented out, we don't consider live-in so far. */
+//		external = isl_union_map_union(external,
+//				isl_union_map_copy(prog->scop->live_in));
+	} else {
+		tag_set = isl_union_map_domain(external);
+		external = wrapped_reference_to_access(tag_set, tagged);
+//    /* Temporarily commented out, we don't consider live-out so far. */
+//		external = isl_union_map_union(external,
+//				isl_union_map_copy(prog->scop->live_out));
+	}
+
+	if (empty < 0)
+		external = isl_union_map_free(external);
+	else if (empty)
+		external = isl_union_map_universe(external);
+
+	access = isl_union_map_intersect(access, external);
+
+	return access;
+}
+
 
 /* Replace any reference to an array element in the range of "copy"
  * by a reference to all array elements (defined by the extent of the array).

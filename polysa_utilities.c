@@ -104,13 +104,13 @@ int isl_vec_cmp(__isl_keep isl_vec *vec1, __isl_keep isl_vec *vec2)
   if (isl_vec_size(vec1) != isl_vec_size(vec2))
     return 1;
 
-  // debug
-  isl_printer *p = isl_printer_to_file(isl_vec_get_ctx(vec1), stdout);
-  p = isl_printer_print_vec(p, vec1);
-  printf("\n");
-  p = isl_printer_print_vec(p, vec2);
-  printf("\n");
-  // debug
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_vec_get_ctx(vec1), stdout);
+//  p = isl_printer_print_vec(p, vec1);
+//  printf("\n");
+//  p = isl_printer_print_vec(p, vec2);
+//  printf("\n");
+//  // debug
 
   for (int i = 0; i < isl_vec_size(vec1); i++) {
     if (isl_vec_cmp_element(vec1, vec2, i))

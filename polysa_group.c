@@ -198,8 +198,6 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
 	if (!group)
 		return NULL;
   polysa_array_tile_free(group->local_tile);
-	//gpu_array_tile_free(group->shared_tile);
-	//gpu_array_tile_free(group->private_tile);
 	isl_map_free(group->access);
 	if (group->n_ref > 1)
 		free(group->refs);
@@ -427,12 +425,12 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
   kernel = isl_id_get_user(id);
   isl_id_free(id);
 
-  // debug
-  isl_printer *p = isl_printer_to_file(ctx, stdout);
-  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-  p = isl_printer_print_schedule_node(p, node);
-  printf("\n");
-  // debug
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
 
   node = polysa_tree_move_down_to_array(node, kernel->core);
   node = isl_schedule_node_child(node, 0);
@@ -475,10 +473,29 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
   }
 
   space_sched = isl_multi_union_pw_aff_apply_multi_aff(space_sched, ma);
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+
   node = isl_schedule_node_delete(node);
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+
   node = isl_schedule_node_insert_partial_schedule(node, space_sched);
   
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
   node = isl_schedule_node_band_split(node, isl_mat_cols(null_mat)); // inter_ray
+
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
   id = isl_id_alloc(ctx, "io_L2", NULL);
   node = isl_schedule_node_insert_mark(node, id);
   node = isl_schedule_node_child(node, 0);
@@ -488,14 +505,20 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
   id = isl_id_alloc(ctx, "io_L1", NULL);
   node = isl_schedule_node_insert_mark(node, id);
 
-  // debug
-  p = isl_printer_print_schedule_node(p, node);
-  printf("\n");
-  // debug
+//  // debug
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
 
   isl_schedule_free(schedule);
   schedule = isl_schedule_node_get_schedule(node);
-  isl_schedule_node_free(node);
+  node = isl_schedule_node_free(node);
+  isl_mat_free(null_mat);
+  isl_mat_free(trans_mat);
+
+//  // debug
+//  p = isl_printer_free(p);
+//  // debug
 
   return schedule;
 }
@@ -713,9 +736,9 @@ isl_bool can_tile(__isl_keep isl_map *access,
 	box = isl_map_get_range_simple_fixed_box_hull(access);
 	isl_map_free(access);
 
-  // debug
-  isl_printer *p = isl_printer_to_file(isl_map_get_ctx(access), stdout);
-  // debug
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_map_get_ctx(access), stdout);
+//  // debug
 
 	valid = isl_fixed_box_is_valid(box);
 	if (valid >= 0 && valid) {
@@ -724,12 +747,12 @@ isl_bool can_tile(__isl_keep isl_map *access,
 		for (i = 0; i < tile->n; ++i) {
 			tile->bound[i].size = isl_multi_val_get_val(size, i);
 			tile->bound[i].lb = isl_multi_aff_get_aff(offset, i);
-      // debug
-      p = isl_printer_print_val(p, tile->bound[i].size);
-      printf("\n");
-      p = isl_printer_print_aff(p, tile->bound[i].lb);
-      printf("\n");
-      // debug
+//      // debug
+//      p = isl_printer_print_val(p, tile->bound[i].size);
+//      printf("\n");
+//      p = isl_printer_print_aff(p, tile->bound[i].lb);
+//      printf("\n");
+//      // debug
 		}
 		isl_multi_aff_free(offset);
 		isl_multi_val_free(size);
@@ -754,7 +777,7 @@ static isl_stat compute_group_bounds_core_pe(struct polysa_kernel *kernel,
   isl_ctx *ctx = isl_space_get_ctx(group->array->space);
   int use_local = kernel->options->use_local_memory;
   isl_stat r = isl_stat_ok;
-  isl_union_map *access, *local;
+  isl_union_map *access;
   isl_map *acc;
   isl_bool ok;
 
@@ -769,8 +792,6 @@ static isl_stat compute_group_bounds_core_pe(struct polysa_kernel *kernel,
 
   /* Collect all accesses in the group. */
   access = polysa_array_ref_group_access_relation(group, 1, 1); 
-  /* Get the access with host scheduling dimensions as the paramters. */
-  local = localize_access(data, isl_union_map_copy(access));
   /* Create local tile */
   if (use_local) {
     /* Create a tile. */
@@ -793,6 +814,7 @@ static isl_stat compute_group_bounds_core_pe(struct polysa_kernel *kernel,
     return r;
   }
 
+  isl_union_map_free(access);
   return isl_stat_ok;
 }
 
@@ -811,7 +833,7 @@ static isl_stat compute_group_bounds_core_io(struct polysa_kernel *kernel,
   isl_ctx *ctx = isl_space_get_ctx(group->array->space);
   int use_local = kernel->options->use_local_memory;
   isl_stat r = isl_stat_ok;
-  isl_union_map *access, *local;
+  isl_union_map *access;
   isl_map *acc;
   isl_bool ok;
 
@@ -827,8 +849,6 @@ static isl_stat compute_group_bounds_core_io(struct polysa_kernel *kernel,
   /* Collect all accesses in the group. 
    * TODO: Overapproximation */
   access = polysa_array_ref_group_access_relation(group, 1, 1); 
-  /* Get the access with host scheduling dimensions as the paramters. */
-  local = localize_access(data, isl_union_map_copy(access));
   /* Create local tile */
   if (use_local) {
     /* Create a tile. */
@@ -851,6 +871,7 @@ static isl_stat compute_group_bounds_core_io(struct polysa_kernel *kernel,
     return r;
   }
 
+  isl_union_map_free(access);
   return isl_stat_ok;
 }
 
@@ -865,7 +886,7 @@ static isl_stat compute_group_bounds_core_drain(struct polysa_kernel *kernel,
   isl_ctx *ctx = isl_space_get_ctx(group->array->space);
   int use_local = kernel->options->use_local_memory;
   isl_stat r = isl_stat_ok;
-  isl_union_map *access, *local;
+  isl_union_map *access;
   isl_map *acc;
   isl_bool ok;
 
@@ -881,8 +902,6 @@ static isl_stat compute_group_bounds_core_drain(struct polysa_kernel *kernel,
   /* Collect all accesses in the group. */
   /* This is overapproximated. */
   access = polysa_array_ref_group_access_relation(group, 0, 1); 
-  /* Get the access with host scheduling dimensions as the paramters. */
-  local = localize_access(data, isl_union_map_copy(access));
   /* Create local tile */
   if (use_local) {
     /* Create a tile. */
@@ -905,6 +924,7 @@ static isl_stat compute_group_bounds_core_drain(struct polysa_kernel *kernel,
     return r;
   }
 
+  isl_union_map_free(access);
   return isl_stat_ok;
 }
 
@@ -1662,7 +1682,6 @@ void extract_access_waw_domain(__isl_keep isl_basic_map *dep, void *user)
   isl_space *src_space;
   isl_id *src_id;
   isl_set *src_domain;
-  isl_set *acc_domain;
   isl_set *write_out;
   struct extract_access_waw_domain_data *data = (struct extract_access_waw_domain_data *)(user);
   
@@ -1671,11 +1690,12 @@ void extract_access_waw_domain(__isl_keep isl_basic_map *dep, void *user)
   src_id = isl_space_get_tuple_id(src_space, isl_dim_out);
   isl_space_free(src_space);
 
-  if (src_id != data->ref->ref_id)
+  if (src_id != data->ref->ref_id) {
+    isl_id_free(src_id);
     return;
+  }
 
   src_domain = isl_map_domain(isl_map_factor_domain(isl_map_from_basic_map(isl_basic_map_copy(dep))));
-  acc_domain = data->drain_domain;
 
 //  // debug
 //  isl_printer *p = isl_printer_to_file(isl_id_get_ctx(src_id), stdout);
@@ -1685,12 +1705,11 @@ void extract_access_waw_domain(__isl_keep isl_basic_map *dep, void *user)
 //  printf("\n");
 //  // debug
 
-  write_out = isl_set_subtract(acc_domain, src_domain);
+  data->drain_domain = isl_set_subtract(data->drain_domain, src_domain);
 //  // debug
 //  p = isl_printer_print_set(p, write_out);
 //  printf("\n");
 //  // debug
-  data->drain_domain = write_out;
 
   return;
 }
@@ -1749,8 +1768,11 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
 
       /* Add this access relation to the group */
       struct polysa_array_ref_group *group = isl_calloc_type(ctx, struct polysa_array_ref_group);
-      if (!group)
+      if (!group) {
+        isl_map_free(map);
+        isl_set_free(drain_data.drain_domain);
         return -1;
+      }
 
       group->local_array = local;
       group->array = local->array;
@@ -1768,6 +1790,7 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
       groups = (struct polysa_array_ref_group **)realloc(groups, (++n) * sizeof(struct polysa_array_ref_group *));
       groups[n - 1] = group;
     }
+    isl_set_free(drain_data.drain_domain);
   }
 
   /* Join all referneces together */
@@ -1876,15 +1899,15 @@ static __isl_give isl_multi_aff *strided_tile(
 	shift = isl_multi_aff_pullback_multi_aff(shift,
 				    isl_multi_aff_copy(insert_array));
 
-  // debug
-  isl_printer *p = isl_printer_to_file(ctx, stdout);
-  p = isl_printer_print_multi_aff(p, shift);
-  printf("\n");
-  p = isl_printer_print_multi_val(p, stride);
-  printf("\n");
-  p = isl_printer_print_space(p, space);
-  printf("\n");
-  // debug
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_print_multi_aff(p, shift);
+//  printf("\n");
+//  p = isl_printer_print_multi_val(p, stride);
+//  printf("\n");
+//  p = isl_printer_print_space(p, space);
+//  printf("\n");
+//  // debug
 
 	tiling = isl_multi_aff_range_map(isl_space_copy(space));
 	tiling = isl_multi_aff_add(tiling, shift);
@@ -2039,6 +2062,7 @@ isl_stat sa_group_references(struct polysa_kernel *kernel)
   isl_union_map_free(data.local_sched);
   isl_union_map_free(data.copy_sched);
   isl_union_map_free(data.full_sched);
+  isl_union_map_free(data.pe_sched);
   isl_schedule_node_free(node);
   
   return isl_stat_ok;
@@ -2082,11 +2106,18 @@ __isl_give isl_union_map *polysa_drain_group_access_relation(
 {
   isl_union_map *access;
 
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_union_set_get_ctx(domain), stdout);
+//  p = isl_printer_print_union_set(p, domain);
+//  printf("\n");
+//  // debug
+
   access = isl_union_map_empty(isl_map_get_space(group->access));
   for (int i = 0; i < group->n_ref; ++i) {
     isl_map *map_i;
     struct polysa_stmt_access *ref_i = group->refs[i];
     isl_set *acc_domain;
+    isl_space *space;
     isl_set *write_out;
 
     if (!((read && group->refs[i]->read) ||
@@ -2094,12 +2125,14 @@ __isl_give isl_union_map *polysa_drain_group_access_relation(
       continue;
         
     acc_domain = isl_map_domain(isl_map_copy(ref_i->access));
-    acc_domain = isl_union_set_extract_set(domain, isl_set_get_space(acc_domain));
+    space = isl_set_get_space(acc_domain);
+    isl_set_free(acc_domain);
+    acc_domain = isl_union_set_extract_set(domain, space);
     for (int j = 0; j < ref_i->n_io_info; j++) {
       struct polysa_io_info *info_i = ref_i->io_info[j];
       if (info_i->dep->type == POLYSA_DEP_WAW) {
         isl_set *src_domain;
-        isl_set *write_out;
+//        isl_set *write_out;
 
         isl_space *space = isl_basic_map_get_space(info_i->dep->isl_dep);
         isl_space *src_space = isl_space_unwrap(isl_space_domain(space));
@@ -2115,6 +2148,11 @@ __isl_give isl_union_map *polysa_drain_group_access_relation(
       }      
     }
     write_out = acc_domain;
+
+//    // debug
+//    p = isl_printer_print_set(p, write_out);
+//    printf("\n");
+//    // debug
 
     access = isl_union_map_union(access, 
         isl_union_map_from_map(isl_map_intersect_domain(isl_map_copy(ref_i->access), write_out)));
@@ -2161,6 +2199,9 @@ __isl_give isl_union_map *polysa_io_group_ref_access_relation(
         access = isl_union_map_union(access,
             isl_union_map_from_map(isl_map_intersect_domain(
                 isl_map_copy(ref->access), domain)));
+      } else {
+        isl_set_free(dep_src);
+        isl_set_free(dep_dest);
       }
     }
   }

@@ -166,6 +166,6 @@ struct t2s_data {
 int generate_polysa_t2s(isl_ctx *ctx, struct ppcg_options *ppcg_options,
     const char *input, const char *output);
 __isl_give struct polysa_dep *polysa_dep_copy(__isl_keep struct polysa_dep *dep);
-void *polysa_dep_free(__isl_take struct polysa_dep *dep);
+//void *polysa_dep_free(__isl_take struct polysa_dep *dep);
 
 #endif

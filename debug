@@ -1,0 +1,298 @@
+[PolySA] Explore 1D systolic array.
+[PolySA] 3 candidates generated.
+[PolySA] Explore 2D systolic array.
+[PolySA] 3 candidates generated.
+[PolySA] 6 systolic arrays generated.
+[PolySA] Apply array partitioning.
+domain: "{ S_0[i, j] : 0 <= i <= 511 and 0 <= j <= 511; S_1[i, j, k] : 0 <= i <= 511 and 0 <= j <= 511 and 0 <= k <= 511 }"
+child:
+  context: "{ [] }"
+  child:
+    schedule: "[{ S_0[i, j] -> [(i)]; S_1[i, j, k] -> [(i)] }, { S_0[i, j] -> [(j)]; S_1[i, j, k] -> [(j)] }, { S_0[i, j] -> [(0)]; S_1[i, j, k] -> [(k)] }]"
+    permutable: 1
+    coincident: [ 1, 1, 0 ]
+    space_time: [ space, space, time ]
+    pe_opt: [ array_part, array_part, array_part ]
+    child:
+      sequence:
+      - filter: "{ S_0[i, j] }"
+      - filter: "{ S_1[i, j, k] }"
+
+[PolySA] Apply data transfer optimization.
+domain: "{ kernel0[] }"
+child:
+  context: "{ [] }"
+  child:
+    contraction: "{ S_1[i, j, k] -> kernel0[]; S_0[i, j] -> kernel0[] }"
+    expansion: "{ kernel0[] -> S_0[i, j] : 0 <= i <= 511 and 0 <= j <= 511; kernel0[] -> S_1[i, j, k] : 0 <= i <= 511 and 0 <= j <= 511 and 0 <= k <= 511 }"
+    child:
+      mark: "kernel"
+      child:
+        mark: "module"
+        child:
+          context: "[p0, p1] -> { [] : 0 <= p0 <= 7 and 0 <= p1 <= 7 }"
+          child:
+            schedule: "[{ S_0[i, j] -> [(floor((i)/8))]; S_1[i, j, k] -> [(floor((i)/8))] }, { S_0[i, j] -> [(floor((j)/8))]; S_1[i, j, k] -> [(floor((j)/8))] }, { S_0[i, j] -> [(0)]; S_1[i, j, k] -> [(floor((k)/8))] }]"
+            permutable: 1
+            coincident: [ 1, 1, 0 ]
+            space_time: [ time, time, time ]
+            child:
+              mark: "array"
+              child:
+                filter: "[p0, p1] -> { S_0[i, j] : (-p0 + i) mod 8 = 0 and (-p1 + j) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7; S_1[i, j, k] : (-p0 + i) mod 8 = 0 and (-p1 + j) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 }"
+                child:
+                  schedule: "[{ S_0[i, j] -> [(i - 8*floor((i)/8))]; S_1[i, j, k] -> [(i - 8*floor((i)/8))] }, { S_0[i, j] -> [(j - 8*floor((j)/8))]; S_1[i, j, k] -> [(j - 8*floor((j)/8))] }]"
+                  permutable: 1
+                  coincident: [ 1, 1 ]
+                  space_time: [ space, space ]
+                  child:
+                    extension: "[p0, p1] -> { [i0, i1, 63, i3, i4] -> out.fifo_C_drain[[i0, i1, 63, i3, i4] -> C[o5, o6]] : (-p0 + o5) mod 8 = 0 and (p1 - o6) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (i4 - o6) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and o5 >= 8i0 and 0 <= o5 <= 511 and o5 <= 7 + 8i0 and o6 >= 8i1 and 0 <= o6 <= 511 and o6 <= 7 + 8i1 }"
+                    child:
+                      sequence:
+                      - filter: "[p0, p1] -> { S_0[i, j]; S_1[i, j, k] }"
+                        child:
+                          mark: "pe"
+                          child:
+                            extension: "{ [i0, i1, i2, i3, i4] -> in.fifo_C[[i0, i1, i2, i3, i4] -> C[8i0 + i3, 8i1 + i4]] : -8i0 <= i3 <= 511 - 8i0 and -8i1 <= i4 <= 511 - 8i1 }"
+                            child:
+                              sequence:
+                              - filter: "{ in.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] }"
+                                child:
+                                  schedule: "local_C[{ in.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i0 - i3 + i5)] }, { in.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i1 - i4 + i6)] }]"
+                              - filter: "[p0, p1] -> { S_0[i, j]; S_1[i, j, k] }"
+                                child:
+                                  extension: "[p0, p1] -> { [i0, i1, i2, i3, i4] -> out.fifo_C[[i0, i1, i2, i3, i4] -> C[o5, o6]] : (-p0 + o5) mod 8 = 0 and (-p1 + o6) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i2 <= 62 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and o5 >= 8i0 and 0 <= o5 <= 511 and o5 <= 7 + 8i0 and o6 >= 8i1 and 0 <= o6 <= 511 and o6 <= 7 + 8i1 }"
+                                  child:
+                                    sequence:
+                                    - filter: "[p0, p1] -> { S_0[i, j]; S_1[i, j, k] }"
+                                      child:
+                                        schedule: "[{ S_0[i, j] -> [(0)]; S_1[i, j, k] -> [(k - 8*floor((k)/8))] }]"
+                                        permutable: 1
+                                        space_time: [ time ]
+                                        child:
+                                          sequence:
+                                          - filter: "{ S_0[i, j] }"
+                                          - filter: "{ S_1[i, j, k] }"
+                                            child:
+                                              extension: "[p0, p1] -> { [i0, i1, i2, i3, i4, i5] -> in.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[o6, o7]] : (-p0 + o6) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and (i5 - o7) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i1 <= 63 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and 0 <= i5 <= 7 and o6 >= 8i0 and 0 <= o6 <= 511 and o6 <= 7 + 8i0 and o7 >= 8i2 and 0 <= o7 <= 511 and o7 <= 7 + 8i2; [i0, i1, i2, i3, i4, i5] -> in.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[o6, o7]] : (-p1 + o7) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and (i5 - o6) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and 0 <= i5 <= 7 and o6 >= 8i2 and 0 <= o6 <= 511 and o6 <= 7 + 8i2 and o7 >= 8i1 and 0 <= o7 <= 511 and o7 <= 7 + 8i1; [i0, i1, i2, i3, i4, i5] -> out.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[o6, o7]] : (-p0 + o6) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and (i5 - o7) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i1 <= 63 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and 0 <= i5 <= 7 and o6 >= 8i0 and 0 <= o6 <= 511 and o6 <= 7 + 8i0 and o7 >= 8i2 and 0 <= o7 <= 511 and o7 <= 7 + 8i2; [i0, i1, i2, i3, i4, i5] -> out.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[o6, o7]] : (-p1 + o7) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and (i5 - o6) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and 0 <= i5 <= 7 and o6 >= 8i2 and 0 <= o6 <= 511 and o6 <= 7 + 8i2 and o7 >= 8i1 and 0 <= o7 <= 511 and o7 <= 7 + 8i1 }"
+                                              child:
+                                                sequence:
+                                                - filter: "[p0, p1] -> { in.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] }"
+                                                  child:
+                                                    schedule: "[p0, p1] -> local_A[{ in.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] -> [(-p0 - 8i0 + i6)] }, { in.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] -> [(-8i2 - i5 + i7)] }]"
+                                                - filter: "[p0, p1] -> { in.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] }"
+                                                  child:
+                                                    schedule: "[p0, p1] -> local_B[{ in.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] -> [(-8i2 - i5 + i6)] }, { in.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] -> [(-p1 - 8i1 + i7)] }]"
+                                                - filter: "[p0, p1] -> { S_1[i, j, k] }"
+                                                - filter: "[p0, p1] -> { out.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] }"
+                                                  child:
+                                                    schedule: "[p0, p1] -> local_B[{ out.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] -> [(-8i2 - i5 + i6)] }, { out.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] -> [(-p1 - 8i1 + i7)] }]"
+                                                - filter: "[p0, p1] -> { out.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] }"
+                                                  child:
+                                                    schedule: "[p0, p1] -> local_A[{ out.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] -> [(-p0 - 8i0 + i6)] }, { out.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] -> [(-8i2 - i5 + i7)] }]"
+                                    - filter: "[p0, p1] -> { out.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] }"
+                                      child:
+                                        schedule: "local_C[{ out.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i0 - i3 + i5)] }, { out.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i1 - i4 + i6)] }]"
+                      - filter: "[p0, p1] -> { out.fifo_C_drain[[i0, i1, i2, i3, i4] -> C[i5, i6]] }"
+                        child:
+                          schedule: "local_C[{ out.fifo_C_drain[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i0 - i3 + i5)] }, { out.fifo_C_drain[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i1 - i4 + i6)] }]"
+
+[p0, p1] -> { in.fifo_C[[i0, i1, i2, p0, p1] -> C[p0 + 8i0, p1 + 8i1]] -> [i0, i1, i2] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 and 0 <= i2 <= 63 }
+[p0, p1] -> { in.fifo_A[[i0, i1, i2, p0, p1, i5] -> A[p0 + 8i0, 8i2 + i5]] -> [i0, i1, i2, i5] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and 0 <= i2 <= 63 and i5 >= 0 and -8i2 <= i5 <= 511 - 8i2 and i5 <= 7 }
+[p0, p1] -> { in.fifo_B[[i0, i1, i2, p0, p1, i5] -> B[8i2 + i5, p1 + 8i1]] -> [i0, i1, i2, i5] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 and 0 <= i2 <= 63 and i5 >= 0 and -8i2 <= i5 <= 511 - 8i2 and i5 <= 7 }
+[p0, p1] -> { out.fifo_B[[i0, i1, i2, p0, p1, i5] -> B[8i2 + i5, p1 + 8i1]] -> [i0, i1, i2, i5] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 and 0 <= i2 <= 63 and i5 >= 0 and -8i2 <= i5 <= 511 - 8i2 and i5 <= 7 }
+[p0, p1] -> { out.fifo_A[[i0, i1, i2, p0, p1, i5] -> A[p0 + 8i0, 8i2 + i5]] -> [i0, i1, i2, i5] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and 0 <= i2 <= 63 and i5 >= 0 and -8i2 <= i5 <= 511 - 8i2 and i5 <= 7 }
+[p0, p1] -> { out.fifo_C[[i0, i1, i2, p0, p1] -> C[p0 + 8i0, p1 + 8i1]] -> [i0, i1, i2] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 and 0 <= i2 <= 62 }
+[p0, p1] -> { out.fifo_C_drain[[i0, i1, 63, p0, p1] -> C[p0 + 8i0, p1 + 8i1]] -> [i0, i1, 63] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 }
+for (int c0 = 0; c0 <= 63; c0 += 1)
+  for (int c1 = 0; c1 <= 63; c1 += 1)
+    for (int c2 = 0; c2 <= 63; c2 += 1) {
+      // array
+      for (int c3 = 0; c3 <= 7; c3 += 1)
+        for (int c4 = 0; c4 <= 7; c4 += 1) {
+          // pe
+          {
+            read(c0, c1, c2, c3, c4, 8 * c0 + c3, 8 * c1 + c4);
+            if (c2 == 0)
+              S_0(8 * c0 + c3, 8 * c1 + c4);
+            for (int c5 = 0; c5 <= 7; c5 += 1)
+              S_1(8 * c0 + c3, 8 * c1 + c4, 8 * c2 + c5);
+            write(c0, c1, c2, c3, c4, 8 * c0 + c3, 8 * c1 + c4);
+          }
+        }
+    }
+
+for (int c0 = 0; c0 <= 63; c0 += 1)
+  for (int c1 = 0; c1 <= 63; c1 += 1)
+    for (int c2 = 0; c2 <= 63; c2 += 1) {
+      // array
+      {
+        // pe
+        {
+          in.fifo_C(c0, c1, c2, p0, p1, p0 + 8 * c0, p1 + 8 * c1);
+          if (c2 == 0)
+            S_0(p0 + 8 * c0, p1 + 8 * c1);
+          for (int c5 = 0; c5 <= 7; c5 += 1) {
+            in.fifo_A(c0, c1, c2, p0, p1, c5, p0 + 8 * c0, 8 * c2 + c5);
+            in.fifo_B(c0, c1, c2, p0, p1, c5, 8 * c2 + c5, p1 + 8 * c1);
+            S_1(p0 + 8 * c0, p1 + 8 * c1, 8 * c2 + c5);
+            out.fifo_B(c0, c1, c2, p0, p1, c5, 8 * c2 + c5, p1 + 8 * c1);
+            out.fifo_A(c0, c1, c2, p0, p1, c5, p0 + 8 * c0, 8 * c2 + c5);
+          }
+          if (c2 <= 62)
+            out.fifo_C(c0, c1, c2, p0, p1, p0 + 8 * c0, p1 + 8 * c1);
+        }
+        if (c2 == 63)
+          out.fifo_C_drain(c0, c1, 63, p0, p1, p0 + 8 * c0, p1 + 8 * c1);
+      }
+    }
+
+[PolySA] Explore 1D systolic array.
+[PolySA] 3 candidates generated.
+[PolySA] Explore 2D systolic array.
+[PolySA] 3 candidates generated.
+[PolySA] 6 systolic arrays generated.
+[PolySA] Apply array partitioning.
+domain: "{ S_0[i, j] : 0 <= i <= 511 and 0 <= j <= 511; S_1[i, j, k] : 0 <= i <= 511 and 0 <= j <= 511 and 0 <= k <= 511 }"
+child:
+  context: "{ [] }"
+  child:
+    schedule: "[{ S_0[i, j] -> [(i)]; S_1[i, j, k] -> [(i)] }, { S_0[i, j] -> [(j)]; S_1[i, j, k] -> [(j)] }, { S_0[i, j] -> [(0)]; S_1[i, j, k] -> [(k)] }]"
+    permutable: 1
+    coincident: [ 1, 1, 0 ]
+    space_time: [ space, space, time ]
+    pe_opt: [ array_part, array_part, array_part ]
+    child:
+      sequence:
+      - filter: "{ S_0[i, j] }"
+      - filter: "{ S_1[i, j, k] }"
+
+[PolySA] Apply data transfer optimization.
+domain: "{ kernel0[] }"
+child:
+  context: "{ [] }"
+  child:
+    contraction: "{ S_1[i, j, k] -> kernel0[]; S_0[i, j] -> kernel0[] }"
+    expansion: "{ kernel0[] -> S_0[i, j] : 0 <= i <= 511 and 0 <= j <= 511; kernel0[] -> S_1[i, j, k] : 0 <= i <= 511 and 0 <= j <= 511 and 0 <= k <= 511 }"
+    child:
+      mark: "kernel"
+      child:
+        mark: "module"
+        child:
+          context: "[p0, p1] -> { [] : 0 <= p0 <= 7 and 0 <= p1 <= 7 }"
+          child:
+            schedule: "[{ S_0[i, j] -> [(floor((i)/8))]; S_1[i, j, k] -> [(floor((i)/8))] }, { S_0[i, j] -> [(floor((j)/8))]; S_1[i, j, k] -> [(floor((j)/8))] }, { S_0[i, j] -> [(0)]; S_1[i, j, k] -> [(floor((k)/8))] }]"
+            permutable: 1
+            coincident: [ 1, 1, 0 ]
+            space_time: [ time, time, time ]
+            child:
+              mark: "array"
+              child:
+                filter: "[p0, p1] -> { S_0[i, j] : (-p0 + i) mod 8 = 0 and (-p1 + j) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7; S_1[i, j, k] : (-p0 + i) mod 8 = 0 and (-p1 + j) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 }"
+                child:
+                  schedule: "[{ S_0[i, j] -> [(i - 8*floor((i)/8))]; S_1[i, j, k] -> [(i - 8*floor((i)/8))] }, { S_0[i, j] -> [(j - 8*floor((j)/8))]; S_1[i, j, k] -> [(j - 8*floor((j)/8))] }]"
+                  permutable: 1
+                  coincident: [ 1, 1 ]
+                  space_time: [ space, space ]
+                  child:
+                    extension: "[p0, p1] -> { [i0, i1, 63, i3, i4] -> out.fifo_C_drain[[i0, i1, 63, i3, i4] -> C[o5, o6]] : (-p0 + o5) mod 8 = 0 and (p1 - o6) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (i4 - o6) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and o5 >= 8i0 and 0 <= o5 <= 511 and o5 <= 7 + 8i0 and o6 >= 8i1 and 0 <= o6 <= 511 and o6 <= 7 + 8i1 }"
+                    child:
+                      sequence:
+                      - filter: "[p0, p1] -> { S_0[i, j]; S_1[i, j, k] }"
+                        child:
+                          mark: "pe"
+                          child:
+                            extension: "{ [i0, i1, i2, i3, i4] -> in.fifo_C[[i0, i1, i2, i3, i4] -> C[8i0 + i3, 8i1 + i4]] : -8i0 <= i3 <= 511 - 8i0 and -8i1 <= i4 <= 511 - 8i1 }"
+                            child:
+                              sequence:
+                              - filter: "{ in.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] }"
+                                child:
+                                  schedule: "local_C[{ in.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i0 - i3 + i5)] }, { in.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i1 - i4 + i6)] }]"
+                              - filter: "[p0, p1] -> { S_0[i, j]; S_1[i, j, k] }"
+                                child:
+                                  extension: "[p0, p1] -> { [i0, i1, i2, i3, i4] -> out.fifo_C[[i0, i1, i2, i3, i4] -> C[o5, o6]] : (-p0 + o5) mod 8 = 0 and (-p1 + o6) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i2 <= 62 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and o5 >= 8i0 and 0 <= o5 <= 511 and o5 <= 7 + 8i0 and o6 >= 8i1 and 0 <= o6 <= 511 and o6 <= 7 + 8i1 }"
+                                  child:
+                                    sequence:
+                                    - filter: "[p0, p1] -> { S_0[i, j]; S_1[i, j, k] }"
+                                      child:
+                                        schedule: "[{ S_0[i, j] -> [(0)]; S_1[i, j, k] -> [(k - 8*floor((k)/8))] }]"
+                                        permutable: 1
+                                        space_time: [ time ]
+                                        child:
+                                          sequence:
+                                          - filter: "{ S_0[i, j] }"
+                                          - filter: "{ S_1[i, j, k] }"
+                                            child:
+                                              extension: "[p0, p1] -> { [i0, i1, i2, i3, i4, i5] -> in.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[o6, o7]] : (-p0 + o6) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and (i5 - o7) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i1 <= 63 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and 0 <= i5 <= 7 and o6 >= 8i0 and 0 <= o6 <= 511 and o6 <= 7 + 8i0 and o7 >= 8i2 and 0 <= o7 <= 511 and o7 <= 7 + 8i2; [i0, i1, i2, i3, i4, i5] -> in.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[o6, o7]] : (-p1 + o7) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and (i5 - o6) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and 0 <= i5 <= 7 and o6 >= 8i2 and 0 <= o6 <= 511 and o6 <= 7 + 8i2 and o7 >= 8i1 and 0 <= o7 <= 511 and o7 <= 7 + 8i1; [i0, i1, i2, i3, i4, i5] -> out.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[o6, o7]] : (-p0 + o6) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and (i5 - o7) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i1 <= 63 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and 0 <= i5 <= 7 and o6 >= 8i0 and 0 <= o6 <= 511 and o6 <= 7 + 8i0 and o7 >= 8i2 and 0 <= o7 <= 511 and o7 <= 7 + 8i2; [i0, i1, i2, i3, i4, i5] -> out.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[o6, o7]] : (-p1 + o7) mod 8 = 0 and (-p0 + i3) mod 8 = 0 and (-p1 + i4) mod 8 = 0 and (i5 - o6) mod 8 = 0 and 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and 0 <= i3 <= 7 and 0 <= i4 <= 7 and 0 <= i5 <= 7 and o6 >= 8i2 and 0 <= o6 <= 511 and o6 <= 7 + 8i2 and o7 >= 8i1 and 0 <= o7 <= 511 and o7 <= 7 + 8i1 }"
+                                              child:
+                                                sequence:
+                                                - filter: "[p0, p1] -> { in.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] }"
+                                                  child:
+                                                    schedule: "[p0, p1] -> local_A[{ in.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] -> [(-p0 - 8i0 + i6)] }, { in.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] -> [(-8i2 - i5 + i7)] }]"
+                                                - filter: "[p0, p1] -> { in.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] }"
+                                                  child:
+                                                    schedule: "[p0, p1] -> local_B[{ in.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] -> [(-8i2 - i5 + i6)] }, { in.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] -> [(-p1 - 8i1 + i7)] }]"
+                                                - filter: "[p0, p1] -> { S_1[i, j, k] }"
+                                                - filter: "[p0, p1] -> { out.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] }"
+                                                  child:
+                                                    schedule: "[p0, p1] -> local_B[{ out.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] -> [(-8i2 - i5 + i6)] }, { out.fifo_B[[i0, i1, i2, i3, i4, i5] -> B[i6, i7]] -> [(-p1 - 8i1 + i7)] }]"
+                                                - filter: "[p0, p1] -> { out.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] }"
+                                                  child:
+                                                    schedule: "[p0, p1] -> local_A[{ out.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] -> [(-p0 - 8i0 + i6)] }, { out.fifo_A[[i0, i1, i2, i3, i4, i5] -> A[i6, i7]] -> [(-8i2 - i5 + i7)] }]"
+                                    - filter: "[p0, p1] -> { out.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] }"
+                                      child:
+                                        schedule: "local_C[{ out.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i0 - i3 + i5)] }, { out.fifo_C[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i1 - i4 + i6)] }]"
+                      - filter: "[p0, p1] -> { out.fifo_C_drain[[i0, i1, i2, i3, i4] -> C[i5, i6]] }"
+                        child:
+                          schedule: "local_C[{ out.fifo_C_drain[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i0 - i3 + i5)] }, { out.fifo_C_drain[[i0, i1, i2, i3, i4] -> C[i5, i6]] -> [(-8i1 - i4 + i6)] }]"
+
+[p0, p1] -> { in.fifo_C[[i0, i1, i2, p0, p1] -> C[p0 + 8i0, p1 + 8i1]] -> [i0, i1, i2] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 and 0 <= i2 <= 63 }
+[p0, p1] -> { in.fifo_A[[i0, i1, i2, p0, p1, i5] -> A[p0 + 8i0, 8i2 + i5]] -> [i0, i1, i2, i5] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and 0 <= i2 <= 63 and i5 >= 0 and -8i2 <= i5 <= 511 - 8i2 and i5 <= 7 }
+[p0, p1] -> { in.fifo_B[[i0, i1, i2, p0, p1, i5] -> B[8i2 + i5, p1 + 8i1]] -> [i0, i1, i2, i5] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 and 0 <= i2 <= 63 and i5 >= 0 and -8i2 <= i5 <= 511 - 8i2 and i5 <= 7 }
+[p0, p1] -> { out.fifo_B[[i0, i1, i2, p0, p1, i5] -> B[8i2 + i5, p1 + 8i1]] -> [i0, i1, i2, i5] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 and 0 <= i2 <= 63 and i5 >= 0 and -8i2 <= i5 <= 511 - 8i2 and i5 <= 7 }
+[p0, p1] -> { out.fifo_A[[i0, i1, i2, p0, p1, i5] -> A[p0 + 8i0, 8i2 + i5]] -> [i0, i1, i2, i5] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and 0 <= i2 <= 63 and i5 >= 0 and -8i2 <= i5 <= 511 - 8i2 and i5 <= 7 }
+[p0, p1] -> { out.fifo_C[[i0, i1, i2, p0, p1] -> C[p0 + 8i0, p1 + 8i1]] -> [i0, i1, i2] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 and 0 <= i2 <= 62 }
+[p0, p1] -> { out.fifo_C_drain[[i0, i1, 63, p0, p1] -> C[p0 + 8i0, p1 + 8i1]] -> [i0, i1, 63] : 0 <= p0 <= 7 and 0 <= p1 <= 7 and 0 <= i0 <= 63 and -p0 <= 8i0 <= 511 - p0 and 0 <= i1 <= 63 and -p1 <= 8i1 <= 511 - p1 }
+for (int c0 = 0; c0 <= 63; c0 += 1)
+  for (int c1 = 0; c1 <= 63; c1 += 1)
+    for (int c2 = 0; c2 <= 63; c2 += 1) {
+      // array
+      for (int c3 = 0; c3 <= 7; c3 += 1)
+        for (int c4 = 0; c4 <= 7; c4 += 1) {
+          // pe
+          {
+            read(c0, c1, c2, c3, c4, 8 * c0 + c3, 8 * c1 + c4);
+            if (c2 == 0)
+              S_0(8 * c0 + c3, 8 * c1 + c4);
+            for (int c5 = 0; c5 <= 7; c5 += 1)
+              S_1(8 * c0 + c3, 8 * c1 + c4, 8 * c2 + c5);
+            write(c0, c1, c2, c3, c4, 8 * c0 + c3, 8 * c1 + c4);
+          }
+        }
+    }
+
+for (int c0 = 0; c0 <= 63; c0 += 1)
+  for (int c1 = 0; c1 <= 63; c1 += 1)
+    for (int c2 = 0; c2 <= 63; c2 += 1) {
+      // array
+      {
+        // pe
+        {
+          in.fifo_C(c0, c1, c2, p0, p1, p0 + 8 * c0, p1 + 8 * c1);
+          if (c2 == 0)
+            S_0(p0 + 8 * c0, p1 + 8 * c1);
+          for (int c5 = 0; c5 <= 7; c5 += 1) {
+            in.fifo_A(c0, c1, c2, p0, p1, c5, p0 + 8 * c0, 8 * c2 + c5);
+            in.fifo_B(c0, c1, c2, p0, p1, c5, 8 * c2 + c5, p1 + 8 * c1);
+            S_1(p0 + 8 * c0, p1 + 8 * c1, 8 * c2 + c5);
+            out.fifo_B(c0, c1, c2, p0, p1, c5, 8 * c2 + c5, p1 + 8 * c1);
+            out.fifo_A(c0, c1, c2, p0, p1, c5, p0 + 8 * c0, 8 * c2 + c5);
+          }
+          if (c2 <= 62)
+            out.fifo_C(c0, c1, c2, p0, p1, p0 + 8 * c0, p1 + 8 * c1);
+        }
+        if (c2 == 63)
+          out.fifo_C_drain(c0, c1, 63, p0, p1, p0 + 8 * c0, p1 + 8 * c1);
+      }
+    }
+

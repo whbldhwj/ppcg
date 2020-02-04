@@ -1085,24 +1085,6 @@ static int t2s_update_access(__isl_keep pet_expr *expr, void *user)
 	return 0;
 }
 
-/* Free up the dependence. */
-void *polysa_dep_free(__isl_take struct polysa_dep *dep)
-{
-  if (!dep)
-    return NULL;
-
-  isl_id_free(dep->src);
-  isl_id_free(dep->dest);
-  isl_vec_free(dep->disvec);
-  isl_set_free(dep->src_sched_domain);
-  isl_set_free(dep->dest_sched_domain);
-  isl_basic_map_free(dep->isl_dep);
-
-  free(dep);
-
-  return NULL;
-}
-
 /* Generate a T2S statement for each unique dependence pair. */
 isl_bool gen_t2s_stmt(__isl_take struct polysa_dep **dep_stmt_pair, struct ppcg_stmt *stmt, struct t2s_data *data)
 {
