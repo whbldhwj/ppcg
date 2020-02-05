@@ -775,7 +775,7 @@ static void print_kernel(struct polysa_prog *prog, struct polysa_kernel *kernel,
 	p = isl_ast_node_print(kernel->tree, p, print_options);
 	isl_printer_free(p);
 
-	fprintf(hls->kernel_c, "}\n\n");
+	fprintf(hls->kernel_c, "}\n");
 }
 
 static void print_module_iterators(FILE *out, struct polysa_hw_module *module)

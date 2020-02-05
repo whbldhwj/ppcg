@@ -28,5 +28,7 @@ isl_bool can_tile(__isl_keep isl_map *access,
 //  struct polysa_stmt_access *access,
 //  struct polysa_array_ref_group *group);
 __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __isl_keep isl_vec *dir);
+__isl_give isl_printer *polysa_array_ref_group_print_fifo_name(
+	struct polysa_array_ref_group *group, __isl_take isl_printer *p);
 
 #endif

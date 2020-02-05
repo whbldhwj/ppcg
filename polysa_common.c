@@ -2173,6 +2173,21 @@ void *polysa_prog_free(struct polysa_prog *prog)
 /*****************************************************************
  * PolySA hw module related functions
  *****************************************************************/
+struct polysa_hw_module *polysa_hw_module_alloc()
+{
+  struct polysa_hw_module *module = (struct polysa_hw_module *)malloc(sizeof(struct polysa_hw_module));
+  module->name = NULL;
+  module->tree = NULL;
+  module->inst_ids = NULL;
+  module->n_var = 0;
+  module->var = NULL;
+  module->kernel = NULL;
+  module->n_io_group = 0;
+  module->io_groups = NULL;
+
+  return module;
+}
+
 void *polysa_hw_module_free(struct polysa_hw_module *module)
 {
   if (!module) 
@@ -2180,6 +2195,12 @@ void *polysa_hw_module_free(struct polysa_hw_module *module)
 
   free(module->name);
   isl_ast_node_free(module->tree);
+  isl_id_list_free(module->inst_ids);
+  for (int i = 0; i < module->n_var; i++) {
+    free(module->var[i].name);
+    isl_vec_free(module->var[i].size);
+  }
+  free(module->io_groups);
   free(module);
 
   return NULL;

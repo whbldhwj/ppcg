@@ -35,7 +35,7 @@ void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {
     {
       dim3 k0_dimBlock(1);
       dim3 k0_dimGrid(1);
-      kernel0 <<<k0_dimGrid, k0_dimBlock>>> (dev_C);
+      kernel0 <<<k0_dimGrid, k0_dimBlock>>> (dev_A, dev_B, dev_C);
       cudaCheckKernel();
     }
     

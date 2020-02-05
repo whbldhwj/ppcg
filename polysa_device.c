@@ -265,9 +265,21 @@ __isl_give isl_union_map *remove_local_accesses_flow(
    */
 	local = isl_union_map_apply_range(sched,
 			    isl_union_map_reverse(isl_union_map_copy(sched)));
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_union_map_get_ctx(external), stdout);
+//  p = isl_printer_print_union_map(p, local);
+//  printf("\n");
+//  // debug
+
   /* Derive the local dependence set. */
 	local = isl_union_map_intersect(local,
 			isl_union_map_copy(prog->scop->tagged_dep_flow));
+
+//  // debug
+//  p = isl_printer_print_union_map(p, local);
+//  printf("\n");
+//  // debug
 
 	empty = isl_union_map_is_empty(local);
 
@@ -284,8 +296,21 @@ __isl_give isl_union_map *remove_local_accesses_flow(
 		external = isl_union_map_intersect_domain(external, domain);
 	external = isl_union_map_intersect_params(external,
 				isl_set_copy(prog->scop->context));
+//  // debug
+//  p = isl_printer_print_union_map(p, external);
+//  printf("\n");
+//  // debug
 	external = isl_union_map_subtract(external, local);
   /* So far external contains only access non-local RAW pairs. */
+
+//  // debug
+////  isl_printer *p = isl_printer_to_file(isl_union_map_get_ctx(external), stdout);
+//  p = isl_printer_print_union_map(p, external);
+//  printf("\n");
+//  p = isl_printer_print_union_map(p, prog->scop->tagged_dep_flow);
+//  printf("\n");
+//  p = isl_printer_free(p);
+//  // debug
 
 	if (read) {
 		tag_set = isl_union_map_range(external);

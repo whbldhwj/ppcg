@@ -50,17 +50,17 @@ enum polysa_io_type {
   POLYSA_UNKNOWN_IO
 };
 
+enum polysa_io_dir {
+  IO_IN,
+  IO_OUT,
+  IO_INOUT,
+  IO_UNKNOWN
+};
+
 enum polysa_module_type {
   PE_MODULE,
-  L1_IN_IO_MODULE,
-  L2_IN_IO_MODULE,
-  L3_IN_IO_MODULE,
-  L1_OUT_IO_MODULE,
-  L2_OUT_IO_MODULE,
-  L3_OUT_IO_MODULE,
-  L1_DRAIN_MODULE,
-  L2_DRAIN_MODULE,
-  L3_DRAIN_MODULE
+  IO_MODULE,
+  DRAIN_MODULE
 };
 
 enum polysa_group_type {
@@ -410,6 +410,8 @@ struct polysa_array_ref_group {
   enum polysa_io_type io_type;
   isl_vec *dir;
   enum polysa_group_type group_type;
+  enum polysa_io_dir pe_io_dir;
+  enum polysa_io_dir array_io_dir;
   /* PolySA Extended */
 };
 
@@ -505,6 +507,10 @@ struct polysa_hw_module {
   /* Module name */
   char *name;
 
+  isl_id_list *inst_ids;
+  int n_var;
+  struct polysa_kernel_var *var;
+
   /* Module schedule */
   isl_schedule *sched;
 
@@ -513,7 +519,13 @@ struct polysa_hw_module {
   isl_ast_node *device_tree;
 
   /* Array reference group for I/O or drain module */
-  struct polysa_array_ref_group *group;
+  struct polysa_array_ref_group **io_groups;
+  int n_io_group;
+
+  /* I/O module level */
+  int level;
+
+  struct polysa_kernel *kernel;
 };
 
 struct polysa_gen {
@@ -690,6 +702,7 @@ struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop);
 void *polysa_prog_free(struct polysa_prog *prog);
 
 /* PolySA hw module related functions */
+struct polysa_hw_module *polysa_hw_module_alloc();
 void *polysa_hw_module_free(struct polysa_hw_module *module);
 
 #endif

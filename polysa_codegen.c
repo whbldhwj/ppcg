@@ -177,12 +177,27 @@ static struct polysa_array_ref_group *find_ref_group(
  * the tile with the smallest depth is used.  If both have the same depth,
  * then the private tile is used.
  */
-enum polysa_group_access_type polysa_array_ref_group_type(
+enum polysa_group_access_type polysa_cpu_array_ref_group_type(
 	struct polysa_array_ref_group *group)
 {
   if (group->local_tile)
     return POLYSA_ACCESS_LOCAL;
   return POLYSA_ACCESS_GLOBAL;
+}
+
+/* Should this array reference group be mapped to private, shared or global
+ * memory?
+ * If we have computed both a private and a shared tile, then
+ * the tile with the smallest depth is used.  If both have the same depth,
+ * then the private tile is used.
+ */
+enum polysa_group_access_type polysa_array_ref_group_type(
+	struct polysa_array_ref_group *group)
+{
+  if (polysa_array_is_read_only_scalar(group->array))
+    return POLYSA_ACCESS_GLOBAL;
+  else
+    return POLYSA_ACCESS_LOCAL;
 }
 
 /* Return the effective gpu_array_tile associated to "group" or
@@ -198,6 +213,15 @@ struct polysa_array_tile *polysa_array_ref_group_tile(
       return group->local_tile;
 	}
 }
+
+///* Return the effective gpu_array_tile associated to "group" or
+// * NULL if there is no such polysa_array_tile.
+// */
+//struct polysa_array_tile *polysa_array_ref_group_tile(
+//	struct polysa_array_ref_group *group)
+//{
+//  return group->local_tile;
+//}
 
 /* Given an index expression "index" of the form
  *
@@ -929,7 +953,18 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
 //  printf("%s\n", type);
   // debug
 
-  stmt->u.i.fifo_name = fifo_suffix(type);
+  isl_printer *p_str = isl_printer_to_str(isl_ast_node_get_ctx(node));
+  char *fifo_name = fifo_suffix(type);
+  p_str = isl_printer_print_str(p_str, fifo_name);
+  free(fifo_name);
+  p_str = isl_printer_print_str(p_str, "_");
+  if (stmt->u.i.in) {
+    p_str = isl_printer_print_str(p_str, "in");
+  } else {
+    p_str = isl_printer_print_str(p_str, "out");
+  }
+  stmt->u.i.fifo_name = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
   stmt->u.i.array = group->array;
   stmt->u.i.local_array = group->local_array;
   stmt->type = POLYSA_KERNEL_STMT_IO;
@@ -1336,8 +1371,11 @@ static __isl_give isl_ast_node *after_mark_module(__isl_take isl_ast_node *node,
 	id = isl_ast_node_mark_get_id(node);
 	if (!id)
 		return isl_ast_node_free(node);
-  if (!strcmp(isl_id_get_name(id), "kernel")) {
+
+  if (!strcmp(isl_id_get_name(id), "kernel") && data->kernel) {
     isl_id_free(id);
+    if (!data->kernel->space)
+      data->kernel->space = isl_ast_build_get_schedule_space(build);
     data->kernel = NULL;
     return node;
   }

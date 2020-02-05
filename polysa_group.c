@@ -178,6 +178,8 @@ static int populate_array_references_io(struct polysa_local_array_info *local,
       group->io_type = access->io_info[j]->io_type;
       group->dir = isl_vec_copy(access->io_info[j]->dir);
       group->group_type = POLYSA_IO_GROUP;
+      group->pe_io_dir = IO_UNKNOWN;
+      group->array_io_dir = IO_UNKNOWN;
 
 		  groups[n++] = group;
     }
@@ -245,6 +247,8 @@ static struct polysa_array_ref_group *join_groups(
   group->io_type = group1->io_type;
   group->dir = isl_vec_copy(group1->dir);
   group->group_type = group1->group_type;
+  group->pe_io_dir = group1->pe_io_dir;
+  group->array_io_dir = group1->array_io_dir;
 
 	return group;
 }
@@ -1786,6 +1790,8 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
       group->dir = isl_vec_zero(ctx, kernel->n_sa_dim);
       group->dir = isl_vec_set_element_si(group->dir, 0, 1);
       group->group_type = POLYSA_DRAIN_GROUP;
+      group->pe_io_dir = IO_OUT;
+      group->array_io_dir = IO_OUT;
 
       groups = (struct polysa_array_ref_group **)realloc(groups, (++n) * sizeof(struct polysa_array_ref_group *));
       groups[n - 1] = group;
@@ -1827,9 +1833,15 @@ __isl_give isl_printer *polysa_array_ref_group_print_name(
 	struct polysa_array_ref_group *group, __isl_take isl_printer *p)
 {
 	int global = 0;
-  p = isl_printer_print_str(p, "local_");
+  enum polysa_group_access_type type;
+
+  type = polysa_array_ref_group_type(group);
+  if (type == POLYSA_ACCESS_LOCAL)
+    p = isl_printer_print_str(p, "local_");
+  else
+    global = 1;
+
   p = isl_printer_print_str(p, group->array->name);
-  
   if (!global) {
     if (group->group_type == POLYSA_IO_GROUP && group->local_array->n_io_group > 1) {
       p = isl_printer_print_str(p, "_");
@@ -1838,6 +1850,30 @@ __isl_give isl_printer *polysa_array_ref_group_print_name(
       p = isl_printer_print_str(p, "_");
       p = isl_printer_print_int(p, group->nr);
     }
+  }
+
+	return p;
+}
+
+/* Print the name of the local copy of a given group of array references.
+ */
+__isl_give isl_printer *polysa_array_ref_group_print_fifo_name(
+	struct polysa_array_ref_group *group, __isl_take isl_printer *p)
+{
+	int global = 0;
+  enum polysa_group_access_type type;
+
+  if (group->group_type == POLYSA_PE_GROUP)
+    return p;
+
+  p = isl_printer_print_str(p, "fifo_");
+  p = isl_printer_print_str(p, group->array->name);
+  if (group->local_array->n_io_group > 1) {
+    p = isl_printer_print_str(p, "_");
+    p = isl_printer_print_int(p, group->nr);
+  }
+  if (group->group_type == POLYSA_DRAIN_GROUP) {
+    p = isl_printer_print_str(p, "_drain");
   }
 
 	return p;

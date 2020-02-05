@@ -14,5 +14,7 @@ struct polysa_array_tile *polysa_array_ref_group_tile(
 	struct polysa_array_ref_group *group);
 enum polysa_group_access_type polysa_array_ref_group_type(
 	struct polysa_array_ref_group *group);
+enum polysa_group_access_type polysa_cpu_array_ref_group_type(
+	struct polysa_array_ref_group *group);
 
 #endif
