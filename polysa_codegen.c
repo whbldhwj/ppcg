@@ -836,19 +836,70 @@ static __isl_give isl_ast_node *build_array_bounds(
 /* Given the input in the format of "in.fifoX",
  * extract the string after the '.'.
  */
-__isl_give char *fifo_suffix(const char *type) {
+__isl_give char *fifo_suffix(isl_ctx *ctx, const char *type) 
+{
   int prefix_len;
   char *fifo_name;
-  
-  if (!prefixcmp(type, "in")) {
-    prefix_len = 2;
-  } else if (!prefixcmp(type, "out")) {
-    prefix_len = 3;
+  int loc = 0;
+  char ch;
+  isl_printer *p_str;
+
+  while ((ch = type[loc]) != '\0') {
+    if (ch == '.')
+      break;
+    loc++;
   }
 
-  fifo_name = (char *)malloc(strlen(type) - prefix_len - 1 + 1);
-  strncpy(fifo_name, type + prefix_len + 1, (strlen(type) - prefix_len - 1));
+  p_str = isl_printer_to_str(ctx);
+  loc++;
+  while ((ch = type[loc]) != '\0') {
+    if (ch == '.')
+      break;
+    char buf[2];
+    buf[0] = ch;
+    buf[1] = '\0';
+    p_str = isl_printer_print_str(p_str, buf);
+    loc++;
+  }
+
+  fifo_name = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
+
   return fifo_name;
+}
+
+int filter_depth(isl_ctx *ctx, const char *type) 
+{
+  int loc = 0;
+  char ch;
+  int dot_time = 0;
+  isl_printer *p_str;
+  char *depth_str;
+  int depth;
+
+  while ((ch = type[loc]) != '\0') {
+    if (ch == '.') 
+      dot_time++;
+    if (dot_time == 2)
+      break;
+    loc++;
+  }
+
+  p_str = isl_printer_to_str(ctx);
+  loc++;
+  while ((ch = type[loc]) != '\0') {
+    char buf[2];
+    buf[0] = ch;
+    buf[1] = '\0';
+    p_str = isl_printer_print_str(p_str, buf);
+    loc++;
+  }
+
+  depth_str = isl_printer_get_str(p_str);
+  depth = atoi(depth_str);
+  free(depth_str);
+
+  return depth;
 }
 
 /* This function is called for each statement node in the AST
@@ -886,25 +937,46 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
 {
   struct polysa_kernel_stmt *stmt;
   struct polysa_array_tile *tile;
+  isl_multi_aff *new_tiling;
   isl_map *access;
   const char *type;
   isl_pw_multi_aff *pma, *pma2;
   isl_space *space;
   isl_ast_expr *expr;
   isl_id *id;
+  int is_transfer;
+  int is_reg;
+  int depth;
+  isl_ctx *ctx;
 
   stmt = isl_calloc_type(kernel->ctx, struct polysa_kernel_stmt);
   if (!stmt)
     return isl_ast_node_free(node);
 
-  /* type[D -> A] -> L */
-  access = isl_map_from_union_map(isl_ast_build_get_schedule(build));
+  ctx = kernel->ctx;
+
 //  // debug
 //  isl_printer *p = isl_printer_to_file(kernel->ctx, stdout);
+//  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+//  p = isl_printer_print_ast_node(p, node);
+//  printf("\n");
+//  // debug
+
+  /* type[D -> A] -> L */
+  access = isl_map_from_union_map(isl_ast_build_get_schedule(build));
+
+//  // debug
+//  p = isl_printer_set_output_format(p, ISL_FORMAT_ISL);
 //  p = isl_printer_print_map(p, access);
 //  printf("\n");
 //  // debug
+
+  isl_set *set = isl_map_domain(isl_set_unwrap(isl_map_domain(isl_map_copy(access))));
+  depth = isl_set_dim(set, isl_dim_set);
+  isl_set_free(set);
+
   type = isl_map_get_tuple_name(access, isl_dim_in);
+  is_transfer = !prefixcmp(type, "in_trans") || !prefixcmp(type, "out_trans");
   stmt->u.i.in = type && !prefixcmp(type, "in");
   /* L -> type[D -> A] */
   access = isl_map_reverse(access);
@@ -919,6 +991,28 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
     /* [D -> A] -> T */
     pma2 = isl_pw_multi_aff_from_multi_aff(
               isl_multi_aff_copy(tile->tiling));
+//    // debug
+//    p = isl_printer_print_pw_multi_aff(p, pma2);
+//    printf("\n");
+//    p = isl_printer_print_pw_multi_aff(p, pma);
+//    printf("\n");
+//    printf("%d\n", isl_multi_aff_dim(tile->tiling, isl_dim_set));
+//    // debug
+    if (tile->depth < depth) {
+      /* Extend the D dimension to depth in pma2 */
+      new_tiling = polysa_array_ref_group_recompute_tiling(tile, group, depth);
+//      // debug
+//      p = isl_printer_print_multi_aff(p, new_tiling);
+//      printf("\n");
+//      // debug
+      isl_pw_multi_aff_free(pma2);
+      pma2 = isl_pw_multi_aff_from_multi_aff(new_tiling);
+    }
+//    // debug
+//    p = isl_printer_print_pw_multi_aff(p, pma2);
+//    printf("\n");
+//    // debug
+    
     /* L -> T */
     pma2 = isl_pw_multi_aff_pullback_pw_multi_aff(pma2, pma);
     expr = isl_ast_build_access_from_pw_multi_aff(build, pma2);
@@ -954,20 +1048,25 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
   // debug
 
   isl_printer *p_str = isl_printer_to_str(isl_ast_node_get_ctx(node));
-  char *fifo_name = fifo_suffix(type);
+  char *fifo_name = fifo_suffix(ctx, type);
   p_str = isl_printer_print_str(p_str, fifo_name);
   free(fifo_name);
-  p_str = isl_printer_print_str(p_str, "_");
-  if (stmt->u.i.in) {
-    p_str = isl_printer_print_str(p_str, "in");
-  } else {
-    p_str = isl_printer_print_str(p_str, "out");
-  }
+//  p_str = isl_printer_print_str(p_str, "_");
+//  if (stmt->u.i.in) {
+//    p_str = isl_printer_print_str(p_str, "in");
+//  } else {
+//    p_str = isl_printer_print_str(p_str, "out");
+//  }
   stmt->u.i.fifo_name = isl_printer_get_str(p_str);
   isl_printer_free(p_str);
   stmt->u.i.array = group->array;
   stmt->u.i.local_array = group->local_array;
-  stmt->type = POLYSA_KERNEL_STMT_IO;
+  if (is_transfer) {
+    stmt->type = POLYSA_KERNEL_STMT_IO_TRANSFER;
+    stmt->u.i.filter_depth = filter_depth(ctx, type);
+  } else {
+    stmt->type = POLYSA_KERNEL_STMT_IO;
+  }
 
 //  // debug
 //  p = isl_printer_print_ast_expr(p, stmt->u.i.local_index);
@@ -1481,13 +1580,13 @@ __isl_give isl_ast_node *sa_module_generate_code(struct polysa_gen *gen,
   data.kernel = NULL;
   data.module = NULL;
 
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
-//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-//  p = isl_printer_print_schedule(p, schedule);
-//  printf("\n");
-//  p = isl_printer_free(p);
-//  // debug
+  // debug
+  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  p = isl_printer_print_schedule(p, schedule);
+  printf("\n");
+  p = isl_printer_free(p);
+  // debug
 
   depth = 0;
   if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth,

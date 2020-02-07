@@ -30,5 +30,9 @@ isl_bool can_tile(__isl_keep isl_map *access,
 __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __isl_keep isl_vec *dir);
 __isl_give isl_printer *polysa_array_ref_group_print_fifo_name(
 	struct polysa_array_ref_group *group, __isl_take isl_printer *p);
+__isl_give isl_multi_aff *polysa_array_ref_group_recompute_tiling(
+  struct polysa_array_tile *tile,
+  struct polysa_array_ref_group *group,
+  int depth);
 
 #endif

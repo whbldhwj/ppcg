@@ -1952,6 +1952,127 @@ static __isl_give isl_multi_aff *strided_tile(
 	return tiling;
 }
 
+static __isl_give isl_multi_aff *strided_tile_depth(
+	struct polysa_array_tile *tile, __isl_keep isl_space *space,
+	__isl_keep isl_multi_aff *insert_array, int depth)
+{
+	int i;
+	isl_ctx *ctx;
+	isl_multi_aff *shift;
+	isl_multi_val *stride;
+	isl_space *space2;
+	isl_local_space *ls;
+	isl_multi_aff *tiling;
+
+	ctx = isl_space_get_ctx(space);
+	space2 = isl_space_domain(isl_space_copy(space));
+	ls = isl_local_space_from_space(space2);
+	space2 = isl_space_range(isl_space_copy(space));
+	stride = isl_multi_val_zero(space2);
+	shift = isl_multi_aff_zero(isl_space_copy(space));
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  // debug
+
+	for (i = 0; i < tile->n; ++i) {
+		struct polysa_array_bound *bound = &tile->bound[i];
+		isl_val *stride_i;
+		isl_aff *shift_i;
+
+		stride_i = isl_val_copy(bound->stride);
+		shift_i = isl_aff_copy(bound->shift);
+
+//    // debug
+//    p = isl_printer_print_aff(p, shift_i);
+//    printf("\n");
+//    printf("%d\n", isl_aff_dim(shift_i, isl_dim_in));
+//    // debug
+    shift_i = isl_aff_insert_dims(shift_i, isl_dim_in, tile->depth, depth - tile->depth);
+//    // debug
+//    p = isl_printer_print_aff(p, shift_i);
+//    printf("\n");
+//    // debug
+
+		stride = isl_multi_val_set_val(stride, i, stride_i);
+		shift = isl_multi_aff_set_aff(shift, i, shift_i);
+	}
+	isl_local_space_free(ls);
+
+	shift = isl_multi_aff_pullback_multi_aff(shift,
+				    isl_multi_aff_copy(insert_array));
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_print_multi_aff(p, shift);
+//  printf("\n");
+//  p = isl_printer_print_multi_val(p, stride);
+//  printf("\n");
+//  p = isl_printer_print_space(p, space);
+//  printf("\n");
+//  // debug
+
+	tiling = isl_multi_aff_range_map(isl_space_copy(space));
+	tiling = isl_multi_aff_add(tiling, shift);
+	tiling = isl_multi_aff_scale_down_multi_val(tiling, stride);
+
+	return tiling;
+}
+
+// TODO
+__isl_give isl_multi_aff *polysa_array_ref_group_recompute_tiling(
+  struct polysa_array_tile *tile,
+  struct polysa_array_ref_group *group,
+  int depth)
+{
+ 	int i;
+	isl_space *space;
+	isl_multi_aff *tiling, *lb, *insert_array;
+	isl_printer *p;
+	char *local_name;
+
+  if (tile == NULL && polysa_array_ref_group_tile(group) == NULL)
+    return NULL;
+
+  if (tile == NULL)
+    tile = polysa_array_ref_group_tile(group);
+
+	space = isl_map_get_space(group->access);
+	space = isl_space_from_range(isl_space_range(space));
+  /* Build D[i] -> A[a] */
+	space = isl_space_add_dims(space, isl_dim_in, depth);
+  /* Build [D[i] -> A[a]] -> D[i] */
+	insert_array = isl_multi_aff_domain_map(isl_space_copy(space));
+
+	for (i = 0; i < tile->n; ++i)
+		if (tile->bound[i].shift)
+			break;
+
+	if (i < tile->n)
+		tiling = strided_tile_depth(tile, space, insert_array, depth); 
+	else
+		tiling = isl_multi_aff_range_map(isl_space_copy(space));  
+
+	lb = isl_multi_aff_zero(space);
+	for (i = 0; i < tile->n; ++i) {
+		isl_aff *lb_i = isl_aff_copy(tile->bound[i].lb); 
+    lb_i = isl_aff_insert_dims(lb_i, isl_dim_in, tile->depth, depth - tile->depth);
+		lb = isl_multi_aff_set_aff(lb, i, lb_i);
+	}
+	lb = isl_multi_aff_pullback_multi_aff(lb, insert_array);
+
+	tiling = isl_multi_aff_sub(tiling, lb);
+
+	p = isl_printer_to_str(isl_multi_aff_get_ctx(tiling));
+	p = polysa_array_ref_group_print_name(group, p);
+	local_name = isl_printer_get_str(p);
+	isl_printer_free(p);
+	tiling = isl_multi_aff_set_tuple_name(tiling, isl_dim_out, local_name);
+	free(local_name);
+
+	return tiling;
+}
+
 /* Compute a tiling for the array reference group "group".
  *
  * The tiling is of the form

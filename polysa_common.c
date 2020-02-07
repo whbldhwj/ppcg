@@ -849,6 +849,7 @@ void *polysa_kernel_free(struct polysa_kernel *kernel)
   isl_union_pw_multi_aff_free(kernel->contraction);
   isl_union_set_free(kernel->expanded_domain);
   isl_set_free(kernel->host_domain);
+  isl_union_set_free(kernel->domain);
   for (int i = 0; i < kernel->n_array; ++i) {
     struct polysa_local_array_info *array = &kernel->array[i];
     for (int j = 0; j < array->n_pe_group; ++j)
@@ -923,6 +924,7 @@ struct polysa_kernel *polysa_kernel_copy(struct polysa_kernel *sa)
   sa_dup->contraction = isl_union_pw_multi_aff_copy(sa->contraction);
   sa_dup->expanded_domain = isl_union_set_copy(sa->expanded_domain);
   sa_dup->host_domain = isl_set_copy(sa->host_domain);
+  sa_dup->domain = isl_union_set_copy(sa->domain);
   sa_dup->single_statement = sa->single_statement;
 
   return sa_dup;
@@ -968,6 +970,7 @@ struct polysa_kernel *polysa_kernel_from_schedule(__isl_take isl_schedule *sched
   kernel->contraction = NULL;
   kernel->expanded_domain = NULL;
   kernel->host_domain = NULL;
+  kernel->domain = NULL;
   kernel->single_statement = 0;
 
   return kernel;
@@ -1021,6 +1024,7 @@ struct polysa_kernel *polysa_kernel_alloc(isl_ctx *ctx, struct ppcg_scop *scop)
   kernel->contraction = NULL;
   kernel->expanded_domain = NULL;
   kernel->host_domain = NULL;
+  kernel->domain = NULL;
   kernel->single_statement = 0;
 
   return kernel;

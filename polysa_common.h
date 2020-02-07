@@ -33,7 +33,8 @@ enum polysa_kernel_stmt_type {
   POLYSA_KERNEL_STMT_COPY,
   POLYSA_KERNEL_STMT_DOMAIN,
   POLYSA_KERNEL_STMT_SYNC,
-  POLYSA_KERNEL_STMT_IO
+  POLYSA_KERNEL_STMT_IO,
+  POLYSA_KERNEL_STMT_IO_TRANSFER
 };
 
 enum polysa_dep_type {
@@ -224,6 +225,7 @@ struct polysa_kernel {
    * that are involved in the kernel. 
    */
   isl_union_set *expanded_domain;
+  isl_union_set *domain;
 
   isl_set *host_domain;
 
@@ -618,6 +620,7 @@ struct polysa_kernel_stmt {
     struct {
       int in;
       char *fifo_name;
+      int filter_depth;
       isl_ast_expr *local_index;
       struct polysa_array_info *array;
       struct polysa_local_array_info *local_array;
