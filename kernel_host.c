@@ -45,5 +45,4 @@ void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {
     cudaCheckReturn(cudaFree(dev_C));
   }
   // kernel
-  // kernel
 }

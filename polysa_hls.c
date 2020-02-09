@@ -458,7 +458,7 @@ static __isl_give isl_printer *print_kernel_header(__isl_take isl_printer *p,
 	struct polysa_prog *prog, struct polysa_kernel *kernel)
 {
 	p = isl_printer_start_line(p);
-	p = isl_printer_print_str(p, "__global__ void kernel");
+	p = isl_printer_print_str(p, "void kernel");
 	p = isl_printer_print_int(p, kernel->id);
 	p = isl_printer_print_str(p, "(");
 	p = print_kernel_arguments(p, prog, kernel, 1);
@@ -631,6 +631,31 @@ static __isl_give isl_printer *stmt_print_global_index(
 	return p;
 }
 
+/* Print an access to the element in the global memory copy
+ * described by "stmt".  The index of the copy is recorded in
+ * stmt->index as an access to the array.
+ */
+static __isl_give isl_printer *io_stmt_print_global_index(
+	__isl_take isl_printer *p, struct polysa_kernel_stmt *stmt)
+{
+	struct polysa_array_info *array = stmt->u.i.array;
+	isl_ast_expr *index;
+
+	if (polysa_array_is_scalar(array)) {
+		if (!polysa_array_is_read_only_scalar(array))
+			p = isl_printer_print_str(p, "*");
+		p = isl_printer_print_str(p, array->name);
+		return p;
+	}
+
+	index = isl_ast_expr_copy(stmt->u.i.index);
+
+	p = isl_printer_print_ast_expr(p, index);
+	isl_ast_expr_free(index);
+
+	return p;
+}
+
 /* Print a copy statement.
  *
  * A read copy statement is printed as
@@ -662,6 +687,61 @@ __isl_give isl_printer *polysa_kernel_print_copy(__isl_take isl_printer *p,
 
 /* Print an I/O statement.
  *
+ * An in I/O statement is printed as 
+ *
+ *  fifo_data = global;
+ *  fifo.write(fifo_data);
+ *
+ * while an out I/O statement is printed as
+ *
+ *  fifo_data = fifo.read();
+ *  global = fifo_data;
+ *
+ */
+__isl_give isl_printer *polysa_kernel_print_io_dram(__isl_take isl_printer *p,
+  struct polysa_kernel_stmt *stmt)
+{
+  p = isl_printer_indent(p, -2);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "{");
+  p = isl_printer_end_line(p);
+  p = isl_printer_indent(p, 2);
+
+  if (stmt->u.i.in) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "fifo_data = ");
+    p = io_stmt_print_global_index(p, stmt);
+    p = isl_printer_print_str(p, ";");
+    p = isl_printer_end_line(p);
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
+    p = isl_printer_print_str(p, "_out.write(fifo_data);");
+    p = isl_printer_end_line(p);
+  } else {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "fifo_data = ");
+    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
+    p = isl_printer_print_str(p, "_in.read()");
+    p = isl_printer_end_line(p);
+
+    p = isl_printer_start_line(p);
+    p = io_stmt_print_global_index(p, stmt);
+    p = isl_printer_print_str(p, " = fifo_data;");
+    p = isl_printer_end_line(p);
+  }
+
+  p = isl_printer_indent(p, -2);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "}");
+  p = isl_printer_end_line(p);
+  p = isl_printer_indent(p, 2);
+
+  return p;
+}
+
+/* Print an I/O statement.
+ *
  * An in I/O statement is printed as
  *
  *  local = fifo.read();
@@ -678,10 +758,10 @@ __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
     p = io_stmt_print_local_index(p, stmt);
     p = isl_printer_print_str(p, " = ");
     p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, ".read()");
+    p = isl_printer_print_str(p, "_in.read()");
   } else {
     p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, ".write(");
+    p = isl_printer_print_str(p, "_out.write(");
     p = io_stmt_print_local_index(p, stmt);    
   }
   p = isl_printer_print_str(p, ";");
@@ -696,10 +776,17 @@ __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
  *
  *  tmp = fifo.read();
  *  if (filter_condition) {
- *    local = tmp;
+ *    local = tmp; // if buf == 1
+ *    fifo_local.write(tmp); // if buf == 0
  *  } else {
  *    fifo.write(tmp);
  *  }
+ *
+ * if filter_depth < 0
+ *
+ *  tmp = fifo.read();
+ *  local = tmp; // if buf == 1
+ *  fifo_local.write(tmp); // if buf == 0
  *
  * An out I/O staement is printed as 
  *
@@ -727,64 +814,85 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
     p = isl_printer_print_str(p, "_in.read();");
     p = isl_printer_end_line(p);
 
-    if (stmt->u.i.filter_depth >= 0) {
+    if (stmt->u.i.filter_sched_depth >= 0) {
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "if (c");
-      p = isl_printer_print_int(p, stmt->u.i.filter_depth);
-      p = isl_printer_print_str(p, " == p0) {");
+      p = isl_printer_print_int(p, stmt->u.i.filter_sched_depth);
+      p = isl_printer_print_str(p, " == p"); 
+      p = isl_printer_print_int(p, stmt->u.i.filter_param_id);
+      p = isl_printer_print_str(p, ") {");
       p = isl_printer_end_line(p);
       p = isl_printer_indent(p, 2);
+    }
+      
+    if (stmt->u.i.buf) {
       p = isl_printer_start_line(p);
       p = io_stmt_print_local_index(p, stmt);
       p = isl_printer_print_str(p, " = fifo_data;");
       p = isl_printer_end_line(p);
-      p = isl_printer_indent(p, -2);
+    } else {
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, stmt->u.i.fifo_name);
+      p = isl_printer_print_str(p, "_local_out.write(fifo_data);");
+      p = isl_printer_end_line(p);
     }
-
-    if (stmt->u.i.filter_depth >= 0) {
+    
+    if (stmt->u.i.filter_sched_depth >= 0) {
+      p = isl_printer_indent(p, -2);
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "} else {");
       p = isl_printer_end_line(p);
       p = isl_printer_indent(p, 2);
-    }
-    p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, "_out.write(fifo_data);");
-    p = isl_printer_end_line(p);
-    if (stmt->u.i.filter_depth >= 0) {
+    
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, stmt->u.i.fifo_name);
+      p = isl_printer_print_str(p, "_out.write(fifo_data);");
+      p = isl_printer_end_line(p);
+    
       p = isl_printer_indent(p, -2);
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "}");
       p = isl_printer_end_line(p);
     }
   } else {
-    if (stmt->u.i.filter_depth >= 0) {
+    if (stmt->u.i.filter_sched_depth >= 0) {
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "if (c");
-      p = isl_printer_print_int(p, stmt->u.i.filter_depth);
-      p = isl_printer_print_str(p, " == p0) {");
+      p = isl_printer_print_int(p, stmt->u.i.filter_sched_depth);
+      p = isl_printer_print_str(p, " == p"); 
+      p = isl_printer_print_int(p, stmt->u.i.filter_param_id);
+      p = isl_printer_print_str(p, ") {");
       p = isl_printer_end_line(p);
       p = isl_printer_indent(p, 2);
+    }
+
+    if (stmt->u.i.buf) {
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "fifo_data = ");
       p = io_stmt_print_local_index(p, stmt);
       p = isl_printer_print_str(p, ";");
       p = isl_printer_end_line(p);
-      p = isl_printer_indent(p, -2);
+    } else {
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "fifo_data = ");
+      p = isl_printer_print_str(p, stmt->u.i.fifo_name);
+      p = isl_printer_print_str(p, "_local_in.read();");
+      p = isl_printer_end_line(p);
     }
 
-    if (stmt->u.i.filter_depth >= 0) {
+    if (stmt->u.i.filter_sched_depth >= 0) {
+      p = isl_printer_indent(p, -2);
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "} else {");
       p = isl_printer_end_line(p);
       p = isl_printer_indent(p, 2);
-    }
-    p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "fifo_data = ");
-    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, "_in.read();");
-    p = isl_printer_end_line(p);
-    if (stmt->u.i.filter_depth >= 0) {
+    
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "fifo_data = ");
+      p = isl_printer_print_str(p, stmt->u.i.fifo_name);
+      p = isl_printer_print_str(p, "_in.read();");
+      p = isl_printer_end_line(p);
+    
       p = isl_printer_indent(p, -2);
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "}");
@@ -854,14 +962,13 @@ static __isl_give isl_printer *print_module_stmt(__isl_take isl_printer *p,
     case POLYSA_KERNEL_STMT_SYNC:
       return print_sync(p, stmt);
     case POLYSA_KERNEL_STMT_DOMAIN:
-      if (module->type == PE_MODULE)
-        return polysa_kernel_print_domain(p, stmt);
-      else
-        return p;
+      return polysa_kernel_print_domain(p, stmt);
     case POLYSA_KERNEL_STMT_IO:
       return polysa_kernel_print_io(p, stmt);
     case POLYSA_KERNEL_STMT_IO_TRANSFER:
       return polysa_kernel_print_io_transfer(p, stmt);
+    case POLYSA_KERNEL_STMT_IO_DRAM:
+      return polysa_kernel_print_io_dram(p, stmt);
   }
 
   return p;
@@ -1087,10 +1194,10 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
       /* local */
       if (types)
         p = polysa_fifo_print_declaration_arguments(p,
-              module->io_groups[i], "local"); 
+              module->io_groups[i], module->in? "local_out" : "local_in"); 
       else
         p = polysa_fifo_print_call_argument(p,
-              module->io_groups[i], "local");
+              module->io_groups[i], module->in? "local_out" : "local_in");
       first = 0;
     }
   }
@@ -1352,7 +1459,7 @@ static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
 
   /* Print the hw module ASTs. */
   for (int i = 0; i < n_modules; i++) {
-    if (i <= 1) { // TODO: tmp
+    if (i == n_modules - 3) { // TODO: tmp
       print_options = isl_ast_print_options_alloc(ctx);
       print_options = isl_ast_print_options_set_print_user(print_options,
                         &print_hw_module, &hw_data);

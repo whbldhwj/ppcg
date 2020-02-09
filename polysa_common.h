@@ -34,7 +34,9 @@ enum polysa_kernel_stmt_type {
   POLYSA_KERNEL_STMT_DOMAIN,
   POLYSA_KERNEL_STMT_SYNC,
   POLYSA_KERNEL_STMT_IO,
-  POLYSA_KERNEL_STMT_IO_TRANSFER
+  POLYSA_KERNEL_STMT_IO_TRANSFER,
+  POLYSA_KERNEL_STMT_IO_TRANSFER_BUF,
+  POLYSA_KERNEL_STMT_IO_DRAM
 };
 
 enum polysa_dep_type {
@@ -526,6 +528,8 @@ struct polysa_hw_module {
 
   /* I/O module level */
   int level;
+  /* I/O module copy-in/out */
+  int in;
 
   struct polysa_kernel *kernel;
 };
@@ -619,9 +623,12 @@ struct polysa_kernel_stmt {
 		} d;
     struct {
       int in;
+      int buf;
       char *fifo_name;
-      int filter_depth;
+      int filter_sched_depth;
+      int filter_param_id;
       isl_ast_expr *local_index;
+      isl_ast_expr *index;
       struct polysa_array_info *array;
       struct polysa_local_array_info *local_array;
     } i;
