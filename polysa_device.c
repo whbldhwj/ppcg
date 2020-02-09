@@ -40,7 +40,7 @@
  *
  *	D -> A
  */
-static __isl_give isl_union_map *wrapped_reference_to_access(
+__isl_give isl_union_map *wrapped_reference_to_access(
 	__isl_take isl_union_set *ref, __isl_take isl_union_map *tagged)
 {
 	isl_union_map *tag2access;

@@ -133,6 +133,8 @@ AWK	isl/Makefile	/^AWK = mawk$/;"	m
 AWK	isl/doc/Makefile	/^AWK = mawk$/;"	m
 AWK	isl/interface/Makefile	/^AWK = mawk$/;"	m
 AWK	pet/Makefile	/^AWK = mawk$/;"	m
+A_L2_in_IO	kernel_kernel.c	/^void A_L2_in_IO(hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_A_local_out, int idx)$/;"	f
+A_L3_in_IO	kernel_kernel.c	/^void A_L3_in_IO(int *A, hls::stream<int> &fifo_A_local_out)$/;"	f
 An tt Omega	isl/doc/implementation.tex	/^the composition of these extra elements with powers of $R_i$.$/;"	b
 BASE	isl/flow_cmp.c	48;"	d	file:
 BASE	isl/flow_cmp.c	49;"	d	file:
@@ -253,6 +255,8 @@ BUFFER_SIZE	isl/imath/examples/imcalc.c	189;"	d	file:
 BUILT_SOURCES	Makefile	/^BUILT_SOURCES = gitversion.h$/;"	m
 BUILT_SOURCES	isl/Makefile	/^BUILT_SOURCES = gitversion.h $(CPP_INTERFACES)$/;"	m
 BUILT_SOURCES	pet/Makefile	/^BUILT_SOURCES = \\$/;"	m
+B_L2_in_IO	kernel_kernel.c	/^void B_L2_in_IO(hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_B_local_out, int idx)$/;"	f
+B_L3_in_IO	kernel_kernel.c	/^void B_L3_in_IO(int *B, hls::stream<int> &fifo_B_local_out)$/;"	f
 BinaryOperatorKind2pet_op_type	pet/scan.cc	/^static enum pet_op_type BinaryOperatorKind2pet_op_type(BinaryOperatorKind kind)$/;"	f	file:
 C	polysa_tests/cnn/kernel.h	9;"	d
 C	t2s_tests/cnn/kernel.h	9;"	d
@@ -432,6 +436,8 @@ CYGPATH_W	isl/doc/Makefile	/^CYGPATH_W = echo$/;"	m
 CYGPATH_W	isl/interface/Makefile	/^CYGPATH_W = echo$/;"	m
 CYGPATH_W	pet/Makefile	/^CYGPATH_W = echo$/;"	m
 C_drain_L1_out_IO	kernel_kernel.c	/^void C_drain_L1_out_IO(hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in, int idx, int idy)$/;"	f
+C_drain_L2_out_IO	kernel_kernel.c	/^void C_drain_L2_out_IO(hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in, int idx)$/;"	f
+C_drain_L3_out_IO	kernel_kernel.c	/^void C_drain_L3_out_IO(int *C, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 Choice of Constant Term on which to Split	isl/doc/implementation.tex	/^The idea of keeping track of witnesses was first used in {\\tt barvinok}.$/;"	b
 ClangAPI	isl/interface/extract_interface.cc	/^struct ClangAPI {$/;"	s	file:
 ClangAPI	isl/interface/generator.cc	/^struct ClangAPI {$/;"	s	namespace:__anon78	file:
@@ -2252,6 +2258,7 @@ PATH_SEPARATOR	pet/Makefile	/^PATH_SEPARATOR = :$/;"	m
 PDFLATEX	isl/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PDFLATEX	isl/doc/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PDFLATEX	isl/interface/Makefile	/^PDFLATEX = pdflatex$/;"	m
+PE	kernel_kernel.c	/^void PE(hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_C_in, hls::stream<int> &fifo_C_out, hls::stream<int> &fifo_C_drain_out, int idx, int idy)$/;"	f
 PERL	isl/Makefile	/^PERL = perl$/;"	m
 PERL	isl/doc/Makefile	/^PERL = perl$/;"	m
 PERL	isl/interface/Makefile	/^PERL = perl$/;"	m
@@ -8144,6 +8151,7 @@ get_innermost_permutable_node	polysa_common.c	/^__isl_give isl_schedule_node *ge
 get_instance_set	pet/interface/pet.py	/^    def get_instance_set(self):$/;"	m	class:scop
 get_int	pet/pet.cc	/^static int get_int(const char *s)$/;"	f	file:
 get_io_L1_schedule	polysa_group.c	/^static __isl_give isl_union_map *get_io_L1_schedule(__isl_take isl_schedule *sched, __isl_keep isl_vec *dir)$/;"	f	file:
+get_io_pe_schedule	polysa_group.c	/^static __isl_give isl_union_map *get_io_pe_schedule(__isl_take isl_schedule *sched, __isl_keep isl_vec *dir)$/;"	f	file:
 get_io_schedule	polysa_group.c	/^__isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __isl_keep isl_vec *dir)$/;"	f
 get_iterator	isl/include/isl/cpp-checked.h	/^isl::checked::ast_expr ast_node_for::get_iterator() const$/;"	f	class:isl::checked::ast_node_for
 get_iterator	isl/include/isl/cpp.h	/^isl::ast_expr ast_node_for::get_iterator() const$/;"	f	class:isl::ast_node_for
@@ -8935,6 +8943,7 @@ intermediate_sources	isl/isl_flow.c	/^static isl_stat intermediate_sources(__isl
 internal	isl/isl_ast_codegen.c	/^	int internal;$/;"	m	struct:isl_generate_code_data	file:
 internal2input	isl/isl_ast_build_private.h	/^	isl_multi_aff *internal2input;$/;"	m	struct:isl_ast_build
 internal_executed	isl/isl_ast_codegen.c	/^static __isl_give isl_union_map *internal_executed($/;"	f	file:
+internal_group_in_out_overlap	polysa_trans.c	/^isl_bool internal_group_in_out_overlap($/;"	f
 internalize_type	pet/expr.c	/^static enum pet_expr_access_type internalize_type($/;"	f	file:
 intersect	isl/include/isl/cpp-checked.h	/^isl::checked::basic_map basic_map::intersect(isl::checked::basic_map bmap2) const$/;"	f	class:isl::checked::basic_map
 intersect	isl/include/isl/cpp-checked.h	/^isl::checked::basic_set basic_set::intersect(isl::checked::basic_set bset2) const$/;"	f	class:isl::checked::basic_set
@@ -9131,6 +9140,7 @@ is_marked	gpu_tree.c	/^static int is_marked(__isl_keep isl_schedule_node *node, 
 is_marked	polysa_tree.c	/^static int is_marked(__isl_keep isl_schedule_node *node, const char *name)$/;"	f	file:
 is_medium_mpz	isl/imath/tests/gmp-compat-test/gendata.py	/^def is_medium_mpz(s):$/;"	f
 is_min_or_max_builtin	pet/expr.c	/^static int is_min_or_max_builtin(const char *name)$/;"	f	file:
+is_module_valid	polysa_trans.c	/^isl_bool is_module_valid($/;"	f
 is_multi_edge_type	isl/isl_scheduler.c	/^static int is_multi_edge_type(struct isl_sched_edge *edge)$/;"	f	file:
 is_mutator	isl/interface/generator.cc	/^bool generator::is_mutator(const isl_class &clazz, FunctionDecl *fd)$/;"	f	class:generator
 is_nan	isl/include/isl/cpp-checked.h	/^boolean val::is_nan() const$/;"	f	class:isl::checked::val
@@ -20034,7 +20044,7 @@ wrap_in_facets	isl/isl_coalesce.c	/^static enum isl_change wrap_in_facets(int i,
 wrap_mod	pet/aff.c	/^static __isl_give isl_val *wrap_mod(isl_ctx *ctx, unsigned width)$/;"	f	file:
 wrap_msg	isl/isl_arg.c	/^static int wrap_msg(const char *s, int indent, int pos)$/;"	f	file:
 wrapped_reference_to_access	gpu.c	/^static __isl_give isl_union_map *wrapped_reference_to_access($/;"	f	file:
-wrapped_reference_to_access	polysa_device.c	/^static __isl_give isl_union_map *wrapped_reference_to_access($/;"	f	file:
+wrapped_reference_to_access	polysa_device.c	/^__isl_give isl_union_map *wrapped_reference_to_access($/;"	f
 wrappers	isl/imath/tests/gmp-compat-test/runtest.py	/^import wrappers$/;"	i
 wrapping	isl/isl_bound.h	/^	int wrapping;$/;"	m	struct:isl_bound
 wraps_free	isl/isl_coalesce.c	/^static void wraps_free(struct isl_wraps *wraps)$/;"	f	file:

@@ -1459,13 +1459,13 @@ static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
 
   /* Print the hw module ASTs. */
   for (int i = 0; i < n_modules; i++) {
-    if (i == n_modules - 3) { // TODO: tmp
+//    if (i == n_modules - 3) { // TODO: tmp
       print_options = isl_ast_print_options_alloc(ctx);
       print_options = isl_ast_print_options_set_print_user(print_options,
                         &print_hw_module, &hw_data);
 
       p = isl_ast_node_print(modules[i]->tree, p, print_options);
-    }
+//    }
   }
 
   return p;

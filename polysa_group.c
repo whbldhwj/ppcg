@@ -576,6 +576,34 @@ static __isl_give isl_union_map *get_io_L1_schedule(__isl_take isl_schedule *sch
   return io_sched;
 }
 
+static __isl_give isl_union_map *get_io_pe_schedule(__isl_take isl_schedule *sched, __isl_keep isl_vec *dir)
+{
+  isl_schedule_node *node;
+  struct polysa_kernel *kernel;
+  isl_id *id;
+  isl_union_pw_multi_aff *contraction;
+  isl_union_map *io_sched;
+
+  sched = get_io_schedule(sched, dir);
+  node = isl_schedule_get_root(sched);
+  isl_schedule_free(sched);
+
+  node = polysa_tree_move_down_to_kernel(node);
+  id = isl_schedule_node_mark_get_id(node);
+  kernel = isl_id_get_user(id);
+  isl_id_free(id);
+
+  node = polysa_tree_move_down_to_mark(node, kernel->core, "pe");
+  contraction = isl_union_pw_multi_aff_copy(kernel->contraction);
+
+  io_sched = prefix_with_equalities(node);
+  io_sched = expand(io_sched, contraction);
+
+  isl_schedule_node_free(node);
+
+  return io_sched;
+}
+
 /* Map the domain of "access" to the outer data->pe_depth
  * schedule dimensions.   
  */
@@ -598,19 +626,23 @@ static __isl_give isl_map *local_access_io(struct polysa_array_ref_group *group,
 	__isl_keep isl_union_map *access, struct polysa_group_data *data)
 {
 	isl_union_map *local;
+  isl_schedule *sched;
 
   local = isl_union_map_copy(access);
+  sched = isl_schedule_dup(data->schedule);
+
   if (group->io_type == POLYSA_EXT_IO) {
     /* Group at the IO_L1 level */
     isl_vec *dir = group->dir;
-    isl_schedule *sched = isl_schedule_dup(data->schedule);
     isl_union_map *new_sched = get_io_L1_schedule(sched, dir); 
     local = isl_union_map_apply_domain(local,
         new_sched);
   } else if (group->io_type == POLYSA_INT_IO) {
     /* Group at the PE level. */
+    isl_vec *dir = group->dir;
+    isl_union_map *new_sched = get_io_pe_schedule(sched, dir);
     local = isl_union_map_apply_domain(local,
-        isl_union_map_copy(data->pe_sched));
+        new_sched);
   }
   return isl_map_from_union_map(local);
 }
@@ -912,7 +944,7 @@ static isl_stat compute_group_bounds_core_drain(struct polysa_kernel *kernel,
     group->local_tile = polysa_array_tile_create(ctx,
             group->array->n_index);
     /* Map the domain to the outer scheduling dimensions */
-    acc = local_access_pe(group, access, data); 
+    acc = local_access_io(group, access, data); 
     /* Collect the shift and scale factors of the tile. */
     ok = can_tile(acc, group->local_tile);
     if (ok < 0)

@@ -996,21 +996,21 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
 
   ctx = kernel->ctx;
 
-//  // debug
-//  isl_printer *p = isl_printer_to_file(kernel->ctx, stdout);
-//  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
-//  p = isl_printer_print_ast_node(p, node);
-//  printf("\n");
-//  // debug
+  // debug
+  isl_printer *p = isl_printer_to_file(kernel->ctx, stdout);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = isl_printer_print_ast_node(p, node);
+  printf("\n");
+  // debug
 
   /* type[D -> A] -> L */
   access = isl_map_from_union_map(isl_ast_build_get_schedule(build));
 
-//  // debug
-//  p = isl_printer_set_output_format(p, ISL_FORMAT_ISL);
-//  p = isl_printer_print_map(p, access);
-//  printf("\n");
-//  // debug
+  // debug
+  p = isl_printer_set_output_format(p, ISL_FORMAT_ISL);
+  p = isl_printer_print_map(p, access);
+  printf("\n");
+  // debug
 
   isl_set *set = isl_map_domain(isl_set_unwrap(isl_map_domain(isl_map_copy(access))));
   depth = isl_set_dim(set, isl_dim_set);
@@ -1057,11 +1057,11 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
     /* [D -> A] -> T */
     pma2 = isl_pw_multi_aff_from_multi_aff(
               isl_multi_aff_copy(tile->tiling));
-//    // debug
-//    p = isl_printer_print_pw_multi_aff(p, pma2);
-//    printf("\n");
-//    p = isl_printer_print_pw_multi_aff(p, pma);
-//    printf("\n");
+    // debug
+    p = isl_printer_print_pw_multi_aff(p, pma2);
+    printf("\n");
+    p = isl_printer_print_pw_multi_aff(p, pma);
+    printf("\n");
 //    printf("%d\n", isl_multi_aff_dim(tile->tiling, isl_dim_set));
 //    // debug
     if (tile->depth < depth) {
