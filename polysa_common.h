@@ -21,6 +21,7 @@
 #include "util.h"
 #include "polysa_tree.h"
 #include "polysa_utilities.h"
+#include "polysa_array_tile.h"
 
 enum polysa_group_access_type {
   POLYSA_ACCESS_GLOBAL,
@@ -36,7 +37,8 @@ enum polysa_kernel_stmt_type {
   POLYSA_KERNEL_STMT_IO,
   POLYSA_KERNEL_STMT_IO_TRANSFER,
   POLYSA_KERNEL_STMT_IO_TRANSFER_BUF,
-  POLYSA_KERNEL_STMT_IO_DRAM
+  POLYSA_KERNEL_STMT_IO_DRAM,
+  POLYSA_KERNEL_STMT_DECL
 };
 
 enum polysa_dep_type {
@@ -506,6 +508,14 @@ struct polysa_prog {
 	struct polysa_array_info *array;  
 };
 
+struct polysa_hw_top_module {
+  int n_hw_modules;
+  isl_schedule **scheds;
+  isl_ast_node **trees;
+
+  struct polysa_kernel *kernel;
+};
+
 struct polysa_hw_module {
   enum polysa_module_type type;
   /* Module name */
@@ -521,6 +531,7 @@ struct polysa_hw_module {
   /* Module AST */
   isl_ast_node *tree;
   isl_ast_node *device_tree;
+  isl_ast_node *decl_tree;
 
   /* Array reference group for I/O or drain module */
   struct polysa_array_ref_group **io_groups;
@@ -542,10 +553,12 @@ struct polysa_gen {
   __isl_give isl_printer *(*print)(__isl_take isl_printer *p,
     struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
     struct polysa_hw_module **modules, int n_modules,
+    struct polysa_hw_top_module *top_module,
     struct polysa_types *types, void *user);
   void *print_user;
 
   struct polysa_prog *prog;  
+  struct polysa_kernel *kernel;
   /* The default AST */
   isl_ast_node *tree;
 
@@ -555,6 +568,7 @@ struct polysa_gen {
   /* The SA module schedule */
   struct polysa_hw_module **hw_modules;
   int n_hw_modules;
+  struct polysa_hw_top_module *hw_top_module;
 
   /* The sequence of types for which a definition has been printed. */
   struct polysa_types types;
@@ -701,6 +715,9 @@ __isl_give isl_schedule *get_schedule(struct polysa_gen *gen);
 isl_stat collect_array_info(struct polysa_prog *prog);
 int polysa_array_is_read_only_scalar(struct polysa_array_info *array);
 int polysa_array_is_scalar(struct polysa_array_info *array);
+int polysa_kernel_requires_array_argument(struct polysa_kernel *kernel, int i);
+struct polysa_array_ref_group *polysa_array_ref_group_free(
+	struct polysa_array_ref_group *group);
 
 /* PolySA stmts related functions */
 struct polysa_stmt *extract_stmts(isl_ctx *ctx, struct ppcg_scop *scop,
@@ -714,5 +731,6 @@ void *polysa_prog_free(struct polysa_prog *prog);
 /* PolySA hw module related functions */
 struct polysa_hw_module *polysa_hw_module_alloc();
 void *polysa_hw_module_free(struct polysa_hw_module *module);
-
+struct polysa_hw_top_module *polysa_hw_top_module_alloc();
+void *polysa_hw_top_module_free(struct polysa_hw_top_module *module);
 #endif

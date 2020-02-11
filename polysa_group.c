@@ -188,27 +188,6 @@ static int populate_array_references_io(struct polysa_local_array_info *local,
 	return n;
 }
 
-/* If group->n_ref == 1, then group->refs was set by
- * populate_array_references to point directly into
- * group->array->refs and should not be freed.
- * If group->n_ref > 1, then group->refs was set by join_groups
- * to point to a newly allocated array.
- */
-struct polysa_array_ref_group *polysa_array_ref_group_free(
-	struct polysa_array_ref_group *group)
-{
-	if (!group)
-		return NULL;
-  polysa_array_tile_free(group->local_tile);
-	isl_map_free(group->access);
-	if (group->n_ref > 1)
-		free(group->refs);
-  isl_vec_free(group->dir);
-	free(group);
-
-	return NULL;
-}
-
 /* Combine the given two groups into a single group, containing
  * the references of both groups.
  */
@@ -553,7 +532,6 @@ static __isl_give isl_union_map *get_io_L1_schedule(__isl_take isl_schedule *sch
   isl_schedule_node *node;
   struct polysa_kernel *kernel;
   isl_id *id;
-  isl_union_pw_multi_aff *contraction;
   isl_union_map *io_sched;
 
   sched = get_io_schedule(sched, dir);
@@ -566,10 +544,9 @@ static __isl_give isl_union_map *get_io_L1_schedule(__isl_take isl_schedule *sch
   isl_id_free(id);
 
   node = polysa_tree_move_down_to_mark(node, kernel->core, "io_L1");
-  contraction = isl_union_pw_multi_aff_copy(kernel->contraction);
 
   io_sched = prefix_with_equalities(node);
-  io_sched = expand(io_sched, contraction);
+  io_sched = expand(io_sched, kernel->contraction);
 
   isl_schedule_node_free(node);
 
@@ -581,7 +558,6 @@ static __isl_give isl_union_map *get_io_pe_schedule(__isl_take isl_schedule *sch
   isl_schedule_node *node;
   struct polysa_kernel *kernel;
   isl_id *id;
-  isl_union_pw_multi_aff *contraction;
   isl_union_map *io_sched;
 
   sched = get_io_schedule(sched, dir);
@@ -594,10 +570,9 @@ static __isl_give isl_union_map *get_io_pe_schedule(__isl_take isl_schedule *sch
   isl_id_free(id);
 
   node = polysa_tree_move_down_to_mark(node, kernel->core, "pe");
-  contraction = isl_union_pw_multi_aff_copy(kernel->contraction);
 
   io_sched = prefix_with_equalities(node);
-  io_sched = expand(io_sched, contraction);
+  io_sched = expand(io_sched, kernel->contraction);
 
   isl_schedule_node_free(node);
 
@@ -1712,16 +1687,17 @@ struct extract_access_waw_domain_data {
  * if so, calculate the write-out (drain) domain as:
  * acc domain - waw src_domain
  */
-void extract_access_waw_domain(__isl_keep isl_basic_map *dep, void *user)
+static void extract_access_waw_domain(__isl_keep isl_basic_map *dep, void *user)
 {
   isl_space *space;
   isl_space *src_space;
   isl_id *src_id;
   isl_set *src_domain;
-  isl_set *write_out;
   struct extract_access_waw_domain_data *data = (struct extract_access_waw_domain_data *)(user);
-  
-  space = isl_basic_map_get_space(dep);
+  isl_basic_map *bmap;
+  isl_map *map;
+
+  space = isl_basic_map_get_space(dep); 
   src_space = isl_space_unwrap(isl_space_domain(space));
   src_id = isl_space_get_tuple_id(src_space, isl_dim_out);
   isl_space_free(src_space);
@@ -1730,22 +1706,14 @@ void extract_access_waw_domain(__isl_keep isl_basic_map *dep, void *user)
     isl_id_free(src_id);
     return;
   }
+  isl_id_free(src_id);
 
-  src_domain = isl_map_domain(isl_map_factor_domain(isl_map_from_basic_map(isl_basic_map_copy(dep))));
-
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_id_get_ctx(src_id), stdout);
-//  p = isl_printer_print_set(p, data->drain_domain);
-//  printf("\n");
-//  p = isl_printer_print_set(p, src_domain);
-//  printf("\n");
-//  // debug
+  bmap = isl_basic_map_copy(dep);
+  map = isl_map_from_basic_map(bmap);
+  map = isl_map_factor_domain(map);
+  src_domain = isl_map_domain(map);
 
   data->drain_domain = isl_set_subtract(data->drain_domain, src_domain);
-//  // debug
-//  p = isl_printer_print_set(p, write_out);
-//  printf("\n");
-//  // debug
 
   return;
 }
@@ -1783,8 +1751,8 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
     struct polysa_stmt_access *access = local->array->refs[i];
     if (access->read)
       continue;
-    isl_set *domain = isl_map_domain(isl_map_copy(access->access));
-    isl_set *access_domain = isl_union_set_extract_set(
+    isl_set *domain = isl_map_domain(isl_map_copy(access->access)); 
+    isl_set *access_domain = isl_union_set_extract_set( 
         kernel->expanded_domain, 
         isl_set_get_space(domain));
     isl_set_free(domain);
@@ -1797,10 +1765,10 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
       map = isl_map_copy(access->access);
       umap = isl_union_map_from_map(map);
       umap = isl_union_map_apply_domain(umap,
-          isl_union_map_copy(data->pe_sched));
+          isl_union_map_copy(data->pe_sched)); 
 
       map = isl_map_from_union_map(umap);
-      map = isl_map_detect_equalities(map);
+      map = isl_map_detect_equalities(map);  
 
       /* Add this access relation to the group */
       struct polysa_array_ref_group *group = isl_calloc_type(ctx, struct polysa_array_ref_group);
@@ -1840,20 +1808,27 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
 
   /* Calculate the group tiling. */
   for (i = 0; i < n; ++i) {
-    if (compute_group_bounds_drain(kernel, groups[0], data) < 0) {
+    if (compute_group_bounds_drain(kernel, groups[i], data) < 0) {
       for (j = 0; j < n; j++) {
         polysa_array_ref_group_free(groups[j]);
       }
       free(groups);
+      n = 0;
       return -1;
     }
   }
 
   /* Set the group. */
   if (n > 0) {
-    local->drain_group = groups[0];
     groups[0]->nr = 0;
+    local->drain_group = groups[0];
+  } else {
+    local->drain_group = NULL;
   }
+//  // TODO: valgrind
+//  for (int i = 0; i < n; i++) {
+//    polysa_array_ref_group_free(groups[i]);
+//  }
   free(groups);
     
   return 0;
@@ -2210,8 +2185,8 @@ isl_stat sa_group_references(struct polysa_kernel *kernel)
   data.local_sched = expand(data.local_sched, contraction);
   data.copy_sched = isl_union_map_copy(data.local_sched); 
   data.pe_sched = expand(data.pe_sched, contraction);
-  
   isl_union_pw_multi_aff_free(contraction);
+  
   data.full_sched = isl_union_map_copy(data.local_sched);
   data.full_sched = isl_union_map_flat_range_product(data.full_sched,
       isl_schedule_node_get_subtree_schedule_union_map(node));

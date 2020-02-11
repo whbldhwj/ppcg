@@ -831,7 +831,8 @@ void *polysa_kernel_free(struct polysa_kernel *kernel)
   if (!kernel)
     return NULL;
   
-  isl_schedule_free(kernel->schedule); 
+  isl_schedule_free(kernel->schedule);
+  isl_ast_node_free(kernel->tree);
   isl_union_map_free(kernel->sizes);
   isl_union_map_free(kernel->used_sizes);
   isl_union_set_free(kernel->core);
@@ -858,7 +859,7 @@ void *polysa_kernel_free(struct polysa_kernel *kernel)
     for (int j = 0; j < array->n_io_group; ++j)
       polysa_array_ref_group_free(array->io_groups[j]);
     free(array->io_groups);
-    free(array->drain_group);
+    polysa_array_ref_group_free(array->drain_group);
 
     isl_multi_pw_aff_free(array->bound);
     isl_ast_expr_free(array->bound_expr);
@@ -1364,6 +1365,27 @@ __isl_give isl_schedule *get_schedule(struct polysa_gen *gen)
 /****************************************************************
  * PolySA array related functions
  ****************************************************************/
+/* If group->n_ref == 1, then group->refs was set by
+ * populate_array_references to point directly into
+ * group->array->refs and should not be freed.
+ * If group->n_ref > 1, then group->refs was set by join_groups
+ * to point to a newly allocated array.
+ */
+struct polysa_array_ref_group *polysa_array_ref_group_free(
+	struct polysa_array_ref_group *group)
+{
+	if (!group)
+		return NULL;
+  polysa_array_tile_free(group->local_tile);
+	isl_map_free(group->access);
+	if (group->n_ref > 1)
+		free(group->refs);
+  isl_vec_free(group->dir);
+	free(group);
+
+	return NULL;
+}
+
 static void *free_polysa_io_info(struct polysa_io_info *io_info) 
 {
   polysa_dep_free(io_info->dep);
@@ -1391,6 +1413,15 @@ static void free_array_info(struct polysa_prog *prog)
 		isl_union_map_free(prog->array[i].dep_order);
 	}
 	free(prog->array);
+}
+
+/* Does "kernel" need to be passed an argument corresponding to array "i"?
+ *
+ * The argument is only needed if the kernel accesses this device memory.
+ */
+int polysa_kernel_requires_array_argument(struct polysa_kernel *kernel, int i)
+{
+	return kernel->array[i].global;
 }
 
 /* Is the array "array" being extracted a read-only scalar?
@@ -2067,8 +2098,14 @@ void polysa_kernel_stmt_free(void *user)
     case POLYSA_KERNEL_STMT_SYNC:
       break;
     case POLYSA_KERNEL_STMT_IO:
+    case POLYSA_KERNEL_STMT_IO_TRANSFER:
+    case POLYSA_KERNEL_STMT_IO_TRANSFER_BUF:
+    case POLYSA_KERNEL_STMT_IO_DRAM:
       free(stmt->u.i.fifo_name);
       isl_ast_expr_free(stmt->u.i.local_index);
+      isl_ast_expr_free(stmt->u.i.index);
+      break;
+    case POLYSA_KERNEL_STMT_DECL:
       break;
   }
 
@@ -2182,6 +2219,8 @@ struct polysa_hw_module *polysa_hw_module_alloc()
   struct polysa_hw_module *module = (struct polysa_hw_module *)malloc(sizeof(struct polysa_hw_module));
   module->name = NULL;
   module->tree = NULL;
+  module->device_tree = NULL;
+  module->decl_tree = NULL;
   module->inst_ids = NULL;
   module->n_var = 0;
   module->var = NULL;
@@ -2192,19 +2231,58 @@ struct polysa_hw_module *polysa_hw_module_alloc()
   return module;
 }
 
+struct polysa_hw_top_module *polysa_hw_top_module_alloc()
+{
+  struct polysa_hw_top_module *module = (struct polysa_hw_top_module *)malloc(sizeof(struct polysa_hw_top_module));
+
+  module->n_hw_modules = 0;
+  module->trees = NULL;
+  module->scheds = NULL;
+  module->kernel = NULL;
+
+  return module;
+}
+
 void *polysa_hw_module_free(struct polysa_hw_module *module)
 {
   if (!module) 
     return NULL;
 
   free(module->name);
+//  // TODO: valgrind
+//  isl_schedule_free(module->sched);
+
   isl_ast_node_free(module->tree);
+  isl_ast_node_free(module->device_tree);
+  isl_ast_node_free(module->decl_tree);
   isl_id_list_free(module->inst_ids);
   for (int i = 0; i < module->n_var; i++) {
     free(module->var[i].name);
     isl_vec_free(module->var[i].size);
   }
+  free(module->var);
   free(module->io_groups);
+  free(module);
+
+  return NULL;
+}
+
+void *polysa_hw_top_module_free(struct polysa_hw_top_module *module)
+{
+  if (!module)
+    return NULL;
+
+  if (module->trees) {
+    for (int i = 0; i < module->n_hw_modules; i++) {
+      isl_ast_node_free(module->trees[i]);
+    }
+  }
+//  // TODO: valgrind
+//  for (int i = 0; i < module->n_hw_modules; i++) {
+//    isl_schedule_free(module->scheds[i]);
+//  }
+  free(module->scheds);
+  free(module->trees);
   free(module);
 
   return NULL;

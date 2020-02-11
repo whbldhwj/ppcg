@@ -27,6 +27,7 @@ struct hls_info {
   FILE *host_c;
   FILE *kernel_c;
   FILE *kernel_h;
+  FILE *top_kernel_c;
 };
 
 struct print_host_user_data {
@@ -77,13 +78,17 @@ static void hls_open_files(struct hls_info *info, const char *input)
   strcpy(name + len, "_kernel.c");
   info->kernel_c = fopen(name, "w");
 
+  strcpy(name + len, "_top_kernel_gen.c");
+  info->top_kernel_c = fopen(name, "w");
+
   strcpy(name + len, "_kernel.h");
   info->kernel_h = fopen(name, "w");
+
   fprintf(info->host_c, "#include <assert.h>\n");
   fprintf(info->host_c, "#include <stdio,h>\n");
-  fprintf(info->host_c, "#include \"%s\"\n", name);
-  
+  fprintf(info->host_c, "#include \"%s\"\n", name);  
   fprintf(info->kernel_c, "#include \"%s\"\n", name);  
+  fprintf(info->top_kernel_c, "#include \"%s\"\n", name);
 }
 
 /* Close all output files.
@@ -93,15 +98,7 @@ static void hls_close_files(struct hls_info *info)
   fclose(info->kernel_c);
   fclose(info->kernel_h);
   fclose(info->host_c);
-}
-
-/* Does "kernel" need to be passed an argument corresponding to array "i"?
- *
- * The argument is only needed if the kernel accesses this device memory.
- */
-static int polysa_kernel_requires_array_argument(struct polysa_kernel *kernel, int i)
-{
-	return kernel->array[i].global;
+  fclose(info->top_kernel_c);
 }
 
 /* Print the arguments to a kernel declaration or call.  If "types" is set,
@@ -740,6 +737,16 @@ __isl_give isl_printer *polysa_kernel_print_io_dram(__isl_take isl_printer *p,
   return p;
 }
 
+__isl_give isl_printer *polysa_kernel_print_decl(__isl_take isl_printer *p,
+  struct polysa_kernel_stmt *stmt, struct polysa_hw_module *module)
+{
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "inst_u");
+  p = isl_printer_end_line(p);
+
+  return p;
+}
+
 /* Print an I/O statement.
  *
  * An in I/O statement is printed as
@@ -969,6 +976,28 @@ static __isl_give isl_printer *print_module_stmt(__isl_take isl_printer *p,
       return polysa_kernel_print_io_transfer(p, stmt);
     case POLYSA_KERNEL_STMT_IO_DRAM:
       return polysa_kernel_print_io_dram(p, stmt);
+  }
+
+  return p;
+}
+
+static __isl_give isl_printer *print_top_module_stmt(__isl_take isl_printer *p,
+  __isl_take isl_ast_print_options *print_options,
+  __isl_keep isl_ast_node *node, void *user)
+{
+  isl_id *id;
+  struct polysa_kernel_stmt *stmt;
+  struct polysa_hw_module *module = (struct polysa_hw_module *)(user);
+
+  id = isl_ast_node_get_annotation(node);
+  stmt = isl_id_get_user(id);
+  isl_id_free(id);
+
+  isl_ast_print_options_free(print_options);
+
+  switch (stmt->type) {
+    case POLYSA_KERNEL_STMT_DECL:
+      return polysa_kernel_print_decl(p, stmt, module);
   }
 
   return p;
@@ -1310,7 +1339,7 @@ static void print_module(struct polysa_prog *prog, struct polysa_hw_module *modu
   p = isl_printer_indent(p, 4);
 
   p = print_module_vars(p, module);
-  p = isl_printer_end_line(p);
+//  p = isl_printer_end_line(p);
  
 //  // debug
 //  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(module->device_tree), stdout);
@@ -1327,6 +1356,30 @@ static void print_module(struct polysa_prog *prog, struct polysa_hw_module *modu
 	isl_printer_free(p);
 
 	fprintf(hls->kernel_c, "}\n\n");
+}
+
+static void print_top_module(struct polysa_prog *prog, struct polysa_hw_module *module,
+  struct hls_info *hls)
+{
+  isl_ctx *ctx = isl_ast_node_get_ctx(module->decl_tree);
+  isl_ast_print_options *print_options;
+  isl_printer *p;
+
+  // TODO: print_module_headers()
+  fprintf(hls->top_kernel_c, "{\n");
+  print_module_iterators(hls->top_kernel_c, module);
+
+  p = isl_printer_to_file(ctx, hls->top_kernel_c);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = isl_printer_indent(p, 4);
+
+  print_options = isl_ast_print_options_alloc(ctx);
+  print_options = isl_ast_print_options_set_print_user(print_options,
+                &print_top_module_stmt, module); 
+  p = isl_ast_node_print(module->decl_tree, p, print_options);
+  isl_printer_free(p);
+
+  fprintf(hls->top_kernel_c, "}\n\n");
 }
 
 /* TODO */
@@ -1355,6 +1408,38 @@ static __isl_give isl_printer *print_hw_module(__isl_take isl_printer *p,
     return p;
 
   print_module(data->prog, module, data->hls);
+
+  return p;
+}
+
+static __isl_give isl_printer *print_hw_top_module(__isl_take isl_printer *p,
+  __isl_take isl_ast_print_options *print_options,
+  __isl_keep isl_ast_node *node, void *user)
+{
+  isl_id *id;
+  int is_user;
+  struct polysa_hw_module *module;
+  struct polysa_hw_module_data *data;
+
+  isl_ast_print_options_free(print_options);
+
+  data = (struct polysa_hw_module_data *)(user);
+
+  id = isl_ast_node_get_annotation(node);
+  if (!id)
+    return p;
+
+  is_user = !strcmp(isl_id_get_name(id), "user");
+  // debug
+  printf("%s\n", isl_id_get_name(id));
+  // debug
+  module = is_user ? NULL : isl_id_get_user(id);
+  isl_id_free(id);
+
+  if (is_user)
+    return p;
+
+//  print_top_module(data->prog, module, data->hls);
 
   return p;
 }
@@ -1441,6 +1526,7 @@ static __isl_give isl_printer *print_host_user(__isl_take isl_printer *p,
 static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
   struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
   struct polysa_hw_module **modules, int n_modules,
+  struct polysa_hw_top_module *top_module,
   struct hls_info *hls)
 {
   isl_ast_print_options *print_options;
@@ -1459,15 +1545,22 @@ static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
 
   /* Print the hw module ASTs. */
   for (int i = 0; i < n_modules; i++) {
-//    if (i == n_modules - 3) { // TODO: tmp
-      print_options = isl_ast_print_options_alloc(ctx);
-      print_options = isl_ast_print_options_set_print_user(print_options,
-                        &print_hw_module, &hw_data);
+    print_options = isl_ast_print_options_alloc(ctx);
+    print_options = isl_ast_print_options_set_print_user(print_options,
+                      &print_hw_module, &hw_data);
 
-      p = isl_ast_node_print(modules[i]->tree, p, print_options);
-//    }
+    p = isl_ast_node_print(modules[i]->tree, p, print_options);
   }
 
+//  /* Print the hw top module ASTs. */
+//  for (int i = 0; i < top_module->n_hw_modules; i++) {
+//    print_options = isl_ast_print_options_alloc(ctx);
+//    print_options = isl_ast_print_options_set_print_user(print_options,
+//                      &print_hw_top_module, &hw_data);
+//
+//    p = isl_ast_node_print(top_module->trees[i], p, print_options);
+//  }
+    
   return p;
 }
 
@@ -1479,6 +1572,7 @@ static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
 static __isl_give isl_printer *print_hls(__isl_take isl_printer *p,
   struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
   struct polysa_hw_module **modules, int n_modules,
+  struct polysa_hw_top_module *top_module,
   struct polysa_types *types, void *user)
 {
   struct hls_info *hls = user;
@@ -1492,7 +1586,7 @@ static __isl_give isl_printer *print_hls(__isl_take isl_printer *p,
   if (!kernel)
     return isl_printer_free(p);
 
-  p = print_host_code(p, prog, tree, modules, n_modules, hls); 
+  p = print_host_code(p, prog, tree, modules, n_modules, top_module, hls); 
 
   return p;
 }
