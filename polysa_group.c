@@ -1825,10 +1825,6 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
   } else {
     local->drain_group = NULL;
   }
-//  // TODO: valgrind
-//  for (int i = 0; i < n; i++) {
-//    polysa_array_ref_group_free(groups[i]);
-//  }
   free(groups);
     
   return 0;
@@ -2270,13 +2266,7 @@ __isl_give isl_union_map *polysa_drain_group_access_relation(
 {
   isl_union_map *access;
 
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_union_set_get_ctx(domain), stdout);
-//  p = isl_printer_print_union_set(p, domain);
-//  printf("\n");
-//  // debug
-
-  access = isl_union_map_empty(isl_map_get_space(group->access));
+  access = isl_union_map_empty(isl_map_get_space(group->access)); 
   for (int i = 0; i < group->n_ref; ++i) {
     isl_map *map_i;
     struct polysa_stmt_access *ref_i = group->refs[i];
@@ -2288,35 +2278,32 @@ __isl_give isl_union_map *polysa_drain_group_access_relation(
           (write && group->refs[i]->write)))
       continue;
         
-    acc_domain = isl_map_domain(isl_map_copy(ref_i->access));
-    space = isl_set_get_space(acc_domain);
+    acc_domain = isl_map_domain(isl_map_copy(ref_i->access)); 
+    space = isl_set_get_space(acc_domain); 
     isl_set_free(acc_domain);
-    acc_domain = isl_union_set_extract_set(domain, space);
+    acc_domain = isl_union_set_extract_set(domain, space); 
     for (int j = 0; j < ref_i->n_io_info; j++) {
       struct polysa_io_info *info_i = ref_i->io_info[j];
       if (info_i->dep->type == POLYSA_DEP_WAW) {
         isl_set *src_domain;
-//        isl_set *write_out;
 
         isl_space *space = isl_basic_map_get_space(info_i->dep->isl_dep);
-        isl_space *src_space = isl_space_unwrap(isl_space_domain(space));
-        isl_id *src_id = isl_space_get_tuple_id(src_space, isl_dim_out);
+        isl_space *src_space = isl_space_unwrap(isl_space_domain(space)); 
+        isl_id *src_id = isl_space_get_tuple_id(src_space, isl_dim_out); 
         isl_space_free(src_space);
 
-        if (src_id != ref_i->ref_id)
+        if (src_id != ref_i->ref_id) {
+          isl_id_free(src_id);
           continue;        
-        
+        }
+        isl_id_free(src_id);
+
         src_domain = isl_map_domain(isl_map_factor_domain(isl_map_from_basic_map(
-                isl_basic_map_copy(info_i->dep->isl_dep))));
+                isl_basic_map_copy(info_i->dep->isl_dep)))); 
         acc_domain = isl_set_subtract(acc_domain, src_domain);
       }      
     }
     write_out = acc_domain;
-
-//    // debug
-//    p = isl_printer_print_set(p, write_out);
-//    printf("\n");
-//    // debug
 
     access = isl_union_map_union(access, 
         isl_union_map_from_map(isl_map_intersect_domain(isl_map_copy(ref_i->access), write_out)));

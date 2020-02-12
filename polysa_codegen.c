@@ -1665,13 +1665,13 @@ __isl_give isl_ast_node *sa_generate_code(struct polysa_gen *gen,
   data.prog = gen->prog;
   data.kernel = NULL;
 
-  // debug
-  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
-  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-  p = isl_printer_print_schedule(p, schedule);
-  printf("\n");
-  isl_printer_free(p);
-  // debug
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule(p, schedule);
+//  printf("\n");
+//  isl_printer_free(p);
+//  // debug
 
   depth = 0;
   if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth, 

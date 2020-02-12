@@ -890,32 +890,10 @@ isl_stat data_transfer_update(__isl_keep isl_basic_map *dep, struct data_transfe
   space = isl_basic_map_get_space(dep);
   src_space = isl_space_unwrap(isl_space_domain(isl_space_copy(space)));
   dest_space = isl_space_unwrap(isl_space_range(space));
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_basic_map_get_ctx(dep), stdout);
-//  p = isl_printer_print_space(p, src_space);
-//  printf("\n");
-//  p = isl_printer_print_space(p, dest_space);
-//  printf("\n");
-//  // debug
   src_id = isl_space_get_tuple_id(src_space, isl_dim_out);
   dest_id = isl_space_get_tuple_id(dest_space, isl_dim_out);
-//  // debug
-//  p = isl_printer_print_id(p, src_id);
-//  printf("\n");
-//  p = isl_printer_print_id(p, dest_id);
-//  printf("\n");
-//  // debug
   isl_space_free(src_space);
   isl_space_free(dest_space);
-
-//  // debug
-//  if (data->dep_type == POLYSA_DEP_RAW) {
-//    p = isl_printer_print_basic_map(p, dep);
-//    printf("\n");
-//    p = isl_printer_print_map(p, access->access);
-//    printf("\n");
-//  }
-//  // debug
 
   if (src_id != access->ref_id && dest_id != access->ref_id) {
     isl_id_free(src_id);
@@ -924,11 +902,6 @@ isl_stat data_transfer_update(__isl_keep isl_basic_map *dep, struct data_transfe
   }
   isl_id_free(src_id);
   isl_id_free(dest_id);
-
-//  // debug
-//  p = isl_printer_print_id(p, access->ref_id);
-//  printf("\n");
-//  // debug
 
   /* Test if the dependence is carried at the space loop. */
   struct dep_space_test_internal_data internal_data = { NULL, dep };
@@ -957,17 +930,6 @@ isl_stat data_transfer_update(__isl_keep isl_basic_map *dep, struct data_transfe
   }
 
   isl_schedule_node_free(node);
-
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_basic_map_get_ctx(dep), stdout);
-//  p = isl_printer_print_basic_map(p, dep);
-//  printf("\n");
-//  p = isl_printer_print_vec(p, access->io_info[access->n_io_info - 1]->dir);
-//  printf("\n");
-//  p = isl_printer_print_map(p, access->access);
-//  printf("\n");
-//  isl_printer_free(p);
-//  // debug
 
   data->is_update = isl_bool_true;
 
@@ -3357,16 +3319,7 @@ static __isl_give isl_union_map *pe_drain_access(
   prefix = isl_schedule_node_get_prefix_schedule_relation(node);
   prefix = isl_union_map_preimage_domain_union_pw_multi_aff(prefix,
       isl_union_pw_multi_aff_copy(kernel->contraction));
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
-//  p = isl_printer_print_union_map(p, prefix);
-//  printf("\n");
-//  // debug
   access = polysa_drain_group_access_relation(group, read, !read, kernel->expanded_domain);
-//  // debug
-//  p = isl_printer_print_union_map(p, access);
-//  printf("\n");
-//  // debug
 
   access = isl_union_map_range_product(prefix, access);
 
@@ -3944,6 +3897,7 @@ __isl_give isl_schedule_node *add_pe_drain_copies(
   tile = polysa_array_ref_group_tile(pe_group);
 
   access = pe_drain_access(kernel, node, drain_group, read); 
+
   empty = isl_union_map_is_empty(access);
   if (empty < 0 || empty) {
     isl_union_map_free(access);
@@ -3990,13 +3944,6 @@ __isl_give isl_schedule_node *add_pe_drain_copies(
   } else {
     node = isl_schedule_node_graft_after(node, graft);
   }
-
-//  // debug
-//  isl_printer *p = isl_printer_to_file(ctx, stdout);
-//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
 
   node = polysa_tree_move_up_to_pe(node);
 
@@ -6404,9 +6351,6 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
           &gen->types, gen->print_user);
     
     isl_ast_node_free(gen->tree);
-//    // TODO: valgrind
-//    isl_schedule_free(gen->schedule);
-
     polysa_kernel_free(gen->kernel);
 
     for (int i = 0; i < gen->n_hw_modules; i++) {
