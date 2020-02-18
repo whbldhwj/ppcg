@@ -118,6 +118,9 @@ static int populate_array_references_pe(struct polysa_local_array_info *local,
     group->dir = NULL;
     group->group_type = POLYSA_PE_GROUP;
     group->local_tile = NULL;
+    group->io_trans = NULL;
+    group->io_trans_mat = NULL;
+    group->io_pe_expr = NULL;
 
 		groups[n++] = group;
 	}
@@ -178,8 +181,11 @@ static int populate_array_references_io(struct polysa_local_array_info *local,
       group->io_type = access->io_info[j]->io_type;
       group->dir = isl_vec_copy(access->io_info[j]->dir);
       group->group_type = POLYSA_IO_GROUP;
-      group->pe_io_dir = IO_UNKNOWN;
-      group->array_io_dir = IO_UNKNOWN;
+      group->pe_io_dir = IO_NULL;
+      group->array_io_dir = IO_NULL;
+      group->io_trans = NULL;
+      group->io_trans_mat = NULL;
+      group->io_pe_expr = NULL;
 
 		  groups[n++] = group;
     }
@@ -228,6 +234,9 @@ static struct polysa_array_ref_group *join_groups(
   group->group_type = group1->group_type;
   group->pe_io_dir = group1->pe_io_dir;
   group->array_io_dir = group1->array_io_dir;
+  group->io_trans = group1->io_trans;
+  group->io_trans_mat = group1->io_trans_mat;
+  group->io_pe_expr = group1->io_pe_expr;
 
 	return group;
 }
@@ -390,7 +399,7 @@ static __isl_give isl_union_map *localize_access(struct polysa_group_data *data,
  *
  * The pe_ray_sched_depth = array_depth + rank(P)
  */
-__isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __isl_keep isl_vec *dir)
+__isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __isl_keep isl_vec *dir, __isl_give isl_multi_aff **io_trans, __isl_give isl_mat **io_trans_mat)
 {
   isl_mat *trans_mat, *dir_mat, *null_mat;
   isl_ctx *ctx = isl_schedule_get_ctx(schedule);
@@ -437,6 +446,7 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
     trans_mat = isl_mat_set_element_val(trans_mat, isl_mat_cols(null_mat), i,
         isl_vec_get_element_val(dir, i));
   }
+  *io_trans_mat = trans_mat;
 
   /* Modify the partial schedule of the space band. */
   space_sched = isl_schedule_node_band_get_partial_schedule(node);
@@ -455,7 +465,8 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
     ma = isl_multi_aff_set_aff(ma, i, aff);
   }
 
-  space_sched = isl_multi_union_pw_aff_apply_multi_aff(space_sched, ma);
+  space_sched = isl_multi_union_pw_aff_apply_multi_aff(space_sched, isl_multi_aff_copy(ma));
+  *io_trans = ma;
 //  // debug
 //  p = isl_printer_print_schedule_node(p, node);
 //  printf("\n");
@@ -497,7 +508,7 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
   schedule = isl_schedule_node_get_schedule(node);
   node = isl_schedule_node_free(node);
   isl_mat_free(null_mat);
-  isl_mat_free(trans_mat);
+//  isl_mat_free(trans_mat);
 
 //  // debug
 //  p = isl_printer_free(p);
@@ -533,8 +544,10 @@ static __isl_give isl_union_map *get_io_L1_schedule(__isl_take isl_schedule *sch
   struct polysa_kernel *kernel;
   isl_id *id;
   isl_union_map *io_sched;
+  isl_multi_aff *io_trans;
+  isl_mat *io_trans_mat;
 
-  sched = get_io_schedule(sched, dir);
+  sched = get_io_schedule(sched, dir, &io_trans, &io_trans_mat);
   node = isl_schedule_get_root(sched);
   isl_schedule_free(sched);
   
@@ -549,6 +562,8 @@ static __isl_give isl_union_map *get_io_L1_schedule(__isl_take isl_schedule *sch
   io_sched = expand(io_sched, kernel->contraction);
 
   isl_schedule_node_free(node);
+  isl_multi_aff_free(io_trans);
+  isl_mat_free(io_trans_mat);
 
   return io_sched;
 }
@@ -559,8 +574,10 @@ static __isl_give isl_union_map *get_io_pe_schedule(__isl_take isl_schedule *sch
   struct polysa_kernel *kernel;
   isl_id *id;
   isl_union_map *io_sched;
+  isl_multi_aff *io_trans;
+  isl_mat *io_trans_mat;
 
-  sched = get_io_schedule(sched, dir);
+  sched = get_io_schedule(sched, dir, &io_trans, &io_trans_mat);
   node = isl_schedule_get_root(sched);
   isl_schedule_free(sched);
 
@@ -575,6 +592,8 @@ static __isl_give isl_union_map *get_io_pe_schedule(__isl_take isl_schedule *sch
   io_sched = expand(io_sched, kernel->contraction);
 
   isl_schedule_node_free(node);
+  isl_multi_aff_free(io_trans);
+  isl_mat_free(io_trans_mat);
 
   return io_sched;
 }

@@ -1381,6 +1381,9 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
 	if (group->n_ref > 1)
 		free(group->refs);
   isl_vec_free(group->dir);
+  isl_multi_aff_free(group->io_trans);
+  isl_mat_free(group->io_trans_mat);
+  isl_ast_expr_free(group->io_pe_expr);
 	free(group);
 
 	return NULL;
@@ -2105,7 +2108,8 @@ void polysa_kernel_stmt_free(void *user)
       isl_ast_expr_free(stmt->u.i.local_index);
       isl_ast_expr_free(stmt->u.i.index);
       break;
-    case POLYSA_KERNEL_STMT_DECL:
+    case POLYSA_KERNEL_STMT_MODULE_CALL:
+    case POLYSA_KERNEL_STMT_FIFO_DECL:
       break;
   }
 
@@ -2220,7 +2224,6 @@ struct polysa_hw_module *polysa_hw_module_alloc()
   module->name = NULL;
   module->tree = NULL;
   module->device_tree = NULL;
-  module->decl_tree = NULL;
   module->inst_ids = NULL;
   module->n_var = 0;
   module->var = NULL;
@@ -2235,10 +2238,20 @@ struct polysa_hw_top_module *polysa_hw_top_module_alloc()
 {
   struct polysa_hw_top_module *module = (struct polysa_hw_top_module *)malloc(sizeof(struct polysa_hw_top_module));
 
-  module->n_hw_modules = 0;
-  module->trees = NULL;
-  module->scheds = NULL;
+  module->n_module_calls = 0;
+  module->n_fifo_decls = 0;
+  module->module_call_scheds = NULL;
+  module->fifo_decl_scheds = NULL;
+  module->module_call_trees = NULL;
+  module->fifo_decl_trees = NULL;
+
+  module->n_module_call_wrapped = 0;
+  module->n_fifo_decl_wrapped = 0;
+  module->module_call_wrapped_trees = NULL;
+  module->fifo_decl_wrapped_trees = NULL;
+
   module->kernel = NULL;
+  module->hw_modules = NULL;
 
   return module;
 }
@@ -2254,7 +2267,6 @@ void *polysa_hw_module_free(struct polysa_hw_module *module)
 
   isl_ast_node_free(module->tree);
   isl_ast_node_free(module->device_tree);
-  isl_ast_node_free(module->decl_tree);
   isl_id_list_free(module->inst_ids);
   for (int i = 0; i < module->n_var; i++) {
     free(module->var[i].name);
@@ -2272,17 +2284,40 @@ void *polysa_hw_top_module_free(struct polysa_hw_top_module *module)
   if (!module)
     return NULL;
 
-  if (module->trees) {
-    for (int i = 0; i < module->n_hw_modules; i++) {
-      isl_ast_node_free(module->trees[i]);
+  if (module->module_call_trees) {
+    for (int i = 0; i < module->n_module_calls; i++) {
+      isl_ast_node_free(module->module_call_trees[i]);
     }
   }
+
+  if (module->fifo_decl_trees) {
+    for (int i = 0; i < module->n_fifo_decls; i++) {
+      isl_ast_node_free(module->fifo_decl_trees[i]);
+    }
+  }
+
+  if (module->module_call_wrapped_trees) {
+    for (int i = 0; i < module->n_module_call_wrapped; i++) {
+      isl_ast_node_free(module->module_call_wrapped_trees[i]);
+    }
+  }
+
+  if (module->fifo_decl_wrapped_trees) {
+    for (int i = 0; i < module->n_fifo_decl_wrapped; i++) {
+      isl_ast_node_free(module->fifo_decl_wrapped_trees[i]);
+    }
+  }
+
 //  // TODO: valgrind
 //  for (int i = 0; i < module->n_hw_modules; i++) {
 //    isl_schedule_free(module->scheds[i]);
 //  }
-  free(module->scheds);
-  free(module->trees);
+  free(module->module_call_scheds);
+  free(module->fifo_decl_scheds);
+  free(module->module_call_trees);
+  free(module->fifo_decl_trees);
+  free(module->module_call_wrapped_trees);
+  free(module->fifo_decl_wrapped_trees);
   free(module);
 
   return NULL;

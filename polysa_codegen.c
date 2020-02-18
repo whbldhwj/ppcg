@@ -12,6 +12,7 @@ struct polysa_at_domain_data {
   struct polysa_prog *prog;
   struct polysa_kernel *kernel;
   struct polysa_hw_module *module;
+  struct polysa_hw_top_module *top;
 };
 
 /* Internal data structure for the index and AST expression transformation
@@ -1004,8 +1005,9 @@ __isl_give isl_ast_expr_list *decl_args_generate(struct polysa_hw_module *module
   return list;
 }
 
-static __isl_give isl_ast_node *create_decl_leaf(struct polysa_kernel *kernel,
-  __isl_take isl_ast_node *node, __isl_keep isl_ast_build *build)
+static __isl_give isl_ast_node *create_module_call_leaf(struct polysa_kernel *kernel,
+  __isl_take isl_ast_node *node, struct polysa_hw_module *module,
+  struct polysa_array_ref_group *group, const char *name, __isl_keep isl_ast_build *build)
 {
   struct polysa_kernel_stmt *stmt;
   isl_id *id;
@@ -1016,8 +1018,83 @@ static __isl_give isl_ast_node *create_decl_leaf(struct polysa_kernel *kernel,
   if (!stmt)
     return isl_ast_node_free(node);
  
-  stmt->type = POLYSA_KERNEL_STMT_DECL;
-  id = isl_id_alloc(ctx, "module_decl", stmt);
+  stmt->type = POLYSA_KERNEL_STMT_MODULE_CALL;
+  stmt->u.m.module = module;
+  stmt->u.m.group = group;
+  if (!prefixcmp(name, "module_call_lower")) {
+    stmt->u.m.lower = 1;
+    stmt->u.m.upper = 0;
+  } else if (!prefixcmp(name, "module_call_upper")) {
+    stmt->u.m.lower = 0;
+    stmt->u.m.upper = 1;
+  } else {
+    stmt->u.m.lower = 0;
+    stmt->u.m.upper = 0;
+  }
+  id = isl_id_alloc(ctx, "module_call", stmt);
+  id = isl_id_set_free_user(id, &polysa_kernel_stmt_free);
+  if (!id)
+    polysa_kernel_stmt_free(stmt);
+  return isl_ast_node_set_annotation(node, id);
+}
+
+static __isl_give isl_ast_node *create_fifo_decl_leaf(struct polysa_kernel *kernel,
+  __isl_take isl_ast_node *node, struct polysa_hw_module *module,
+  struct polysa_array_ref_group *group, const char *name, __isl_keep isl_ast_build *build)
+{
+  struct polysa_kernel_stmt *stmt;
+  isl_id *id;
+  isl_ctx *ctx;
+  isl_multi_aff *trans;
+  isl_map *map;
+  isl_pw_multi_aff *pma;
+  isl_ast_expr *expr;
+
+  ctx = isl_ast_node_get_ctx(node);
+  stmt = isl_calloc_type(ctx, struct polysa_kernel_stmt);
+  if (!stmt)
+    return isl_ast_node_free(node);
+
+  /* Generate the ast expr of io_trans */ 
+  if (module->type == PE_MODULE && !group->io_pe_expr) {
+    isl_union_map *umap = isl_ast_build_get_schedule(build);
+    isl_union_set *uset = isl_union_map_range(umap);
+    isl_set *set = isl_set_from_union_set(uset);
+    isl_map *map = isl_set_identity(set);
+    map = isl_map_flatten_range(map);
+ 
+//    // debug
+//    isl_printer *p = isl_printer_to_file(ctx, stdout);
+//    p = isl_printer_print_map(p, map);
+//    printf("\n");
+//    // debug
+   
+    trans = group->io_trans;
+    isl_map *map2 = isl_map_from_multi_aff(isl_multi_aff_copy(trans));
+    map2 = isl_map_reverse(map2);
+    map = isl_map_apply_range(map, map2);
+    isl_pw_multi_aff *pma = isl_pw_multi_aff_from_map(map);
+//    // debug
+//    p = isl_printer_print_pw_multi_aff(p, pma);
+//    printf("\n");
+//    // debug
+    expr = isl_ast_build_access_from_pw_multi_aff(build, pma);
+//    // debug
+//    p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+//    p = isl_printer_print_ast_expr(p, expr);
+//    printf("\n");
+//    // debug
+    group->io_pe_expr = expr;
+  }
+
+  stmt->type = POLYSA_KERNEL_STMT_FIFO_DECL;
+  stmt->u.m.module = module;
+  stmt->u.m.group = group;
+  if (!prefixcmp(name, "fifo_decl_boundary"))
+    stmt->u.m.boundary = 1;
+  else
+    stmt->u.m.boundary = 0;
+  id = isl_id_alloc(ctx, "fifo_decl", stmt);
   id = isl_id_set_free_user(id, &polysa_kernel_stmt_free);
   if (!id)
     polysa_kernel_stmt_free(stmt);
@@ -1374,8 +1451,21 @@ static __isl_give isl_ast_node *at_domain_module(__isl_take isl_ast_node *node,
     struct polysa_array_ref_group *group = p;
     return create_io_leaf(data->kernel, group, node, build);
   }
-  if (!prefixcmp(name, "module_decl")) {
-    return create_decl_leaf(data->kernel, node, build);
+  if (!prefixcmp(name, "module_call")) {
+    /* module_call.[module_name]
+     * module_call_lower.[module_name]
+     */
+    struct polysa_array_ref_group *group = NULL;
+    if (!prefixcmp(name, "module_call_lower"))
+      group = p;
+    return create_module_call_leaf(data->kernel, node, data->module, group, name, build);
+  }
+  if (!prefixcmp(name, "fifo_decl")) {
+    /* fifo_decl.[fifo_name]
+     * fifo_decl_boundary.[fifo_name]
+     */
+    struct polysa_array_ref_group *group = p;
+    return create_fifo_decl_leaf(data->kernel, node, data->module, group, name, build);
   }
 
   return node;
@@ -1601,7 +1691,7 @@ static __isl_give isl_ast_node *after_mark_module(__isl_take isl_ast_node *node,
 	return node;
 }
 
-static __isl_give isl_ast_node *after_mark_top_module(__isl_take isl_ast_node *node,
+static __isl_give isl_ast_node *after_mark_module_call(__isl_take isl_ast_node *node,
         __isl_keep isl_ast_build *build, void *user)
 {
 	isl_ctx *ctx;
@@ -1611,6 +1701,7 @@ static __isl_give isl_ast_node *after_mark_top_module(__isl_take isl_ast_node *n
 	struct polysa_kernel *kernel;
 	struct polysa_at_domain_data *data = user;
   struct polysa_hw_module *module;
+  struct polysa_hw_top_module *top;
 
 	ctx = isl_ast_node_get_ctx(node);
 	id = isl_ast_node_mark_get_id(node);
@@ -1628,9 +1719,59 @@ static __isl_give isl_ast_node *after_mark_top_module(__isl_take isl_ast_node *n
 		isl_id_free(id);
 		return node;
 	}
-  module = data->module;
-  data->module = NULL;
-  module->decl_tree = isl_ast_node_mark_get_node(node);
+  top = data->top;
+  data->top = NULL;
+  top->n_module_call_wrapped++;
+  top->module_call_wrapped_trees = (isl_ast_node **)realloc(top->module_call_wrapped_trees,
+    top->n_module_call_wrapped * sizeof(isl_ast_node *));
+  top->module_call_wrapped_trees[top->n_module_call_wrapped - 1] = 
+    isl_ast_node_mark_get_node(node);
+	isl_ast_node_free(node);
+
+	expr = isl_ast_expr_from_id(isl_id_copy(id));
+	list = isl_ast_expr_list_alloc(ctx, 0);
+	expr = isl_ast_expr_call(expr, list);
+	node = isl_ast_node_alloc_user(expr);
+	node = isl_ast_node_set_annotation(node, id);
+
+	return node;
+}
+
+static __isl_give isl_ast_node *after_mark_fifo_decl(__isl_take isl_ast_node *node,
+        __isl_keep isl_ast_build *build, void *user)
+{
+	isl_ctx *ctx;
+	isl_id *id;
+	isl_ast_expr *expr;
+	isl_ast_expr_list *list;
+	struct polysa_kernel *kernel;
+	struct polysa_at_domain_data *data = user;
+  struct polysa_hw_module *module;
+  struct polysa_hw_top_module *top;
+
+	ctx = isl_ast_node_get_ctx(node);
+	id = isl_ast_node_mark_get_id(node);
+	if (!id)
+		return isl_ast_node_free(node);
+
+  if (!strcmp(isl_id_get_name(id), "kernel") && data->kernel) {
+    isl_id_free(id);
+    if (!data->kernel->space)
+      data->kernel->space = isl_ast_build_get_schedule_space(build);
+    data->kernel = NULL;
+    return node;
+  }
+	if (strcmp(isl_id_get_name(id), "module") || !data->module) {
+		isl_id_free(id);
+		return node;
+	}
+  top = data->top;
+  data->top = NULL;
+  top->n_fifo_decl_wrapped++;
+  top->fifo_decl_wrapped_trees = (isl_ast_node **)realloc(top->fifo_decl_wrapped_trees,
+    top->n_fifo_decl_wrapped * sizeof(isl_ast_node *));
+  top->fifo_decl_wrapped_trees[top->n_fifo_decl_wrapped - 1] = 
+    isl_ast_node_mark_get_node(node);
 	isl_ast_node_free(node);
 
 	expr = isl_ast_expr_from_id(isl_id_copy(id));
@@ -1741,7 +1882,7 @@ __isl_give isl_ast_node *sa_module_generate_code(struct polysa_gen *gen,
   return tree;
 }
 
-__isl_give isl_ast_node *sa_top_module_generate_code(struct polysa_gen *gen,
+__isl_give isl_ast_node *sa_fifo_decl_generate_code(struct polysa_gen *gen,
     __isl_take isl_schedule *schedule)
 {
   struct polysa_at_domain_data data;
@@ -1757,14 +1898,15 @@ __isl_give isl_ast_node *sa_top_module_generate_code(struct polysa_gen *gen,
   data.prog = gen->prog;
   data.kernel = NULL;
   data.module = NULL;
+  data.top = gen->hw_top_module;
 
-//  // debug
-//  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
-//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-//  p = isl_printer_print_schedule(p, schedule);
-//  printf("\n");
+  // debug
+  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  p = isl_printer_print_schedule(p, schedule);
+  printf("\n");
 //  p = isl_printer_free(p);
-//  // debug
+  // debug
 
   depth = 0;
   if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth,
@@ -1775,11 +1917,69 @@ __isl_give isl_ast_node *sa_top_module_generate_code(struct polysa_gen *gen,
   build = isl_ast_build_set_iterators(build, iterators);
   build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
   build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
-  build = isl_ast_build_set_after_each_mark(build, &after_mark_top_module, &data);
+  build = isl_ast_build_set_after_each_mark(build, &after_mark_fifo_decl, &data);
   if (gen->prog->scop->options->debug->dump_final_schedule)
     isl_schedule_dump(schedule);
   tree = isl_ast_build_node_from_schedule(build, schedule);
   isl_ast_build_free(build);
+
+  // debug
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = isl_printer_print_ast_node(p, tree);
+  printf("\n");
+  p = isl_printer_free(p);
+  // debug
+
+  return tree; 
+}
+
+__isl_give isl_ast_node *sa_module_call_generate_code(struct polysa_gen *gen,
+    __isl_take isl_schedule *schedule)
+{
+  struct polysa_at_domain_data data;
+  isl_ast_build *build;
+  isl_ast_node *tree;
+  isl_id_list *iterators;
+
+  int depth;
+
+  if (schedule == NULL)
+    return NULL;
+
+  data.prog = gen->prog;
+  data.kernel = NULL;
+  data.module = NULL;
+  data.top = gen->hw_top_module;
+
+  // debug
+  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  p = isl_printer_print_schedule(p, schedule);
+  printf("\n");
+//  p = isl_printer_free(p);
+  // debug
+
+  depth = 0;
+  if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth,
+        &depth) < 0)
+    schedule = isl_schedule_free(schedule);
+  build = isl_ast_build_alloc(gen->prog->ctx);
+  iterators = ppcg_scop_generate_names(gen->prog->scop, depth, "c");
+  build = isl_ast_build_set_iterators(build, iterators);
+  build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
+  build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
+  build = isl_ast_build_set_after_each_mark(build, &after_mark_module_call, &data);
+  if (gen->prog->scop->options->debug->dump_final_schedule)
+    isl_schedule_dump(schedule);
+  tree = isl_ast_build_node_from_schedule(build, schedule);
+  isl_ast_build_free(build);
+
+  // debug
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = isl_printer_print_ast_node(p, tree);
+  printf("\n");
+  p = isl_printer_free(p);
+  // debug
 
   return tree; 
 }

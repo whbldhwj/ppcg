@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio,h>
 #include "kernel_kernel.h"
+#include "kernel_top_gen.h"
 #include "kernel.h"
 
 /* DSA Form 0 */
@@ -37,6 +38,11 @@ void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {
       dim3 k0_dimGrid(1);
       kernel0 <<<k0_dimGrid, k0_dimBlock>>> (dev_A, dev_B, dev_C);
       cudaCheckKernel();
+      /* Top function generation. */
+      FILE *f = fopen("top.c", "w");
+      top_generate(f);
+      fclose(f);
+      /* Top function generation. */
     }
     
     cudaCheckReturn(cudaMemcpy(C, dev_C, (512) * (512) * sizeof(int), cudaMemcpyDeviceToHost));
@@ -44,12 +50,4 @@ void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {
     cudaCheckReturn(cudaFree(dev_B));
     cudaCheckReturn(cudaFree(dev_C));
   }
-  // kernel
-  // kernel
-  // kernel
-  // kernel
-  // kernel
-  // kernel
-  // kernel
-  // kernel
 }

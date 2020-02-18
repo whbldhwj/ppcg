@@ -8,7 +8,9 @@ __isl_give isl_ast_node *sa_generate_code(struct polysa_gen *gen,
     __isl_take isl_schedule *schedule);
 __isl_give isl_ast_node *sa_module_generate_code(struct polysa_gen *gen,
     __isl_take isl_schedule *schedule);
-__isl_give isl_ast_node *sa_top_module_generate_code(struct polysa_gen *gen,
+__isl_give isl_ast_node *sa_module_call_generate_code(struct polysa_gen *gen,
+    __isl_take isl_schedule *schedule);
+__isl_give isl_ast_node *sa_fifo_decl_generate_code(struct polysa_gen *gen,
     __isl_take isl_schedule *schedule);
 
 int polysa_array_requires_device_allocation(struct polysa_array_info *array);

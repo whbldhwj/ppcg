@@ -131,7 +131,7 @@ ISL_ARG_INT(struct ppcg_options, max_sa_dim, 0,
 ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, sa_type, 0, "sa-type", sa_type,
   NULL, POLYSA_SA_TYPE_ASYNC, POLYSA_SA_TYPE_ASYNC,
   "systolic array type")
-ISL_ARG_INT(struct ppcg_options, sa_tile_size, 0, "sa-tile-size", "size", 8, 
+ISL_ARG_INT(struct ppcg_options, sa_tile_size, 0, "sa-tile-size", "size", 2, 
   "Default tile size in PE optmization")
 ISL_ARG_STR(struct ppcg_options, sa_sizes, 0, "sa-sizes", "sizes", NULL,
 	"Per kernel PE optimization tile sizes")

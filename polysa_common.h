@@ -38,7 +38,8 @@ enum polysa_kernel_stmt_type {
   POLYSA_KERNEL_STMT_IO_TRANSFER,
   POLYSA_KERNEL_STMT_IO_TRANSFER_BUF,
   POLYSA_KERNEL_STMT_IO_DRAM,
-  POLYSA_KERNEL_STMT_DECL
+  POLYSA_KERNEL_STMT_FIFO_DECL,
+  POLYSA_KERNEL_STMT_MODULE_CALL
 };
 
 enum polysa_dep_type {
@@ -59,6 +60,7 @@ enum polysa_io_dir {
   IO_IN,
   IO_OUT,
   IO_INOUT,
+  IO_NULL,
   IO_UNKNOWN
 };
 
@@ -418,6 +420,9 @@ struct polysa_array_ref_group {
   enum polysa_group_type group_type;
   enum polysa_io_dir pe_io_dir;
   enum polysa_io_dir array_io_dir;
+  isl_multi_aff *io_trans; /* pe ids -> io ids */
+  isl_mat *io_trans_mat;
+  isl_ast_expr *io_pe_expr; /* io ids -> pe ids */
   /* PolySA Extended */
 };
 
@@ -509,10 +514,20 @@ struct polysa_prog {
 };
 
 struct polysa_hw_top_module {
-  int n_hw_modules;
-  isl_schedule **scheds;
-  isl_ast_node **trees;
+  int n_fifo_decls;
+  int n_module_calls;
+  isl_schedule **fifo_decl_scheds;
+  isl_schedule **module_call_scheds;
+  isl_ast_node **fifo_decl_trees;
+  isl_ast_node **module_call_trees;
+  
+  /* Wrapped AST */
+  int n_fifo_decl_wrapped;
+  int n_module_call_wrapped;
+  isl_ast_node **fifo_decl_wrapped_trees;
+  isl_ast_node **module_call_wrapped_trees;
 
+  struct polysa_hw_module **hw_modules;
   struct polysa_kernel *kernel;
 };
 
@@ -525,13 +540,12 @@ struct polysa_hw_module {
   int n_var;
   struct polysa_kernel_var *var;
 
-  /* Module schedule */
+  /* Module function schedule */
   isl_schedule *sched;
 
-  /* Module AST */
+  /* Module function AST */
   isl_ast_node *tree;
   isl_ast_node *device_tree;
-  isl_ast_node *decl_tree;
 
   /* Array reference group for I/O or drain module */
   struct polysa_array_ref_group **io_groups;
@@ -541,6 +555,10 @@ struct polysa_hw_module {
   int level;
   /* I/O module copy-in/out */
   int in;
+//  /* Interior I/O */
+//  int interior;
+//  /* Boundary module id */
+//  isl_multi_pw_aff *boundary_id;
 
   struct polysa_kernel *kernel;
 };
@@ -646,6 +664,13 @@ struct polysa_kernel_stmt {
       struct polysa_array_info *array;
       struct polysa_local_array_info *local_array;
     } i;
+    struct {
+      struct polysa_hw_module *module;
+      struct polysa_array_ref_group *group;
+      int boundary;
+      int upper;
+      int lower;
+    } m;
 	} u;
 };
 
