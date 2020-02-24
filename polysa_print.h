@@ -20,6 +20,8 @@ __isl_give isl_printer *polysa_print_local_declarations(__isl_take isl_printer *
 	struct polysa_prog *prog);
 __isl_give isl_printer *polysa_array_info_print_size(__isl_take isl_printer *prn,
 	struct polysa_array_info *array);
+__isl_give isl_printer *polysa_array_info_print_data_size(__isl_take isl_printer *prn,
+	struct polysa_array_info *array);
 //__isl_give isl_printer *polysa_kernel_print_copy(__isl_take isl_printer *p,
 //	struct polysa_kernel_stmt *stmt);
 

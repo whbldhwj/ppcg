@@ -1,3 +1,6 @@
+extern "C" {
+void kernel0(int *A, int *B, int *C);
+}
 void PE(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_C_drain_out);
 void A_L2_in_IO(int idx, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_A_local_out);
 void A_L3_in_IO(int *A, hls::stream<int> &fifo_A_local_out);

@@ -215,3 +215,28 @@ __isl_give isl_printer *polysa_array_info_print_size(__isl_take isl_printer *prn
 
 	return prn;
 }
+
+/* Print an expression for the size of "array" in data items.
+ */
+__isl_give isl_printer *polysa_array_info_print_data_size(__isl_take isl_printer *prn,
+	struct polysa_array_info *array)
+{
+	int i;
+  int first = 1;
+
+	for (i = 0; i < array->n_index; ++i) {
+    if (!first)
+      prn = isl_printer_print_str(prn, " * ");
+
+		isl_ast_expr *bound;
+
+		prn = isl_printer_print_str(prn, "(");
+		bound = isl_ast_expr_get_op_arg(array->bound_expr, 1 + i);
+		prn = isl_printer_print_ast_expr(prn, bound);
+		isl_ast_expr_free(bound);
+		prn = isl_printer_print_str(prn, ")");
+    first = 0;
+	}
+
+	return prn;
+}

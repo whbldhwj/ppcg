@@ -1,9 +1,8 @@
 #include "kernel.h"
 
-/* DSA Form 0 */
-// change parameters to constants
-// avoid using +=
-void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {
+int main(int argc, char **argv) {
+  data_t A[I][K], B[K][J], C[I][J], C_golden[I][J]; 
+
 #pragma scop
   for (int i = 0; i < I; i++)
     for (int j = 0; j < J; j++) {
@@ -13,4 +12,26 @@ void dsa_kernel(data_t A[I][K], data_t B[K][J], data_t C[I][J]) {
       }
     }
 #pragma endscop
+
+  for (int i = 0; i < I; i++)
+    for (int j = 0; j < J; j++) {
+      C_golden[i][j] = 0;
+      for (int k = 0; k < K; k++) {
+        C_golden[i][j] = C_golden[i][j] + A[i][k] * B[k][j];
+      }
+    }
+
+  int err = 0;
+  for (int i = 0; i < I; i++)
+    for (int j = 0; j < J; j++) {
+      if (abs(C_golden[i][j] - C[i][j]) > 0.001)
+        err++;
+    }
+
+  if (err)
+    printf("Failed with %d errors!\n", err);
+  else
+    prnitf("passed!\n");
+
+  return 0;
 }
