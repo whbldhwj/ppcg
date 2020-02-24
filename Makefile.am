@@ -61,10 +61,10 @@ ppcg_SOURCES = \
 	util.c \
 	util.h \
 	version.c \
-	polysa_hls.c \
-	polysa_hls.h \
-	polysa_opencl.c \
-	polysa_opencl.h \
+	polysa_cpu.c \
+	polysa_cpu.h \
+	polysa_fpga.c \
+	polysa_fpga.h \
 	polysa_t2s.c \
 	polysa_t2s.h \
 	polysa_common.c \

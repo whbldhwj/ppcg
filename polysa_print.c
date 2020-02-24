@@ -163,20 +163,6 @@ __isl_give isl_printer *polysa_array_info_print_declaration_argument(
 	return p;
 }
 
-/* Print the call of an array argument.
- */
-__isl_give isl_printer *polysa_array_info_print_call_argument(
-	__isl_take isl_printer *p, struct polysa_array_info *array)
-{
-	if (polysa_array_is_read_only_scalar(array))
-		return isl_printer_print_str(p, array->name);
-
-	p = isl_printer_print_str(p, "dev_");
-	p = isl_printer_print_str(p, array->name);
-
-	return p;
-}
-
 __isl_give isl_printer *polysa_kernel_print_domain(__isl_take isl_printer *p,
 	struct polysa_kernel_stmt *stmt)
 {

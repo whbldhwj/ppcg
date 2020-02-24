@@ -30,5 +30,6 @@ __isl_give isl_union_set *isl_union_pw_aff_non_zero_union_set(
 void print_mat(FILE *fp, __isl_keep isl_mat *mat);
 int isl_vec_cmp(__isl_keep isl_vec *vec1, __isl_keep isl_vec *vec2);
 char *concat(isl_ctx *ctx, const char *a, const char *b);
+bool isl_vec_is_zero(__isl_keep isl_vec *vec);
 
 #endif

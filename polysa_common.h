@@ -82,6 +82,22 @@ enum polysa_array_type {
   POLYSA_INT_ARRAY
 };
 
+enum platform {
+  INTEL_HW,
+  XILINX_HW
+};
+
+struct hls_info {
+  FILE *host_c;          /* OpenCL host. */
+  FILE *kernel_c;        /* Definition of hardware modules. */
+  FILE *kernel_h;        /* Declaration of hardware modules. */
+
+  FILE *top_gen_c;       /* Prints out the top module that connects the 
+                            hardware modules. */
+  FILE *top_gen_h;      
+  enum platform target;
+};
+
 struct polysa_dep {
   isl_id *src; 
   isl_id *dest;
@@ -426,6 +442,12 @@ struct polysa_array_ref_group {
   /* PolySA Extended */
 };
 
+struct polysa_array_ref_group_pair {
+  struct polysa_array_ref_group *local_group; /* Compute the local tile */
+  struct polysa_array_ref_group *io_group;
+  int in_use;
+};
+
 /* Represents an outer array accessed by a polysa_kernel, localized
  * to the context of this kernel.
  *
@@ -663,6 +685,8 @@ struct polysa_kernel_stmt {
       isl_ast_expr *index;
       struct polysa_array_info *array;
       struct polysa_local_array_info *local_array;
+      struct polysa_array_ref_group *group;
+      struct polysa_hw_module *module;
     } i;
     struct {
       struct polysa_hw_module *module;

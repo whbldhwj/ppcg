@@ -14,8 +14,8 @@ static struct isl_arg_choice target[] = {
 	{"c",		        PPCG_TARGET_C},
 	{"cuda",	      PPCG_TARGET_CUDA},
 	{"opencl",      PPCG_TARGET_OPENCL},
-//  {"polysa_c",    POLYSA_TARGET_C},
-  {"polysa_hls",  POLYSA_TARGET_XILINX_HLS},
+  {"polysa_c",      POLYSA_TARGET_C},
+  {"polysa_hls",    POLYSA_TARGET_XILINX_HLS},
   {"polysa_opencl", POLYSA_TARGET_INTEL_OPENCL},
   {"polysa_t2s",    POLYSA_TARGET_T2S},
 	{0}
@@ -126,6 +126,8 @@ ISL_ARG_BOOL(struct ppcg_options, unroll_copy_local, 0, "unroll-copy-local",
 /* PolySA Extended */
 ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
   "Generate systolic arrays using PolySA")
+ISL_ARG_BOOL(struct ppcg_options, hbm, 0, "hbm", 1,
+  "Use HBM memory")
 ISL_ARG_INT(struct ppcg_options, max_sa_dim, 0,
   "max-sa-dim", "dim", 2, "maximal systolic array dimension")
 ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, sa_type, 0, "sa-type", sa_type,

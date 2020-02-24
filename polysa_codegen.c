@@ -1131,8 +1131,8 @@ static __isl_give isl_ast_node *create_fifo_decl_leaf(struct polysa_kernel *kern
  * where stmt points to the ppcg_kernel_stmt that is attached to the node.
  */
 static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
-  struct polysa_array_ref_group *group, __isl_take isl_ast_node *node,
-  __isl_keep isl_ast_build *build)
+  struct polysa_hw_module *module, struct polysa_array_ref_group_pair *pair, 
+  __isl_take isl_ast_node *node, __isl_keep isl_ast_build *build)
 {
   struct polysa_kernel_stmt *stmt;
   struct polysa_array_tile *tile;
@@ -1147,6 +1147,7 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
   int is_dram;
   int is_transfer_filter;
   int is_transfer_buf;
+  struct polysa_array_ref_group *group = pair->local_group;
 
   int depth;
   isl_ctx *ctx;
@@ -1236,6 +1237,9 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
   char *fifo_name = fifo_suffix(ctx, type);
   p_str = isl_printer_print_str(p_str, fifo_name);
   free(fifo_name);
+
+  stmt->u.i.group = pair->io_group;
+  stmt->u.i.module = module;
 
   stmt->u.i.fifo_name = isl_printer_get_str(p_str);
   isl_printer_free(p_str);
@@ -1448,8 +1452,9 @@ static __isl_give isl_ast_node *at_domain_module(__isl_take isl_ast_node *node,
     return create_access_leaf(data->kernel, group, node, build);
   }
   if (!prefixcmp(name, "in") || !prefixcmp(name, "out")) {
-    struct polysa_array_ref_group *group = p;
-    return create_io_leaf(data->kernel, group, node, build);
+    // struct polysa_array_ref_group *group = p;
+    struct polysa_array_ref_group_pair *pair = p;
+    return create_io_leaf(data->kernel, data->module, pair, node, build);
   }
   if (!prefixcmp(name, "module_call")) {
     /* module_call.[module_name]

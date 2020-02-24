@@ -399,7 +399,7 @@ static __isl_give isl_union_map *localize_access(struct polysa_group_data *data,
  *
  * The pe_ray_sched_depth = array_depth + rank(P)
  */
-__isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __isl_keep isl_vec *dir, __isl_give isl_multi_aff **io_trans, __isl_give isl_mat **io_trans_mat)
+__isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __isl_keep isl_vec *dir, __isl_give isl_multi_aff **io_trans, __isl_give isl_mat **io_trans_mat, int hbm)
 {
   isl_mat *trans_mat, *dir_mat, *null_mat;
   isl_ctx *ctx = isl_schedule_get_ctx(schedule);
@@ -409,6 +409,7 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
   isl_id *id;
   isl_multi_union_pw_aff *space_sched;
   isl_multi_aff *ma;
+  int can_use_hbm;
 
   /* Sink to the space band. */
   node = isl_schedule_get_root(schedule);
@@ -467,29 +468,17 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
 
   space_sched = isl_multi_union_pw_aff_apply_multi_aff(space_sched, isl_multi_aff_copy(ma));
   *io_trans = ma;
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
 
   node = isl_schedule_node_delete(node);
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
-
   node = isl_schedule_node_insert_partial_schedule(node, space_sched);
-  
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
-  node = isl_schedule_node_band_split(node, isl_mat_cols(null_mat)); // inter_ray
 
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
+  if (isl_mat_cols(null_mat) > 0)
+    can_use_hbm = 1;
+  else
+    can_use_hbm = 0;
+
+  node = isl_schedule_node_band_split(node, isl_mat_cols(null_mat)); // inter_ray
+  
   id = isl_id_alloc(ctx, "io_L2", NULL);
   node = isl_schedule_node_insert_mark(node, id);
   node = isl_schedule_node_child(node, 0);
@@ -499,20 +488,12 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
   id = isl_id_alloc(ctx, "io_L1", NULL);
   node = isl_schedule_node_insert_mark(node, id);
 
-//  // debug
-//  p = isl_printer_print_schedule_node(p, node);
-//  printf("\n");
-//  // debug
 
   isl_schedule_free(schedule);
   schedule = isl_schedule_node_get_schedule(node);
   node = isl_schedule_node_free(node);
   isl_mat_free(null_mat);
 //  isl_mat_free(trans_mat);
-
-//  // debug
-//  p = isl_printer_free(p);
-//  // debug
 
   return schedule;
 }
@@ -547,7 +528,7 @@ static __isl_give isl_union_map *get_io_L1_schedule(__isl_take isl_schedule *sch
   isl_multi_aff *io_trans;
   isl_mat *io_trans_mat;
 
-  sched = get_io_schedule(sched, dir, &io_trans, &io_trans_mat);
+  sched = get_io_schedule(sched, dir, &io_trans, &io_trans_mat, 0);
   node = isl_schedule_get_root(sched);
   isl_schedule_free(sched);
   
@@ -577,7 +558,7 @@ static __isl_give isl_union_map *get_io_pe_schedule(__isl_take isl_schedule *sch
   isl_multi_aff *io_trans;
   isl_mat *io_trans_mat;
 
-  sched = get_io_schedule(sched, dir, &io_trans, &io_trans_mat);
+  sched = get_io_schedule(sched, dir, &io_trans, &io_trans_mat, 0);
   node = isl_schedule_get_root(sched);
   isl_schedule_free(sched);
 

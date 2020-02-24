@@ -55,6 +55,9 @@ struct ppcg_options {
   /* Generate systolic array using PolySA. */
   int polysa;
 
+  /* Use HBM memory. */
+  int hbm;
+
   /* Maximal systolic array dimension. */
   int max_sa_dim;
 

@@ -20,22 +20,9 @@
 #include "print.h"
 #include "schedule.h"
 #include "util.h"
-#include "polysa_hls.h"
-#include "polysa_print.h"
+#include "polysa_fpga.h"
 
 #define min(a, b) ((a) < (b)? (a) : (b))
-
-struct hls_info {
-  FILE *host_c;          /* OpenCL host. */
-  FILE *kernel_c;        /* Definition of hardware modules. */
-  FILE *kernel_h;        /* Declaration of hardware modules. */
-
-  FILE *top_gen_c;       /* Prints out the top module that connects the 
-                            hardware modules. */
-  FILE *top_gen_h;       
-//  FILE *top_gen_host_c;  /* Call the top module generating function defined in 
-//                            "top_gen_c". */
-};
 
 struct print_host_user_data {
 	struct hls_info *hls;
@@ -48,27 +35,27 @@ struct print_hw_module_data {
   struct polysa_hw_module *module;
 };
 
-static __isl_give isl_printer *print_cuda_macros(__isl_take isl_printer *p)
-{
-	const char *macros =
-		"#define cudaCheckReturn(ret) \\\n"
-		"  do { \\\n"
-		"    cudaError_t cudaCheckReturn_e = (ret); \\\n"
-		"    if (cudaCheckReturn_e != cudaSuccess) { \\\n"
-		"      fprintf(stderr, \"CUDA error: %s\\n\", "
-		"cudaGetErrorString(cudaCheckReturn_e)); \\\n"
-		"      fflush(stderr); \\\n"
-		"    } \\\n"
-		"    assert(cudaCheckReturn_e == cudaSuccess); \\\n"
-		"  } while(0)\n"
-		"#define cudaCheckKernel() \\\n"
-		"  do { \\\n"
-		"    cudaCheckReturn(cudaGetLastError()); \\\n"
-		"  } while(0)\n\n";
-
-	p = isl_printer_print_str(p, macros);
-	return p;
-}
+//static __isl_give isl_printer *print_cuda_macros(__isl_take isl_printer *p)
+//{
+//	const char *macros =
+//		"#define cudaCheckReturn(ret) \\\n"
+//		"  do { \\\n"
+//		"    cudaError_t cudaCheckReturn_e = (ret); \\\n"
+//		"    if (cudaCheckReturn_e != cudaSuccess) { \\\n"
+//		"      fprintf(stderr, \"CUDA error: %s\\n\", "
+//		"cudaGetErrorString(cudaCheckReturn_e)); \\\n"
+//		"      fflush(stderr); \\\n"
+//		"    } \\\n"
+//		"    assert(cudaCheckReturn_e == cudaSuccess); \\\n"
+//		"  } while(0)\n"
+//		"#define cudaCheckKernel() \\\n"
+//		"  do { \\\n"
+//		"    cudaCheckReturn(cudaGetLastError()); \\\n"
+//		"  } while(0)\n\n";
+//
+//	p = isl_printer_print_str(p, macros);
+//	return p;
+//}
 
 /* Open the host .c file and the kernel .h and .c files for writing.
  * Add the necessary includes.
@@ -94,9 +81,6 @@ static void hls_open_files(struct hls_info *info, const char *input)
   fprintf(info->host_c, "#include \"%s\"\n", name);  
   fprintf(info->kernel_c, "#include \"%s\"\n", name);  
 
-//  strcpy(name + len, "_top_gen_host.c");
-//  info->top_gen_host_c = fopen(name, "w");
-
   strcpy(name + len, "_top_gen.c");
   info->top_gen_c = fopen(name, "w");
 
@@ -120,6 +104,20 @@ static void hls_close_files(struct hls_info *info)
 //  fclose(info->top_gen_host_c);
 }
 
+/* Print the call of an array argument.
+ */
+static __isl_give isl_printer *polysa_array_info_print_call_argument(
+	__isl_take isl_printer *p, struct polysa_array_info *array)
+{
+	if (polysa_array_is_read_only_scalar(array))
+		return isl_printer_print_str(p, array->name);
+
+	p = isl_printer_print_str(p, "dev_");
+	p = isl_printer_print_str(p, array->name);
+
+	return p;
+}
+
 /* Print the arguments to a kernel declaration or call.  If "types" is set,
  * then print a declaration (including the types of the arguments).
  *
@@ -128,7 +126,7 @@ static void hls_close_files(struct hls_info *info)
  * - the parameters
  * - the host loop iterators
  */
-static __isl_give isl_printer *print_kernel_arguments(__isl_take isl_printer *p,
+__isl_give isl_printer *print_kernel_arguments(__isl_take isl_printer *p,
 	struct polysa_prog *prog, struct polysa_kernel *kernel, int types)
 {
 	int i, n;
@@ -396,7 +394,7 @@ static __isl_give isl_printer *allocate_device_arrays(
 static __isl_give isl_printer *init_device(__isl_take isl_printer *p,
 	struct polysa_prog *prog)
 {
-	p = print_cuda_macros(p); // TODO: remove in the future
+//	p = print_cuda_macros(p); // TODO: remove in the future
 
 	p = polysa_print_local_declarations(p, prog);
 	p = declare_device_arrays(p, prog);
@@ -558,6 +556,9 @@ static void print_kernel_headers(struct polysa_prog *prog,
 
 	p = isl_printer_to_file(prog->ctx, hls->kernel_c);
 	p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "/* CPU Kernel Definition */");
+  p = isl_printer_end_line(p);
 	p = print_kernel_header(p, prog, kernel); 
 	p = isl_printer_end_line(p);
 	isl_printer_free(p);
@@ -598,21 +599,7 @@ static void print_iterators(FILE *out, const char *type,
 			dims[i]);
 		isl_id_free(id);
 	}
-	fprintf(out, ";\n");
-}
-
-static void print_kernel_iterators(FILE *out, struct polysa_kernel *kernel)
-{
-	isl_ctx *ctx = isl_ast_node_get_ctx(kernel->tree);
-	const char *type;
-	const char *block_dims[] = { "blockIdx.x", "blockIdx.y" };
-	const char *thread_dims[] = { "threadIdx.x", "threadIdx.y",
-					"threadIdx.z" };
-
-	type = isl_options_get_ast_iterator_type(ctx);
-
-	print_iterators(out, type, kernel->block_ids, block_dims);
-	print_iterators(out, type, kernel->thread_ids, thread_dims);
+	fprintf(out, "; // module id\n");
 }
 
 static __isl_give isl_printer *print_kernel_var(__isl_take isl_printer *p,
@@ -636,29 +623,6 @@ static __isl_give isl_printer *print_kernel_var(__isl_take isl_printer *p,
 		p = isl_printer_print_str(p, "]");
 	}
 	p = isl_printer_print_str(p, ";");
-	p = isl_printer_end_line(p);
-
-	return p;
-}
-
-static __isl_give isl_printer *print_kernel_vars(__isl_take isl_printer *p,
-	struct polysa_kernel *kernel)
-{
-	int i;
-
-	for (i = 0; i < kernel->n_var; ++i)
-		p = print_kernel_var(p, &kernel->var[i]);
-
-	return p;
-}
-
-/* Print a sync statement.
- */
-static __isl_give isl_printer *print_sync(__isl_take isl_printer *p,
-	struct polysa_kernel_stmt *stmt)
-{
-	p = isl_printer_start_line(p);
-	p = isl_printer_print_str(p, "__syncthreads();");
 	p = isl_printer_end_line(p);
 
 	return p;
@@ -730,33 +694,66 @@ static __isl_give isl_printer *io_stmt_print_global_index(
 	return p;
 }
 
-/* Print a copy statement.
- *
- * A read copy statement is printed as
- *
- *	local = global;
- *
- * while a write copy statement is printed as
- *
- *	global = local;
+/* If read, print:
+ *   "read_channel_intel([fifo_name])"
+ * else, print:
+ *   "write_channel_intel([fifo_name],"
  */
-__isl_give isl_printer *polysa_kernel_print_copy(__isl_take isl_printer *p,
-	struct polysa_kernel_stmt *stmt)
+static __isl_give isl_printer *print_fifo_rw_intel(__isl_take isl_printer *p,
+  const char *fifo_name, int read)
 {
-	p = isl_printer_start_line(p);
-	if (stmt->u.c.read) {
-		p = stmt_print_local_index(p, stmt); 
-		p = isl_printer_print_str(p, " = ");
-		p = stmt_print_global_index(p, stmt);
-	} else {
-		p = stmt_print_global_index(p, stmt);
-		p = isl_printer_print_str(p, " = ");
-		p = stmt_print_local_index(p, stmt);
-	}
-	p = isl_printer_print_str(p, ";");
-	p = isl_printer_end_line(p);
+  if (read) {
+    p = isl_printer_print_str(p, "read_channel_intel(");
+    p = isl_printer_print_str(p, fifo_name);
+    p = isl_printer_print_str(p, ")");
+  } else {
+    p = isl_printer_print_str(p, "write_channel_intel(");
+    p = isl_printer_print_str(p, fifo_name);
+    p = isl_printer_print_str(p, ", ");
+  }
 
-	return p;
+  return p;
+}
+
+/* Print out
+ * "channel [type]"
+ */
+static __isl_give isl_printer *print_fifo_type_intel(__isl_take isl_printer *p, 
+  struct polysa_array_ref_group *group)
+{
+  p = isl_printer_print_str(p, "channel ");
+  p = isl_printer_print_str(p, group->array->type);
+
+  return p;
+}
+
+/* If read, print:
+ *   "[fifo_name].read()"
+ * else, print:
+ *   "[fifo_name].write("
+ */
+static __isl_give isl_printer *print_fifo_rw_xilinx(__isl_take isl_printer *p,
+  const char *fifo_name, int read)
+{
+  if (read) {
+    p = isl_printer_print_str(p, fifo_name);
+    p = isl_printer_print_str(p, ".read()");    
+  } else {
+    p = isl_printer_print_str(p, fifo_name);
+    p = isl_printer_print_str(p, ".write(");
+  }
+  return p;
+}
+
+/* Print out
+ * "hls::stream<[type]>"
+ */
+static __isl_give isl_printer *print_fifo_type_xilinx(__isl_take isl_printer *p, 
+  struct polysa_array_ref_group *group)
+{
+  p = isl_printer_print_str(p, "hls::stream<");
+  p = isl_printer_print_str(p, group->array->type);
+  p = isl_printer_print_str(p, ">");
 }
 
 /* Print an I/O statement.
@@ -773,8 +770,13 @@ __isl_give isl_printer *polysa_kernel_print_copy(__isl_take isl_printer *p,
  *
  */
 __isl_give isl_printer *polysa_kernel_print_io_dram(__isl_take isl_printer *p,
-  struct polysa_kernel_stmt *stmt)
+  struct polysa_kernel_stmt *stmt, struct hls_info *hls)
 {
+  struct polysa_array_ref_group *group = stmt->u.i.group;
+  struct polysa_hw_module *module = stmt->u.i.module;
+  char *fifo_name;
+  isl_ctx *ctx = isl_printer_get_ctx(p);
+
   p = isl_printer_indent(p, -2);
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "{");
@@ -788,16 +790,26 @@ __isl_give isl_printer *polysa_kernel_print_io_dram(__isl_take isl_printer *p,
     p = isl_printer_print_str(p, ";");
     p = isl_printer_end_line(p);
 
+    fifo_name = concat(ctx, stmt->u.i.fifo_name, "out");
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, "_out.write(fifo_data);");
+    if (hls->target == XILINX_HW)
+      p = print_fifo_rw_xilinx(p, fifo_name, 0);
+    else
+      p = print_fifo_rw_intel(p, fifo_name, 0);
+    p = isl_printer_print_str(p, "fifo_data);");
     p = isl_printer_end_line(p);
+    free(fifo_name);
   } else {
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "fifo_data = ");
-    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, "_in.read()");
+    fifo_name = concat(ctx, stmt->u.i.fifo_name, "in");
+    if (hls->target == XILINX_HW)
+      p = print_fifo_rw_xilinx(p, fifo_name, 1);
+    else
+      p = print_fifo_rw_intel(p, fifo_name, 1);
+    p = isl_printer_print_str(p, ";");
     p = isl_printer_end_line(p);
+    free(fifo_name);
 
     p = isl_printer_start_line(p);
     p = io_stmt_print_global_index(p, stmt);
@@ -850,22 +862,37 @@ static __isl_give isl_printer *print_fifo_comment(__isl_take isl_printer *p, str
 {
   p = isl_printer_print_str(p, "/* ");
   p = isl_printer_print_str(p, module->name);
-  p = isl_printer_print_str(p, " FIFO */");
+  p = isl_printer_print_str(p, " fifo */");
 
   return p;
 }
 
-/* Print out
- * "hls::stream<[type]>"
- */
-static __isl_give isl_printer *print_fifo_type(__isl_take isl_printer *p, 
-  struct polysa_array_ref_group *group)
+static __isl_give isl_printer *print_fifo_annotation(__isl_take isl_printer *p, 
+  struct polysa_hw_module *module, struct polysa_array_ref_group *group, int in, int lower)
 {
-  p = isl_printer_print_str(p, "hls::stream<");
-  p = isl_printer_print_str(p, group->array->type);
-  p = isl_printer_print_str(p, ">");
-}
+//  p = isl_printer_start_line(p);
+//  p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* ");
+//  p = polysa_array_ref_group_print_fifo_name(group, p);
+//  p = isl_printer_print_str(p, "_");
+//  p = isl_printer_print_str(p, module->name);
+//  p = isl_printer_print_str(p, "_");
+//  if (lower) {
+//    p = isl_printer_print_str(p, "local_");
+//  }
+//  if (in)
+//    p = isl_printer_print_str(p, "in");
+//  else
+//    p = isl_printer_print_str(p, "out");
+//  p = isl_printer_print_str(p, " */ \");");
+//  p = isl_printer_end_line(p);
 
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* fifo */ \");");
+  p = isl_printer_end_line(p);
+
+  return p;
+}
+  
 /* Print out
  * "_[c]0_[c]1"
  */
@@ -1085,7 +1112,7 @@ static __isl_give isl_vec *get_trans_dir(__isl_keep isl_vec *dir, __isl_keep isl
  *     print [fifo_name]_[module_name]_[inst_id]
  */
 __isl_give isl_printer *print_fifo_decl(__isl_take isl_printer *p,
-  struct polysa_kernel_stmt *stmt, struct polysa_prog *prog)
+  struct polysa_kernel_stmt *stmt, struct polysa_prog *prog, struct hls_info *hls)
 {
   struct polysa_hw_module *module = stmt->u.m.module;
   struct polysa_array_ref_group *group = stmt->u.m.group;
@@ -1093,7 +1120,7 @@ __isl_give isl_printer *print_fifo_decl(__isl_take isl_printer *p,
   int n;
 
   p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "// Print FIFO declarations of module: ");
+  p = isl_printer_print_str(p, "// Print channel declarations of module: ");
   p = isl_printer_print_str(p, module->name);
   p = isl_printer_end_line(p);
 
@@ -1105,7 +1132,10 @@ __isl_give isl_printer *print_fifo_decl(__isl_take isl_printer *p,
   p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"");
   p = print_fifo_comment(p, module);
   p = isl_printer_print_str(p, " ");
-  p = print_fifo_type(p, group);
+  if (hls->target == XILINX_HW)
+    p = print_fifo_type_xilinx(p, group);
+  else if (hls->target == INTEL_HW)
+    p = print_fifo_type_intel(p, group);
   p = isl_printer_print_str(p, " ");
   p = polysa_array_ref_group_print_fifo_name(group, p);
   p = isl_printer_print_str(p, "_");
@@ -1181,6 +1211,9 @@ __isl_give isl_printer *print_module_call_upper(__isl_take isl_printer *p,
     p = print_delimiter(p, &first);
     
     p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* module id */ \");");
+    p = isl_printer_end_line(p);
+    p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "p = isl_printer_print_int(p, c");
     p = isl_printer_print_int(p, i);
     p = isl_printer_print_str(p, ");");
@@ -1194,7 +1227,7 @@ __isl_give isl_printer *print_module_call_upper(__isl_take isl_printer *p,
 
     const char *name = isl_space_get_dim_name(module->kernel->space, isl_dim_set, i);
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"");
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* host iter */ ");
     p = isl_printer_print_str(p, name);
     p = isl_printer_print_str(p, "\");");
     p = isl_printer_end_line(p);
@@ -1208,7 +1241,7 @@ __isl_give isl_printer *print_module_call_upper(__isl_take isl_printer *p,
 
     const char *name = isl_space_get_dim_name(space, isl_dim_set, i);
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"");
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* param */");
     p = isl_printer_print_str(p, name);
     p = isl_printer_print_str(p, "\");");
     p = isl_printer_end_line(p);
@@ -1220,7 +1253,7 @@ __isl_give isl_printer *print_module_call_upper(__isl_take isl_printer *p,
     p = print_delimiter(p, &first);
 
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"");
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* array */ ");
     p = isl_printer_print_str(p, module->io_groups[0]->array->name);
     p = isl_printer_print_str(p, "\");");
     p = isl_printer_end_line(p);
@@ -1238,7 +1271,7 @@ __isl_give isl_printer *print_module_call_upper(__isl_take isl_printer *p,
         p = print_delimiter(p, &first);
     
         p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \")");
+        p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* scalar */ ");
         p = isl_printer_print_str(p, module->io_groups[0]->array->name);
         p = isl_printer_print_str(p, "\");");
         p = isl_printer_end_line(p);
@@ -1251,41 +1284,50 @@ __isl_give isl_printer *print_module_call_upper(__isl_take isl_printer *p,
   if (module->type == PE_MODULE) {
     for (int i = 0; i < module->n_io_group; i++) {
       struct polysa_array_ref_group *group = module->io_groups[i];
-
-      /* FIFO_A_PE_[c1]_[c2] */
-      p = print_delimiter(p, &first);          
-      
-      p = print_fifo_prefix(p, module, group);
-      p = print_inst_ids_suffix(p, n, NULL);
-
-      if (module->io_groups[i]->pe_io_dir == IO_INOUT) {
-        /* FIFO_A_PE_[c1+d1]_[c2+d2] */        
+      if (group->pe_io_dir == IO_INOUT) {
         p = print_delimiter(p, &first);
-                
+        p = print_fifo_annotation(p, module, group, 1, 0);
         p = print_fifo_prefix(p, module, group);
+        if (isl_vec_is_zero(group->dir)) {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"_in\")");
+          p = isl_printer_end_line(p);
+        }
+        p = print_inst_ids_suffix(p, n, NULL);
+
+        p = print_delimiter(p, &first);
+        p = print_fifo_annotation(p, module, group, 0, 0);
+        p = print_fifo_prefix(p, module, group);
+        if (isl_vec_is_zero(group->dir)) {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"_out\")");
+          p = isl_printer_end_line(p);
+        }
         p = print_inst_ids_suffix(p, n, group->dir);
+      } else {
+        p = print_delimiter(p, &first);
+        p = print_fifo_annotation(p, module, group, group->pe_io_dir == IO_IN? 1 : 0, 0);
+        p = print_fifo_prefix(p, module, group);
+        p = print_inst_ids_suffix(p, n, NULL);
       }
     }
   } else {
     if (module->level != 3) {
       for (int i = 0; i < module->n_io_group; i++) {
         struct polysa_array_ref_group *group = module->io_groups[i]; 
-
-        /* FIFO_A_L[level]_[c1] */
         p = print_delimiter(p, &first);
-
+        p = print_fifo_annotation(p, module, group, 1, 0);
         p = print_fifo_prefix(p, module, group);
         p = print_inst_ids_suffix(p, n, NULL);
 
-        /* FIFO_A_L[level]_[c1+1] */
         p = print_delimiter(p, &first);
-
+        p = print_fifo_annotation(p, module, group, 0, 0);
         p = print_fifo_prefix(p, module, group);
         if (module->level == 1) {
           isl_vec *new_dir = get_trans_dir(group->dir, group->io_trans_mat);
           p = print_inst_ids_suffix(p, n, new_dir);
           isl_vec_free(new_dir);
-        } else
+        } else 
           p = print_inst_ids_inc_suffix(p, n, 1);
       }
     }
@@ -1308,6 +1350,7 @@ static __isl_give isl_printer *print_module_call_lower(__isl_take isl_printer *p
 
     p = print_delimiter(p, &first);
 
+    p = print_fifo_annotation(p, module, group, module->in? 0 : 1, 1); 
     p = print_fifo_prefix_lower(p, module, group);
     if (module->level == 1 || (module->level == 2 && group->io_type == POLYSA_EXT_IO))
       lower_is_PE = 1;
@@ -1360,10 +1403,6 @@ static __isl_give isl_printer *print_module_call_lower(__isl_take isl_printer *p
   p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
   p = isl_printer_end_line(p);
 
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
-  p = isl_printer_end_line(p);
-
   return p;
 }
 
@@ -1375,15 +1414,73 @@ __isl_give isl_printer *polysa_kernel_print_module_call(__isl_take isl_printer *
   int complete = (upper == 0 && lower == 0);
   p = ppcg_start_block(p);
 
+
   /* Build the module name */  
   if (complete) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
+    p = isl_printer_end_line(p);
+    
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* Module Call */\");");
+    p = isl_printer_end_line(p);
+    
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+    p = isl_printer_end_line(p);
+
     p = print_module_call_upper(p, stmt, prog);
     p = print_module_call_lower(p, stmt, prog);
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
+    p = isl_printer_end_line(p);
+    
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* Module Call */\");");
+    p = isl_printer_end_line(p);
+    
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+    p = isl_printer_end_line(p);
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+    p = isl_printer_end_line(p);
   } else {
-    if (upper)
+    if (upper) {
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
+      p = isl_printer_end_line(p);
+      
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* Module Call */\");");
+      p = isl_printer_end_line(p);
+      
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+      p = isl_printer_end_line(p);
+
       p = print_module_call_upper(p, stmt, prog);
-    else 
+    } else { 
       p = print_module_call_lower(p, stmt, prog);
+
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
+      p = isl_printer_end_line(p);
+      
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* Module Call */\");");
+      p = isl_printer_end_line(p);
+      
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+      p = isl_printer_end_line(p);
+
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+      p = isl_printer_end_line(p);
+    }
   }
 
   p = ppcg_end_block(p);
@@ -1391,13 +1488,13 @@ __isl_give isl_printer *polysa_kernel_print_module_call(__isl_take isl_printer *
   return p;
 }
 
-__isl_give isl_printer *polysa_kernel_print_fifo_decl(__isl_take isl_printer *p,
-  struct polysa_kernel_stmt *stmt, struct polysa_prog *prog)
+static __isl_give isl_printer *polysa_kernel_print_fifo_decl(__isl_take isl_printer *p,
+  struct polysa_kernel_stmt *stmt, struct polysa_prog *prog, struct hls_info *hls)
 {
   p = ppcg_start_block(p);
 
   /* Build the fifo_decl */
-  p = print_fifo_decl(p, stmt, prog);
+  p = print_fifo_decl(p, stmt, prog, hls);
 
   p = ppcg_end_block(p);
 
@@ -1414,20 +1511,32 @@ __isl_give isl_printer *polysa_kernel_print_fifo_decl(__isl_take isl_printer *p,
  *
  *  fifo.write(local);
  */
-__isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
-  struct polysa_kernel_stmt *stmt)
+static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
+  struct polysa_kernel_stmt *stmt, struct hls_info *hls)
 {
+  struct polysa_hw_module *module = stmt->u.i.module;
+  struct polysa_array_ref_group *group = stmt->u.i.group;
+  char *fifo_name;
+  isl_ctx *ctx = isl_printer_get_ctx(p);
+
+  fifo_name = concat(ctx, stmt->u.i.fifo_name, stmt->u.i.in == 1? "in" : "out");
   p = isl_printer_start_line(p);
   if (stmt->u.i.in) {
-    p = io_stmt_print_local_index(p, stmt);
-    p = isl_printer_print_str(p, " = ");
-    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, "_in.read()");
-  } else {
-    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, "_out.write(");
     p = io_stmt_print_local_index(p, stmt);    
+    p = isl_printer_print_str(p, " = ");
+    if (hls->target == XILINX_HW)
+      p = print_fifo_rw_xilinx(p, fifo_name, 1);
+    else if (hls->target == INTEL_HW)
+      p = print_fifo_rw_intel(p, fifo_name, 1);
+  } else {
+    if (hls->target == XILINX_HW)
+      p = print_fifo_rw_xilinx(p, fifo_name, 0);
+    else if (hls->target == INTEL_HW)
+      p = print_fifo_rw_intel(p, fifo_name, 0);
+    p = io_stmt_print_local_index(p, stmt);    
+    p = isl_printer_print_str(p, ")");
   }
+  free(fifo_name);
   p = isl_printer_print_str(p, ";");
   p = isl_printer_end_line(p);
 
@@ -1462,8 +1571,13 @@ __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
  *  fifo.write(tmp);
  */
 __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *p,
-  struct polysa_kernel_stmt *stmt)
+  struct polysa_kernel_stmt *stmt, struct hls_info *hls)
 {
+  struct polysa_hw_module *module = stmt->u.i.module;
+  struct polysa_array_ref_group *group = stmt->u.i.group;
+  char *fifo_name;
+  isl_ctx *ctx = isl_printer_get_ctx(p);
+
   p = isl_printer_indent(p, -2);
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "{");
@@ -1471,12 +1585,17 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
   p = isl_printer_indent(p, 2);
 
   if (stmt->u.i.in) {
+    fifo_name = concat(ctx, stmt->u.i.fifo_name, "in");
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "fifo_data");
     p = isl_printer_print_str(p, " = ");
-    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, "_in.read();");
+    if (hls->target == XILINX_HW)
+      p = print_fifo_rw_xilinx(p, fifo_name, 1);
+    else 
+      p = print_fifo_rw_intel(p, fifo_name, 1);
+    p = isl_printer_print_str(p, ";");
     p = isl_printer_end_line(p);
+    free(fifo_name);
 
     if (stmt->u.i.filter_sched_depth >= 0) {
       p = isl_printer_start_line(p);
@@ -1495,10 +1614,15 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
       p = isl_printer_print_str(p, " = fifo_data;");
       p = isl_printer_end_line(p);
     } else {
+      fifo_name = concat(ctx, stmt->u.i.fifo_name, "out");
       p = isl_printer_start_line(p);
-      p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-      p = isl_printer_print_str(p, "_local_out.write(fifo_data);");
+      if (hls->target == XILINX_HW)
+        p = print_fifo_rw_xilinx(p, fifo_name, 0);
+      else 
+        p = print_fifo_rw_intel(p, fifo_name, 0);
+      p = isl_printer_print_str(p, "fifo_data);");
       p = isl_printer_end_line(p);
+      free(fifo_name);
     }
     
     if (stmt->u.i.filter_sched_depth >= 0) {
@@ -1508,11 +1632,16 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
       p = isl_printer_end_line(p);
       p = isl_printer_indent(p, 2);
     
+      fifo_name = concat(ctx, stmt->u.i.fifo_name, "out");
       p = isl_printer_start_line(p);
-      p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-      p = isl_printer_print_str(p, "_out.write(fifo_data);");
+      if (hls->target == XILINX_HW)
+        p = print_fifo_rw_xilinx(p, fifo_name, 0);
+      else
+        p = print_fifo_rw_intel(p, fifo_name, 0);
+      p = isl_printer_print_str(p, "fifo_data);");
       p = isl_printer_end_line(p);
-    
+      free(fifo_name);
+
       p = isl_printer_indent(p, -2);
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "}");
@@ -1537,11 +1666,16 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
       p = isl_printer_print_str(p, ";");
       p = isl_printer_end_line(p);
     } else {
+      fifo_name = concat(ctx, stmt->u.i.fifo_name, "in");
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "fifo_data = ");
-      p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-      p = isl_printer_print_str(p, "_local_in.read();");
+      if (hls->target == XILINX_HW)
+        p = print_fifo_rw_xilinx(p, fifo_name, 1);
+      else 
+        p = print_fifo_rw_intel(p, fifo_name, 1);
+      p = isl_printer_print_str(p, ";");
       p = isl_printer_end_line(p);
+      free(fifo_name);
     }
 
     if (stmt->u.i.filter_sched_depth >= 0) {
@@ -1551,11 +1685,16 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
       p = isl_printer_end_line(p);
       p = isl_printer_indent(p, 2);
     
+      fifo_name = concat(ctx, stmt->u.i.fifo_name, "in");
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "fifo_data = ");
-      p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-      p = isl_printer_print_str(p, "_in.read();");
+      if (hls->target == XILINX_HW)
+        p = print_fifo_rw_xilinx(p, fifo_name, 1);
+      else 
+        p = print_fifo_rw_intel(p, fifo_name, 1);
+      p = isl_printer_print_str(p, ";");
       p = isl_printer_end_line(p);
+      free(fifo_name);
     
       p = isl_printer_indent(p, -2);
       p = isl_printer_start_line(p);
@@ -1563,10 +1702,15 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
       p = isl_printer_end_line(p);
     }
 
+    fifo_name = concat(ctx, stmt->u.i.fifo_name, "out");
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, stmt->u.i.fifo_name);
-    p = isl_printer_print_str(p, "_out.write(fifo_data);");
+    if (hls->target == XILINX_HW)
+      p = print_fifo_rw_xilinx(p, fifo_name, 0);
+    else 
+      p = print_fifo_rw_intel(p, fifo_name, 0);
+    p = isl_printer_print_str(p, "fifo_data);");
     p = isl_printer_end_line(p);
+    free(fifo_name);
   }
   
   p = isl_printer_indent(p, -2);
@@ -1578,41 +1722,14 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
   return p;
 }
 
-/* This function is called for each user statement in the AST,
- * i.e., for each kernel body statement, copy statement or sync statement.
- */
-static __isl_give isl_printer *print_kernel_stmt(__isl_take isl_printer *p,
-	__isl_take isl_ast_print_options *print_options,
-	__isl_keep isl_ast_node *node, void *user)
-{
-	isl_id *id;
-	struct polysa_kernel_stmt *stmt;
-
-	id = isl_ast_node_get_annotation(node);
-	stmt = isl_id_get_user(id);
-	isl_id_free(id);
-
-	isl_ast_print_options_free(print_options);
-
-	switch (stmt->type) {
-	case POLYSA_KERNEL_STMT_COPY:
-		return polysa_kernel_print_copy(p, stmt); 
-	case POLYSA_KERNEL_STMT_SYNC: 
-		return print_sync(p, stmt);
-	case POLYSA_KERNEL_STMT_DOMAIN:
-		return polysa_kernel_print_domain(p, stmt); 
-	}
-
-	return p;
-}
-
 static __isl_give isl_printer *print_module_stmt(__isl_take isl_printer *p,
   __isl_take isl_ast_print_options *print_options,
   __isl_keep isl_ast_node *node, void *user)
 {
   isl_id *id;
   struct polysa_kernel_stmt *stmt;
-  struct polysa_hw_module *module = (struct polysa_hw_module *)(user);
+  struct print_hw_module_data *hw_data = (struct print_hw_module_data *)(user);
+  struct polysa_hw_module *module = hw_data->module;
 
   id = isl_ast_node_get_annotation(node);
   stmt = isl_id_get_user(id);
@@ -1621,18 +1738,18 @@ static __isl_give isl_printer *print_module_stmt(__isl_take isl_printer *p,
   isl_ast_print_options_free(print_options);
   
   switch (stmt->type) {
-    case POLYSA_KERNEL_STMT_COPY:
-      return polysa_kernel_print_copy(p, stmt);
-    case POLYSA_KERNEL_STMT_SYNC:
-      return print_sync(p, stmt);
+//    case POLYSA_KERNEL_STMT_COPY:
+//      return polysa_kernel_print_copy(p, stmt);
+//    case POLYSA_KERNEL_STMT_SYNC:
+//      return print_sync(p, stmt);
     case POLYSA_KERNEL_STMT_DOMAIN:
       return polysa_kernel_print_domain(p, stmt);
     case POLYSA_KERNEL_STMT_IO:
-      return polysa_kernel_print_io(p, stmt);
+      return polysa_kernel_print_io(p, stmt, hw_data->hls);
     case POLYSA_KERNEL_STMT_IO_TRANSFER:
-      return polysa_kernel_print_io_transfer(p, stmt);
+      return polysa_kernel_print_io_transfer(p, stmt, hw_data->hls);
     case POLYSA_KERNEL_STMT_IO_DRAM:
-      return polysa_kernel_print_io_dram(p, stmt);
+      return polysa_kernel_print_io_dram(p, stmt, hw_data->hls);
   }
 
   return p;
@@ -1676,95 +1793,23 @@ static __isl_give isl_printer *print_top_module_fifo_stmt(__isl_take isl_printer
 
   switch (stmt->type) {
     case POLYSA_KERNEL_STMT_FIFO_DECL:
-      return polysa_kernel_print_fifo_decl(p, stmt, data->prog);
+      return polysa_kernel_print_fifo_decl(p, stmt, data->prog, data->hls);
   }
 
   return p;
 }
 
-static void print_kernel(struct polysa_prog *prog, struct polysa_kernel *kernel,
-	struct hls_info *hls)
-{
-	isl_ctx *ctx = isl_ast_node_get_ctx(kernel->tree);
-	isl_ast_print_options *print_options;
-	isl_printer *p;
-
-	print_kernel_headers(prog, kernel, hls); 
-	fprintf(hls->kernel_c, "{\n");
-  /* Assign loop iterators to cuda identifiers. */
-	// print_kernel_iterators(hls->kernel_c, kernel);
-
-	p = isl_printer_to_file(ctx, hls->kernel_c);
-	p = isl_printer_set_output_format(p, ISL_FORMAT_C);
-	p = isl_printer_indent(p, 4);
-
-	p = print_kernel_vars(p, kernel);
-	p = isl_printer_end_line(p);
-	p = ppcg_set_macro_names(p);
-	p = polysa_print_macros(p, kernel->tree);
-
-//  // debug
-//  isl_printer *p_d = isl_printer_to_file(isl_ast_node_get_ctx(kernel->tree), stdout);
-//  p_d = isl_printer_set_output_format(p_d, ISL_FORMAT_C);
-//  p_d = isl_printer_print_ast_node(p_d, kernel->tree);
-//  printf("\n");
-//  p_d = isl_printer_free(p_d);
-//  // debug
-
-	print_options = isl_ast_print_options_alloc(ctx);
-	print_options = isl_ast_print_options_set_print_user(print_options,
-						    &print_kernel_stmt, NULL); 
-	p = isl_ast_node_print(kernel->tree, p, print_options);
-	isl_printer_free(p);
-
-	fprintf(hls->kernel_c, "}\n\n");
-}
-
-static void print_module_iterators(FILE *out, struct polysa_hw_module *module)
-{
-  isl_ctx *ctx;
-  const char *type;
-  const char *dims[] = { "idx", "idy", "idz" };
-
-  ctx = isl_ast_node_get_ctx(module->tree);
-  type = isl_options_get_ast_iterator_type(ctx);
-
-  ctx = isl_ast_node_get_ctx(module->device_tree);
-//  // debug
-//  isl_printer *p = isl_printer_to_file(ctx, stdout);
-//  p = isl_printer_print_isl_id_list(p, module->inst_ids);
-//  printf("\n");
-//  // debug
-  print_iterators(out, type, module->inst_ids, dims);
-}
-
-static __isl_give isl_printer *print_module_vars(__isl_take isl_printer *p,
-  struct polysa_hw_module *module)
-{
-  int i;
-
-  /* Print the tmp register for I/O module. */
-  if (module->type == IO_MODULE) {
-    p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, module->io_groups[0]->array->type) ;
-    p = isl_printer_print_str(p, " ");
-    p = isl_printer_print_str(p, "fifo_data;");
-    p = isl_printer_end_line(p);
-  }
-
-  for (i = 0; i < module->n_var; ++i)
-    p = print_kernel_var(p, &module->var[i]);
-
-  return p;
-}
-
-__isl_give isl_printer *polysa_fifo_print_declaration_arguments(
+static __isl_give isl_printer *polysa_fifo_print_declaration_arguments(
   __isl_take isl_printer *p, struct polysa_array_ref_group *group,
-  const char *suffix)
+  const char *suffix, enum platform target)
 {
-  p = isl_printer_print_str(p, "hls::stream<");
-  p = isl_printer_print_str(p, group->array->type);
-  p = isl_printer_print_str(p, "> &");
+  if (target == XILINX_HW) {
+    p = print_fifo_type_xilinx(p, group);
+    p = isl_printer_print_str(p, " &");
+  } else {
+    p = print_fifo_type_intel(p, group);
+    p = isl_printer_print_str(p, " ");
+  }
   p = polysa_array_ref_group_print_fifo_name(group, p); 
   if (suffix) {
     p = isl_printer_print_str(p, "_");
@@ -1786,22 +1831,74 @@ __isl_give isl_printer *polysa_fifo_print_call_argument(
  * then print a declaration (including the types of the arguments).
  *
  * The arguments are printed in the following order
+ * - the module identifiers
+ * - the host loop iterators
+ * - the parameters
  * - the arrays accessed by the module
  * - the fifos
- * - the parameters
- * - the host loop iterators
- * - the module identifiers
  */
 static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
   struct polysa_prog *prog, 
   struct polysa_kernel *kernel,
-  struct polysa_hw_module *module, int types)
+  struct polysa_hw_module *module, int types,
+  enum platform target)
 {
   int first = 1;
   isl_space *space;
   int nparam;
   int n;
   const char *type;
+
+  type = isl_options_get_ast_iterator_type(prog->ctx);
+  /* module identifiers */
+  const char *dims[] = { "idx", "idy", "idz" };
+  n = isl_id_list_n_id(module->inst_ids);
+  for (int i = 0; i < n; ++i) {
+    if (!first)
+      p = isl_printer_print_str(p, ", ");
+    if (types) {
+      p = isl_printer_print_str(p, type);
+      p = isl_printer_print_str(p, " ");
+    }
+    p = isl_printer_print_str(p, dims[i]);
+
+    first = 0;
+  }
+
+  /* params */
+  space = isl_union_set_get_space(kernel->arrays); 
+  nparam = isl_space_dim(space, isl_dim_param);
+  for (int i = 0; i < nparam; ++i) {
+    const char *name;
+    
+    name = isl_space_get_dim_name(space, isl_dim_param, i);
+    
+    if (!first)
+      p = isl_printer_print_str(p, ", ");
+    if (types)
+      p = isl_printer_print_str(p, "int ");
+    p = isl_printer_print_str(p, name);
+
+    first = 0;
+  }
+  isl_space_free(space);
+
+  /* host iters */
+  n = isl_space_dim(kernel->space, isl_dim_set); 
+  for (int i = 0; i < n; ++i) {
+    const char *name;
+
+    if (!first)
+      p = isl_printer_print_str(p, ", ");
+    name = isl_space_get_dim_name(kernel->space, isl_dim_set, i);
+    if (types) {
+      p = isl_printer_print_str(p, type);
+      p = isl_printer_print_str(p, " ");
+    }
+    p = isl_printer_print_str(p, name);
+    
+    first = 0;
+  }
 
   /* Arrays */
   if (module->type != PE_MODULE && module->level == 3) {
@@ -1850,10 +1947,10 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
         if (!first) {
           p = isl_printer_print_str(p, ", ");
         }
-        if (types)
+        if (types) {
           p = polysa_fifo_print_declaration_arguments(p,
-                module->io_groups[i], "in"); 
-        else 
+                module->io_groups[i], "in", target); 
+        } else 
           p = polysa_fifo_print_call_argument(p,
                 module->io_groups[i], "in"); 
         first = 0;
@@ -1864,9 +1961,9 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
           p = isl_printer_print_str(p, ", ");
         if (types)
           p = polysa_fifo_print_declaration_arguments(p,
-                module->io_groups[i], "out");
+                module->io_groups[i], "out", target);
         else
-          p = polysa_fifo_print_declaration_arguments(p,
+          p = polysa_fifo_print_call_argument(p,
                 module->io_groups[i], "out");
         first = 0;
       }
@@ -1880,7 +1977,7 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
         /* in */
         if (types)
           p = polysa_fifo_print_declaration_arguments(p,
-                module->io_groups[i], "in"); 
+                module->io_groups[i], "in", target); 
         else
           p = polysa_fifo_print_call_argument(p,
                 module->io_groups[i], "in");
@@ -1891,7 +1988,7 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
           p = isl_printer_print_str(p, ", ");
         if (types)
           p = polysa_fifo_print_declaration_arguments(p,
-                module->io_groups[i], "out"); 
+                module->io_groups[i], "out", target); 
         else
           p = polysa_fifo_print_call_argument(p,
                 module->io_groups[i], "out");
@@ -1902,7 +1999,7 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
       /* local */
       if (types)
         p = polysa_fifo_print_declaration_arguments(p,
-              module->io_groups[i], module->in? "local_out" : "local_in"); 
+              module->io_groups[i], module->in? "local_out" : "local_in", target); 
       else
         p = polysa_fifo_print_call_argument(p,
               module->io_groups[i], module->in? "local_out" : "local_in");
@@ -1910,71 +2007,120 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
     }
   }
 
-  /* params */
-  space = isl_union_set_get_space(kernel->arrays); 
-  nparam = isl_space_dim(space, isl_dim_param);
-  for (int i = 0; i < nparam; ++i) {
-    const char *name;
-    
-    name = isl_space_get_dim_name(space, isl_dim_param, i);
-    
-    if (!first)
-      p = isl_printer_print_str(p, ", ");
-    if (types)
-      p = isl_printer_print_str(p, "int ");
-    p = isl_printer_print_str(p, name);
-
-    first = 0;
-  }
-  isl_space_free(space);
-
-  /* host iters */
-  n = isl_space_dim(kernel->space, isl_dim_set); 
-  type = isl_options_get_ast_iterator_type(prog->ctx);
-  for (int i = 0; i < n; ++i) {
-    const char *name;
-
-    if (!first)
-      p = isl_printer_print_str(p, ", ");
-    name = isl_space_get_dim_name(kernel->space, isl_dim_set, i);
-    if (types) {
-      p = isl_printer_print_str(p, type);
-      p = isl_printer_print_str(p, " ");
-    }
-    p = isl_printer_print_str(p, name);
-    
-    first = 0;
-  }
-
-  /* module identifiers */
-  const char *dims[] = { "idx", "idy", "idz" };
-  n = isl_id_list_n_id(module->inst_ids);
-  for (int i = 0; i < n; ++i) {
-    if (!first)
-      p = isl_printer_print_str(p, ", ");
-    if (types) {
-      p = isl_printer_print_str(p, type);
-      p = isl_printer_print_str(p, " ");
-    }
-    p = isl_printer_print_str(p, dims[i]);
-
-    first = 0;
-  }
-
   return p;
 }
 
 /* Print the header of the given module.
  */
-static __isl_give isl_printer *print_module_header(__isl_take isl_printer *p,
+static __isl_give isl_printer *print_module_header_xilinx(__isl_take isl_printer *p,
   struct polysa_prog *prog, struct polysa_hw_module *module)
 {
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "void ");
   p = isl_printer_print_str(p, module->name);
   p = isl_printer_print_str(p, "(");
-  p = print_module_arguments(p, prog, module->kernel, module, 1);
+  p = print_module_arguments(p, prog, module->kernel, module, 1, XILINX_HW);
   p = isl_printer_print_str(p, ")");
+
+  return p;
+}
+
+/* Print the header of the given module.
+ */
+static __isl_give isl_printer *print_module_header_intel(__isl_take isl_printer *p,
+  struct polysa_prog *prog, struct polysa_hw_module *module)
+{
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "__kernel void ");
+  p = isl_printer_print_str(p, module->name);
+  p = isl_printer_print_str(p, "(");
+  p = print_module_arguments(p, prog, module->kernel, module, 1, INTEL_HW);
+  p = isl_printer_print_str(p, ")");
+
+  return p;
+}
+
+/* Print the header of the given module to both gen->hls.kernel_h
+ * and gen->hls.kernel_c
+ */
+__isl_give isl_printer *print_module_headers_xilinx(
+  struct polysa_prog *prog, struct polysa_hw_module *module, struct hls_info *hls)
+{
+  isl_printer *p;
+
+  p = isl_printer_to_file(prog->ctx, hls->kernel_h);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = print_module_header_xilinx(p, prog, module); 
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
+  isl_printer_free(p);
+
+  p = isl_printer_to_file(prog->ctx, hls->kernel_c);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = print_module_header_xilinx(p, prog, module);
+  p = isl_printer_end_line(p);
+  isl_printer_free(p);
+}
+
+/* Print the header of the given module to both gen->hls.kernel_h
+ * and gen->hls.kernel_c
+ */
+__isl_give isl_printer *print_module_headers_intel(
+  struct polysa_prog *prog, struct polysa_hw_module *module, struct hls_info *hls)
+{
+  isl_printer *p;
+
+  p = isl_printer_to_file(prog->ctx, hls->kernel_h);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = print_module_header_intel(p, prog, module); 
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
+  isl_printer_free(p);
+
+  p = isl_printer_to_file(prog->ctx, hls->kernel_c);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "__attribute__((max_global_work_dim(0)))");
+  p = isl_printer_end_line(p);
+  p = print_module_header_intel(p, prog, module);
+  p = isl_printer_end_line(p);
+  isl_printer_free(p);
+}
+
+static void print_module_iterators(FILE *out, struct polysa_hw_module *module)
+{
+  isl_ctx *ctx;
+  const char *type;
+  const char *dims[] = { "idx", "idy", "idz" };
+
+  ctx = isl_ast_node_get_ctx(module->tree);
+  type = isl_options_get_ast_iterator_type(ctx);
+
+  ctx = isl_ast_node_get_ctx(module->device_tree);
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_print_isl_id_list(p, module->inst_ids);
+//  printf("\n");
+//  // debug
+  print_iterators(out, type, module->inst_ids, dims);
+}
+
+static __isl_give isl_printer *print_module_vars(__isl_take isl_printer *p,
+  struct polysa_hw_module *module)
+{
+  int i;
+
+  /* Print the tmp register for I/O module. */
+  if (module->type == IO_MODULE) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, module->io_groups[0]->array->type) ;
+    p = isl_printer_print_str(p, " ");
+    p = isl_printer_print_str(p, "fifo_data;");
+    p = isl_printer_end_line(p);
+  }
+
+  for (i = 0; i < module->n_var; ++i)
+    p = print_kernel_var(p, &module->var[i]);
 
   return p;
 }
@@ -1990,28 +2136,6 @@ static __isl_give isl_printer *print_top_gen_header(__isl_take isl_printer *p,
   p = isl_printer_print_str(p, ")");
 
   return p;
-}
-
-/* Print the header of the given module to both gen->hls.kernel_h
- * and gen->hls.kernel_c
- */
-static __isl_give isl_printer *print_module_headers(
-  struct polysa_prog *prog, struct polysa_hw_module *module, struct hls_info *hls)
-{
-  isl_printer *p;
-
-  p = isl_printer_to_file(prog->ctx, hls->kernel_h);
-  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
-  p = print_module_header(p, prog, module); 
-  p = isl_printer_print_str(p, ";");
-  p = isl_printer_end_line(p);
-  isl_printer_free(p);
-
-  p = isl_printer_to_file(prog->ctx, hls->kernel_c);
-  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
-  p = print_module_header(p, prog, module);
-  p = isl_printer_end_line(p);
-  isl_printer_free(p);
 }
 
 static __isl_give isl_printer *print_top_gen_headers(
@@ -2031,152 +2155,6 @@ static __isl_give isl_printer *print_top_gen_headers(
   p = print_top_gen_header(p, prog, top); 
   p = isl_printer_end_line(p);
   isl_printer_free(p);
-}
-
-/* Print the user statement of the host code to "p".
- *
- * The host code may contain original user statements, kernel launches,
- * statements that copy data to/from the device and statements
- * the initialize or clear the device.
- * The original user statements and the kernel launches have
- * an associated annotation, while the other statements do not.
- * The latter are handled by print_device_node.
- * The annotation on the user statements is called "user".
- *
- * In case of a kernel launch, print a block of statements that
- * defines the grid and the block and then launches the kernel.
- */
-static __isl_give isl_printer *print_host_user(__isl_take isl_printer *p,
-  __isl_take isl_ast_print_options *print_options,
-  __isl_keep isl_ast_node *node, void *user)
-{
-  isl_id *id;
-  int is_user;
-  struct polysa_kernel *kernel;
-  struct polysa_kernel_stmt *stmt;
-  struct print_host_user_data *data;
-
-  isl_ast_print_options_free(print_options);
-
-  data = (struct print_host_user_data *) user;
-
-  id = isl_ast_node_get_annotation(node);
-  if (!id)
-    return print_device_node(p, node, data->prog); 
-
-  is_user = !strcmp(isl_id_get_name(id), "user");
-  kernel = is_user ? NULL : isl_id_get_user(id);
-  stmt = is_user ? isl_id_get_user(id) : NULL;
-  isl_id_free(id);
-
-  if (is_user)
-    return polysa_kernel_print_domain(p, stmt); 
-
-  p = ppcg_start_block(p); 
-
-  // TODO: CUDA host kernel launch, to be modified later
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "dim3 k");
-  p = isl_printer_print_int(p, kernel->id);
-  p = isl_printer_print_str(p, "_dimBlock");
-  print_reverse_list(isl_printer_get_file(p),
-      kernel->n_block, kernel->block_dim);
-  p = isl_printer_print_str(p, ";");
-  p = isl_printer_end_line(p);
-
-  p = print_grid(p, kernel); 
-
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "kernel");
-  p = isl_printer_print_int(p, kernel->id);
-  p = isl_printer_print_str(p, " <<<k");
-  p = isl_printer_print_int(p, kernel->id);
-  p = isl_printer_print_str(p, "_dimGrid, k");
-  p = isl_printer_print_int(p, kernel->id);
-  p = isl_printer_print_str(p, "_dimBlock>>> (");
-  p = print_kernel_arguments(p, data->prog, kernel, 0); 
-  p = isl_printer_print_str(p, ");");
-  p = isl_printer_end_line(p);
-
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "cudaCheckKernel();");
-  p = isl_printer_end_line(p);
-
-  /* Print the top kernel generation function */
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "/* Top function generation. */");
-  p = isl_printer_end_line(p);
-
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "FILE *f = fopen(\"top.c\", \"w\");");
-  p = isl_printer_end_line(p);
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "top_generate(");
-  p = print_top_gen_arguments(p, data->prog, kernel, 0);
-  p = isl_printer_print_str(p, ");");
-  p = isl_printer_end_line(p);
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "fclose(f);");
-  p = isl_printer_end_line(p);
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "/* Top function generation. */");
-  p = isl_printer_end_line(p);
-
-  p = ppcg_end_block(p); 
-
-  p = isl_printer_start_line(p);
-  p = isl_printer_end_line(p);
-
-  print_kernel(data->prog, kernel, data->hls); 
-
-  return p;
-}
-
-static __isl_give isl_printer *print_host_code(__isl_take isl_printer *p,
-  struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
-  struct polysa_hw_module **modules, int n_modules,
-  struct hls_info *hls)
-{
-  isl_ast_print_options *print_options;
-  isl_ctx *ctx = isl_ast_node_get_ctx(tree);
-  struct print_host_user_data data = { hls, prog };
-  struct print_hw_module_data hw_data = { hls, prog, NULL };
-  isl_printer *p_module;
-
-  /* Print the default AST. */
-  print_options = isl_ast_print_options_alloc(ctx);
-  print_options = isl_ast_print_options_set_print_user(print_options,
-                &print_host_user, &data); 
-
-  /* Print the macros definitions in the program. */
-  p = polysa_print_macros(p, tree); 
-  p = isl_ast_node_print(tree, p, print_options);
-
-  /* Print the hw module ASTs. */
-  p_module = isl_printer_to_file(ctx, hls->kernel_c);
-  p_module = isl_printer_set_output_format(p_module, ISL_FORMAT_C);
-
-  for (int i = 0; i < n_modules; i++) {
-    hw_data.module = modules[i];
-    print_module_headers(prog, modules[i], hls);
-    fprintf(hls->kernel_c, "{\n");
-    print_module_iterators(hls->kernel_c, modules[i]);
-
-    p_module = isl_printer_indent(p_module, 4);
-    p_module = print_module_vars(p_module, modules[i]);
-    p_module = isl_printer_end_line(p_module);
-
-    print_options = isl_ast_print_options_alloc(ctx);
-    print_options = isl_ast_print_options_set_print_user(print_options,
-                      &print_module_stmt, modules[i]);
-
-    p_module = isl_ast_node_print(modules[i]->device_tree, p_module, print_options);
-    p_module = isl_printer_indent(p_module, -4);
-    fprintf(hls->kernel_c, "}\n\n");
-  }
-  isl_printer_free(p_module);
-    
-  return p;
 }
 
 static __isl_give isl_printer *print_top_module_headers(__isl_take isl_printer *p,
@@ -2243,6 +2221,18 @@ static void print_top_gen_host_code(
   p = isl_printer_end_line(p);
 
   /* Print FIFO declarations */
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* FIFO Declaration */\");");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+  p = isl_printer_end_line(p);
+
   for (int i = 0; i < top->n_fifo_decls; i++) {
     print_options = isl_ast_print_options_alloc(ctx);
     print_options = isl_ast_print_options_set_print_user(print_options,
@@ -2253,15 +2243,32 @@ static void print_top_gen_host_code(
     p = isl_printer_end_line(p);
   }
 
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"/* FIFO Declaration */\");");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+  p = isl_printer_end_line(p);
+
   /* Print module calls */
   for (int i = 0; i < top->n_module_calls; i++) {
     print_options = isl_ast_print_options_alloc(ctx);
     print_options = isl_ast_print_options_set_print_user(print_options,
-                      &print_top_module_call_stmt, &hw_data); // TODO
+                      &print_top_module_call_stmt, &hw_data); 
   
     p = isl_ast_node_print(top->module_call_wrapped_trees[i], 
           p, print_options); 
-    p = isl_printer_end_line(p);
+   
+    p = isl_printer_end_line(p);    
   }
 
   p = isl_printer_start_line(p);
@@ -2313,12 +2320,170 @@ static void print_top_gen_host_code(
   return;
 }
 
+/* Print the user statement of the host code to "p".
+ *
+ * The host code may contain original user statements, kernel launches,
+ * statements that copy data to/from the device and statements
+ * the initialize or clear the device.
+ * The original user statements and the kernel launches have
+ * an associated annotation, while the other statements do not.
+ * The latter are handled by print_device_node.
+ * The annotation on the user statements is called "user".
+ *
+ * In case of a kernel launch, print a block of statements that
+ * defines the grid and the block and then launches the kernel.
+ */
+static __isl_give isl_printer *print_host_user(__isl_take isl_printer *p,
+  __isl_take isl_ast_print_options *print_options,
+  __isl_keep isl_ast_node *node, void *user)
+{
+  isl_id *id;
+  int is_user;
+  struct polysa_kernel *kernel;
+  struct polysa_kernel_stmt *stmt;
+  struct print_host_user_data *data;
+
+  isl_ast_print_options_free(print_options);
+
+  data = (struct print_host_user_data *) user;
+
+  id = isl_ast_node_get_annotation(node);
+  if (!id)
+    return print_device_node(p, node, data->prog); 
+
+  is_user = !strcmp(isl_id_get_name(id), "user");
+  kernel = is_user ? NULL : isl_id_get_user(id);
+  stmt = is_user ? isl_id_get_user(id) : NULL;
+  isl_id_free(id);
+
+  if (is_user)
+    return polysa_kernel_print_domain(p, stmt); 
+
+  p = ppcg_start_block(p); 
+
+  // TODO: CUDA host kernel launch, to be modified later
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "dim3 k");
+  p = isl_printer_print_int(p, kernel->id);
+  p = isl_printer_print_str(p, "_dimBlock");
+  print_reverse_list(isl_printer_get_file(p),
+      kernel->n_block, kernel->block_dim);
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
+
+  p = print_grid(p, kernel); 
+
+  // TODO: add kernel calls for OpenCL
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "kernel");
+  p = isl_printer_print_int(p, kernel->id);
+  p = isl_printer_print_str(p, " <<<k");
+  p = isl_printer_print_int(p, kernel->id);
+  p = isl_printer_print_str(p, "_dimGrid, k");
+  p = isl_printer_print_int(p, kernel->id);
+  p = isl_printer_print_str(p, "_dimBlock>>> (");
+  p = print_kernel_arguments(p, data->prog, kernel, 0); 
+  p = isl_printer_print_str(p, ");");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "cudaCheckKernel();");
+  p = isl_printer_end_line(p);
+
+  /* Print the top kernel generation function */
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "/* Top Function Generation */");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "FILE *f = fopen(\"top.c\", \"w\");");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "top_generate(");
+  p = print_top_gen_arguments(p, data->prog, kernel, 0);
+  p = isl_printer_print_str(p, ");");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "fclose(f);");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "/* Top Function Generation */");
+  p = isl_printer_end_line(p);
+
+  p = ppcg_end_block(p); 
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_end_line(p);
+
+  return p;
+}
+
+static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
+  struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
+  struct polysa_hw_module **modules, int n_modules,
+  struct hls_info *hls)
+{
+  isl_ast_print_options *print_options;
+  isl_ctx *ctx = isl_ast_node_get_ctx(tree);
+  struct print_host_user_data data = { hls, prog };
+  struct print_hw_module_data hw_data = { hls, prog, NULL };
+  isl_printer *p_module;
+
+  /* Print the default AST. */
+  print_options = isl_ast_print_options_alloc(ctx);
+  print_options = isl_ast_print_options_set_print_user(print_options,
+                &print_host_user, &data); 
+
+  /* Print the macros definitions in the program. */
+  p = polysa_print_macros(p, tree); 
+  p = isl_ast_node_print(tree, p, print_options);
+
+  /* Print the hw module ASTs. */
+  p_module = isl_printer_to_file(ctx, hls->kernel_c);
+  p_module = isl_printer_set_output_format(p_module, ISL_FORMAT_C);
+
+  for (int i = 0; i < n_modules; i++) {
+    p_module = isl_printer_start_line(p_module);
+    p_module = isl_printer_print_str(p_module, "/* Module Definition */");
+    p_module = isl_printer_end_line(p_module);
+
+    hw_data.module = modules[i];
+    if (hls->target == XILINX_HW)
+      print_module_headers_xilinx(prog, modules[i], hls);
+    else if (hls->target == INTEL_HW)
+      print_module_headers_intel(prog, modules[i], hls);
+    fprintf(hls->kernel_c, "{\n");
+    print_module_iterators(hls->kernel_c, modules[i]);
+
+    p_module = isl_printer_indent(p_module, 4);
+    p_module = print_module_vars(p_module, modules[i]);
+    p_module = isl_printer_end_line(p_module);
+
+    print_options = isl_ast_print_options_alloc(ctx);
+    print_options = isl_ast_print_options_set_print_user(print_options,
+                      &print_module_stmt, &hw_data);
+
+    p_module = isl_ast_node_print(modules[i]->device_tree, p_module, print_options);
+    p_module = isl_printer_indent(p_module, -4);
+     
+    fprintf(hls->kernel_c, "}\n");
+    p_module = isl_printer_start_line(p_module);
+    p_module = isl_printer_print_str(p_module, "/* Module Definition */");
+    p_module = isl_printer_end_line(p_module);
+
+    p_module = isl_printer_end_line(p_module);
+  }
+  isl_printer_free(p_module);
+    
+  return p;
+}
+
 /* Given a polysa_prog "prog" and the corresponding tranformed AST
- * "tree", print the entire HLS code to "p".
+ * "tree", print the entire OpenCL/HLS code to "p".
  * "types" collecs the types for which a definition has already been
  * printed.
  */
-static __isl_give isl_printer *print_hls(__isl_take isl_printer *p,
+static __isl_give isl_printer *print_hw(__isl_take isl_printer *p,
   struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
   struct polysa_hw_module **modules, int n_modules,
   struct polysa_hw_top_module *top_module,
@@ -2336,7 +2501,7 @@ static __isl_give isl_printer *print_hls(__isl_take isl_printer *p,
     return isl_printer_free(p);
 
   /* Print OpenCL host and kernel function */
-  p = print_host_code(p, prog, tree, modules, n_modules, hls); 
+  p = polysa_print_host_code(p, prog, tree, modules, n_modules, hls); 
   /* Print seperate top module code generation function */
   print_top_gen_host_code(prog, tree, top_module, hls); 
 
@@ -2353,6 +2518,20 @@ static __isl_give isl_printer *print_hls(__isl_take isl_printer *p,
  * To prepare for the printing, we first open the output files
  * and we close them after generate_fpga has finished.
  */
+int generate_polysa_intel_opencl(isl_ctx *ctx, struct ppcg_options *options, 
+  const char *input) 
+{
+  struct hls_info hls;
+  int r;
+
+  hls_open_files(&hls, input);
+  hls.target = INTEL_HW;
+
+  r = generate_sa(ctx, input, hls.host_c, options, &print_hw, &hls);
+
+  hls_close_files(&hls);
+}
+
 int generate_polysa_xilinx_hls(isl_ctx *ctx, struct ppcg_options *options, 
   const char *input) 
 {
@@ -2360,8 +2539,9 @@ int generate_polysa_xilinx_hls(isl_ctx *ctx, struct ppcg_options *options,
   int r;
 
   hls_open_files(&hls, input);
+  hls.target = XILINX_HW;
 
-  r = generate_sa(ctx, input, hls.host_c, options, &print_hls, &hls);
+  r = generate_sa(ctx, input, hls.host_c, options, &print_hw, &hls);
 
   hls_close_files(&hls);
 }

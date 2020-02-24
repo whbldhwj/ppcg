@@ -1,6 +1,20 @@
 #include "polysa_utilities.h"
 #include <assert.h>
 
+bool isl_vec_is_zero(__isl_keep isl_vec *vec)
+{
+  int n = isl_vec_size(vec);
+  for (int i = 0; i < n; i++) {
+    isl_val *val = isl_vec_get_element_val(vec, i);
+    if (!isl_val_is_zero(val)) {
+      isl_val_free(val);
+      return false;
+    }
+    isl_val_free(val);
+  }
+  return true;
+}
+
 isl_stat unionize_pw_aff_space(__isl_take isl_pw_aff *pa, void *user)
 {
   isl_space *space = user;
