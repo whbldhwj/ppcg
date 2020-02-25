@@ -18,6 +18,7 @@ ACLOCAL_M4	isl/Makefile	/^ACLOCAL_M4 = $(top_srcdir)\/aclocal.m4$/;"	m
 ACLOCAL_M4	isl/doc/Makefile	/^ACLOCAL_M4 = $(top_srcdir)\/aclocal.m4$/;"	m
 ACLOCAL_M4	isl/interface/Makefile	/^ACLOCAL_M4 = $(top_srcdir)\/aclocal.m4$/;"	m
 ACLOCAL_M4	pet/Makefile	/^ACLOCAL_M4 = $(top_srcdir)\/aclocal.m4$/;"	m
+ACL_ALIGNMENT	kernel_host.cpp	12;"	d	file:
 ADD	isl/isl_map.c	6738;"	d	file:
 ADD	isl/isl_map.c	6739;"	d	file:
 ADD	isl/isl_map.c	6823;"	d	file:
@@ -88,6 +89,7 @@ AM_V_lt	Makefile	/^AM_V_lt = $(am__v_lt_$(V))$/;"	m
 AM_V_lt	isl/Makefile	/^AM_V_lt = $(am__v_lt_$(V))$/;"	m
 AM_V_lt	isl/interface/Makefile	/^AM_V_lt = $(am__v_lt_$(V))$/;"	m
 AM_V_lt	pet/Makefile	/^AM_V_lt = $(am__v_lt_$(V))$/;"	m
+AOCX_FIEL	kernel_host.cpp	9;"	d	file:
 APITest	isl/imath/tests/gmp-compat-test/genctest.py	/^class APITest:$/;"	c
 APPLY_DOM	isl/isl_multi_apply_set.c	2;"	d	file:
 APPLY_DOM	isl/isl_multi_apply_set.c	7;"	d	file:
@@ -134,10 +136,10 @@ AWK	isl/doc/Makefile	/^AWK = mawk$/;"	m
 AWK	isl/interface/Makefile	/^AWK = mawk$/;"	m
 AWK	pet/Makefile	/^AWK = mawk$/;"	m
 A_L2_in_IO	kernel_intel.c	/^__kernel void A_L2_in_IO()$/;"	f
-A_L2_in_IO	kernel_kernel.c	/^void A_L2_in_IO(int idx, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_A_local_out)$/;"	f
+A_L2_in_IO	kernel_kernel.c	/^__kernel void A_L2_in_IO(int idx, channel int fifo_A_in, channel int fifo_A_out, channel int fifo_A_local_out)$/;"	f
 A_L2_in_IO	kernel_xilinx.c	/^__kernel void A_L2_in_IO(int idx, channel int fifo_A_in, channel int fifo_A_out, channel int fifo_A_local_out)$/;"	f
 A_L3_in_IO	kernel_intel.c	/^__kernel void A_L3_in_IO(int *A)$/;"	f
-A_L3_in_IO	kernel_kernel.c	/^void A_L3_in_IO(int *A, hls::stream<int> &fifo_A_local_out)$/;"	f
+A_L3_in_IO	kernel_kernel.c	/^__kernel void A_L3_in_IO(global int *A, channel int fifo_A_local_out)$/;"	f
 A_L3_in_IO	kernel_xilinx.c	/^__kernel void A_L3_in_IO(int *A, channel int fifo_A_local_out)$/;"	f
 An tt Omega	isl/doc/implementation.tex	/^the composition of these extra elements with powers of $R_i$.$/;"	b
 BASE	isl/flow_cmp.c	48;"	d	file:
@@ -260,10 +262,10 @@ BUILT_SOURCES	Makefile	/^BUILT_SOURCES = gitversion.h$/;"	m
 BUILT_SOURCES	isl/Makefile	/^BUILT_SOURCES = gitversion.h $(CPP_INTERFACES)$/;"	m
 BUILT_SOURCES	pet/Makefile	/^BUILT_SOURCES = \\$/;"	m
 B_L2_in_IO	kernel_intel.c	/^__kernel void B_L2_in_IO()$/;"	f
-B_L2_in_IO	kernel_kernel.c	/^void B_L2_in_IO(int idx, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_B_local_out)$/;"	f
+B_L2_in_IO	kernel_kernel.c	/^__kernel void B_L2_in_IO(int idx, channel int fifo_B_in, channel int fifo_B_out, channel int fifo_B_local_out)$/;"	f
 B_L2_in_IO	kernel_xilinx.c	/^__kernel void B_L2_in_IO(int idx, channel int fifo_B_in, channel int fifo_B_out, channel int fifo_B_local_out)$/;"	f
 B_L3_in_IO	kernel_intel.c	/^__kernel void B_L3_in_IO(int *B)$/;"	f
-B_L3_in_IO	kernel_kernel.c	/^void B_L3_in_IO(int *B, hls::stream<int> &fifo_B_local_out)$/;"	f
+B_L3_in_IO	kernel_kernel.c	/^__kernel void B_L3_in_IO(global int *B, channel int fifo_B_local_out)$/;"	f
 B_L3_in_IO	kernel_xilinx.c	/^__kernel void B_L3_in_IO(int *B, channel int fifo_B_local_out)$/;"	f
 BinaryOperatorKind2pet_op_type	pet/scan.cc	/^static enum pet_op_type BinaryOperatorKind2pet_op_type(BinaryOperatorKind kind)$/;"	f	file:
 C	polysa_tests/cnn/kernel.h	9;"	d
@@ -337,6 +339,8 @@ CHECK	isl/imath/gmp_compat.c	41;"	d	file:
 CHECK	isl/imath/imath.c	72;"	d	file:
 CHECK	isl/imath/imdrover.c	51;"	d	file:
 CHECK	isl/imath/imrat.c	39;"	d	file:
+CHECK	kernel_host.cpp	35;"	d	file:
+CHECK_NO_EXIT	kernel_host.cpp	41;"	d	file:
 CLAMP	isl/imath/imath.c	135;"	d	file:
 CLANG_CXXFLAGS	isl/Makefile	/^CLANG_CXXFLAGS = -I\/usr\/lib\/llvm-3.8\/include -std=c++0x -fPIC -fvisibility-inlines-hidden -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wno-maybe-uninitialized -Wdelete-non-virtual-dtor -Wno-comment -std=c++11 -ffunction-sections -fdata-sections -O2 -g -DNDEBUG  -fno-exceptions -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS$/;"	m
 CLANG_CXXFLAGS	isl/doc/Makefile	/^CLANG_CXXFLAGS = -I\/usr\/lib\/llvm-3.8\/include -std=c++0x -fPIC -fvisibility-inlines-hidden -Wall -W -Wno-unused-parameter -Wwrite-strings -Wcast-qual -Wno-missing-field-initializers -pedantic -Wno-long-long -Wno-maybe-uninitialized -Wdelete-non-virtual-dtor -Wno-comment -std=c++11 -ffunction-sections -fdata-sections -O2 -g -DNDEBUG  -fno-exceptions -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS$/;"	m
@@ -444,13 +448,13 @@ CYGPATH_W	isl/doc/Makefile	/^CYGPATH_W = echo$/;"	m
 CYGPATH_W	isl/interface/Makefile	/^CYGPATH_W = echo$/;"	m
 CYGPATH_W	pet/Makefile	/^CYGPATH_W = echo$/;"	m
 C_drain_L1_out_IO	kernel_intel.c	/^__kernel void C_drain_L1_out_IO()$/;"	f
-C_drain_L1_out_IO	kernel_kernel.c	/^void C_drain_L1_out_IO(int idx, int idy, hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_L1_out_IO	kernel_kernel.c	/^__kernel void C_drain_L1_out_IO(int idx, int idy, channel int fifo_C_drain_in, channel int fifo_C_drain_out, channel int fifo_C_drain_local_in)$/;"	f
 C_drain_L1_out_IO	kernel_xilinx.c	/^__kernel void C_drain_L1_out_IO(int idx, int idy, channel int fifo_C_drain_in, channel int fifo_C_drain_out, channel int fifo_C_drain_local_in)$/;"	f
 C_drain_L2_out_IO	kernel_intel.c	/^__kernel void C_drain_L2_out_IO()$/;"	f
-C_drain_L2_out_IO	kernel_kernel.c	/^void C_drain_L2_out_IO(int idx, hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_L2_out_IO	kernel_kernel.c	/^__kernel void C_drain_L2_out_IO(int idx, channel int fifo_C_drain_in, channel int fifo_C_drain_out, channel int fifo_C_drain_local_in)$/;"	f
 C_drain_L2_out_IO	kernel_xilinx.c	/^__kernel void C_drain_L2_out_IO(int idx, channel int fifo_C_drain_in, channel int fifo_C_drain_out, channel int fifo_C_drain_local_in)$/;"	f
 C_drain_L3_out_IO	kernel_intel.c	/^__kernel void C_drain_L3_out_IO(int *C)$/;"	f
-C_drain_L3_out_IO	kernel_kernel.c	/^void C_drain_L3_out_IO(int *C, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_L3_out_IO	kernel_kernel.c	/^__kernel void C_drain_L3_out_IO(global int *C, channel int fifo_C_drain_local_in)$/;"	f
 C_drain_L3_out_IO	kernel_xilinx.c	/^__kernel void C_drain_L3_out_IO(int *C, channel int fifo_C_drain_local_in)$/;"	f
 Choice of Constant Term on which to Split	isl/doc/implementation.tex	/^The idea of keeping track of witnesses was first used in {\\tt barvinok}.$/;"	b
 ClangAPI	isl/interface/extract_interface.cc	/^struct ClangAPI {$/;"	s	file:
@@ -1170,6 +1174,7 @@ HDRS	isl/imath/Makefile	/^HDRS=imath.h imrat.h iprime.h imdrover.h rsamath.h gmp
 HEADERS	isl/Makefile	/^HEADERS = $(nodist_pkginclude_HEADERS) $(pkginclude_HEADERS)$/;"	m
 HEADERS	pet/Makefile	/^HEADERS = $(include_HEADERS)$/;"	m
 HIGH_BIT_SET	isl/imath/imath.c	205;"	d	file:
+HOST	kernel_host.cpp	11;"	d	file:
 HOST_ENDIAN	isl/imath/gmp_compat.c	48;"	d	file:
 HYBRID_H	hybrid.h	2;"	d
 HandleDiagnostic	pet/pet.cc	/^	virtual void HandleDiagnostic(DiagnosticsEngine::Level level,$/;"	f	struct:MyDiagnosticPrinter
@@ -2275,7 +2280,7 @@ PDFLATEX	isl/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PDFLATEX	isl/doc/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PDFLATEX	isl/interface/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PE	kernel_intel.c	/^__kernel void PE()$/;"	f
-PE	kernel_kernel.c	/^void PE(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)$/;"	f
+PE	kernel_kernel.c	/^__kernel void PE(int idx, int idy, channel int fifo_A_in, channel int fifo_A_out, channel int fifo_B_in, channel int fifo_B_out, channel int fifo_C_drain_out)$/;"	f
 PE	kernel_xilinx.c	/^__kernel void PE(int idx, int idy, channel int fifo_A_in, channel int fifo_A_out, channel int fifo_B_in, channel int fifo_B_out, channel int fifo_C_drain_out)$/;"	f
 PERL	isl/Makefile	/^PERL = perl$/;"	m
 PERL	isl/doc/Makefile	/^PERL = perl$/;"	m
@@ -2940,6 +2945,8 @@ accesses_overlap	gpu_group.c	/^static int accesses_overlap(struct gpu_array_ref_
 accesses_overlap	polysa_group.c	/^static int accesses_overlap(struct polysa_array_ref_group *group1,$/;"	f	file:
 accesses_overlap	polysa_t2s.c	/^static int accesses_overlap(struct polysa_dep *d1, struct polysa_dep *d2, int wr,$/;"	f	file:
 accesses_overlap_wrap	polysa_t2s.c	/^static int accesses_overlap_wrap(struct t2s_array_ref_group *group1, $/;"	f	file:
+acl_aligned_free	kernel_host.cpp	/^void acl_aligned_free(void *ptr) {$/;"	f
+acl_aligned_malloc	kernel_host.cpp	/^void *acl_aligned_malloc(size_t size) {$/;"	f
 add	isl/imath/gmp_compat.c	/^void GMPZAPI(add)(mp_int rop, mp_int op1, mp_int op2) {$/;"	f
 add	isl/include/isl/cpp-checked.h	/^isl::checked::aff aff::add(isl::checked::aff aff2) const$/;"	f	class:isl::checked::aff
 add	isl/include/isl/cpp-checked.h	/^isl::checked::ast_node_list ast_node_list::add(isl::checked::ast_node el) const$/;"	f	class:isl::checked::ast_node_list
@@ -4796,7 +4803,7 @@ clear_caches	isl/isl_map.c	/^static __isl_give isl_map *clear_caches(__isl_take 
 clear_coalesce_info	isl/isl_coalesce.c	/^static void clear_coalesce_info(int n, struct isl_coalesce_info *info)$/;"	f	file:
 clear_device	cuda.c	/^static __isl_give isl_printer *clear_device(__isl_take isl_printer *p,$/;"	f	file:
 clear_device	opencl.c	/^static __isl_give isl_printer *clear_device(__isl_take isl_printer *p,$/;"	f	file:
-clear_device	polysa_fpga.c	/^static __isl_give isl_printer *clear_device(__isl_take isl_printer *p,$/;"	f	file:
+clear_device_intel	polysa_fpga.c	/^static __isl_give isl_printer *clear_device_intel(__isl_take isl_printer *p,$/;"	f	file:
 clear_device_xilinx	polysa_fpga.c	/^static __isl_give isl_printer *clear_device_xilinx(__isl_take isl_printer *p,$/;"	f	file:
 clear_groups	isl/isl_factorization.c	/^static void clear_groups(struct isl_factor_groups *g)$/;"	f	file:
 clear_if_nodes	isl/isl_ast_graft.c	/^static int clear_if_nodes(struct isl_if_node *if_node, int first, int n)$/;"	f	file:
@@ -5299,10 +5306,10 @@ copy	isl/include/isl/obj.h	/^	void *(*copy)(void *v1);$/;"	m	struct:isl_obj_vtab
 copy	pet/print.c	/^int copy(FILE *input, FILE *output, long start, long end)$/;"	f
 copy_array	opencl.c	/^static __isl_give isl_printer *copy_array(__isl_take isl_printer *p,$/;"	f	file:
 copy_array_from_device	cuda.c	/^static __isl_give isl_printer *copy_array_from_device($/;"	f	file:
-copy_array_from_device	polysa_fpga.c	/^static __isl_give isl_printer *copy_array_from_device($/;"	f	file:
+copy_array_from_device_intel	polysa_fpga.c	/^static __isl_give isl_printer *copy_array_from_device_intel($/;"	f	file:
 copy_array_from_device_xilinx	polysa_fpga.c	/^static __isl_give isl_printer *copy_array_from_device_xilinx($/;"	f	file:
 copy_array_to_device	cuda.c	/^static __isl_give isl_printer *copy_array_to_device(__isl_take isl_printer *p,$/;"	f	file:
-copy_array_to_device	polysa_fpga.c	/^static __isl_give isl_printer *copy_array_to_device(__isl_take isl_printer *p,$/;"	f	file:
+copy_array_to_device_intel	polysa_fpga.c	/^static __isl_give isl_printer *copy_array_to_device_intel(__isl_take isl_printer *p,$/;"	f	file:
 copy_array_to_device_xilinx	polysa_fpga.c	/^static __isl_give isl_printer *copy_array_to_device_xilinx(__isl_take isl_printer *p,$/;"	f	file:
 copy_callbacks	isl/include/isl/cpp-checked.h	/^ast_build &ast_build::copy_callbacks(const ast_build &obj)$/;"	f	class:isl::checked::ast_build
 copy_callbacks	isl/include/isl/cpp.h	/^ast_build &ast_build::copy_callbacks(const ast_build &obj)$/;"	f	class:isl::ast_build
@@ -5674,6 +5681,7 @@ decl_args_generate	polysa_codegen.c	/^__isl_give isl_ast_expr_list *decl_args_ge
 decl_context	pet/scan.h	/^	clang::DeclContext *decl_context;$/;"	m	struct:PetScan
 declarations	pet/scan.h	/^	std::vector<clang::VarDecl *> declarations;$/;"	m	struct:PetScan
 declare_accessed_local_variables	gpu.c	/^static __isl_give isl_schedule_node *declare_accessed_local_variables($/;"	f	file:
+declare_and_allocate_device_arrays_intel	polysa_fpga.c	/^static __isl_give isl_printer *declare_and_allocate_device_arrays_intel(__isl_take isl_printer *p, struct polysa_prog *prog)$/;"	f	file:
 declare_and_allocate_device_arrays_xilinx	polysa_fpga.c	/^static __isl_give isl_printer *declare_and_allocate_device_arrays_xilinx(__isl_take isl_printer *p, struct polysa_prog *prog)$/;"	f	file:
 declare_device_array	cuda.c	/^static __isl_give isl_printer *declare_device_array(__isl_take isl_printer *p,$/;"	f	file:
 declare_device_array	polysa_fpga.c	/^static __isl_give isl_printer *declare_device_array(__isl_take isl_printer *p,$/;"	f	file:
@@ -6633,6 +6641,7 @@ find_by_name	isl/interface/generator.cc	/^FunctionDecl *generator::find_by_name(
 find_command	isl/imath/examples/imcalc.c	/^static int       find_command(cstate_t *op)$/;"	f	file:
 find_context_div	isl/isl_tab_pip.c	/^static int find_context_div(__isl_keep isl_basic_map *bmap,$/;"	f	file:
 find_decl_from_name	pet/scan.cc	/^FunctionDecl *PetScan::find_decl_from_name(CallExpr *call, string name)$/;"	f	class:PetScan
+find_device_intel	polysa_fpga.c	/^static __isl_give isl_printer *find_device_intel(__isl_take isl_printer *p, struct polysa_prog *prog, struct polysa_hw_top_module *top)$/;"	f	file:
 find_device_xilinx	polysa_fpga.c	/^static __isl_give isl_printer *find_device_xilinx(__isl_take isl_printer *p)$/;"	f	file:
 find_div	isl/isl_map.c	/^static int find_div(__isl_keep isl_basic_map *dst,$/;"	f	file:
 find_div	isl/isl_tab_pip.c	/^static int find_div(struct isl_tab *tab, isl_int *div, isl_int denom)$/;"	f	file:
@@ -14908,6 +14917,7 @@ n_group	isl/isl_factorization.h	/^	int		n_group;$/;"	m	struct:isl_factorizer
 n_group	polysa_common.h	/^  int n_group;$/;"	m	struct:polysa_local_array_info
 n_group	polysa_t2s.h	/^  int n_group;$/;"	m	struct:t2s_array_info
 n_hw_modules	polysa_common.h	/^  int n_hw_modules;$/;"	m	struct:polysa_gen
+n_hw_modules	polysa_common.h	/^  int n_hw_modules;$/;"	m	struct:polysa_hw_top_module
 n_id	isl/isl_space_private.h	/^	unsigned n_id;$/;"	m	struct:isl_space
 n_implication	pet/include/pet.h	/^	int n_implication;$/;"	m	struct:pet_scop
 n_in	isl/isl_space_private.h	/^	unsigned n_in;		\/* zero for sets *\/$/;"	m	struct:isl_space
@@ -19476,9 +19486,11 @@ to_C_str	isl/include/isl/cpp.h	/^std::string ast_node::to_C_str() const$/;"	f	cl
 to_col	isl/isl_tab.c	/^static int to_col(struct isl_tab *tab, struct isl_tab_var *var)$/;"	f	file:
 to_inner	gpu.h	/^	isl_union_map *to_inner;$/;"	m	struct:gpu_prog
 to_inner	polysa_common.h	/^  isl_union_map *to_inner;$/;"	m	struct:polysa_prog
+to_mem	polysa_common.h	/^  int to_mem; $/;"	m	struct:polysa_hw_module
 to_outer	gpu.h	/^	isl_union_map *to_outer;$/;"	m	struct:gpu_prog
 to_outer	polysa_common.h	/^  isl_union_map *to_outer;$/;"	m	struct:polysa_prog
 to_parameter_domain	isl/pip.c	/^static __isl_give isl_basic_set *to_parameter_domain($/;"	f	file:
+to_pe	polysa_common.h	/^  int to_pe; $/;"	m	struct:polysa_hw_module
 to_polynomial_on_orthant	isl/isl_polynomial.c	/^static isl_stat to_polynomial_on_orthant(__isl_take isl_set *orthant,$/;"	f	file:
 to_row	isl/isl_tab.c	/^static int to_row(struct isl_tab *tab, struct isl_tab_var *var, int sign)$/;"	f	file:
 to_string	isl/interface/cpp.cc	/^static std::string to_string(long l)$/;"	f	file:
@@ -19489,6 +19501,7 @@ token_t	isl/imath/examples/imcalc.c	/^typedef enum { t_eof, t_symbol, t_number, 
 tokens	isl/isl_stream_private.h	/^	struct isl_token	*tokens[5];$/;"	m	struct:isl_stream	typeref:struct:isl_stream::isl_token
 top	isl/isl_tab.h	/^	struct isl_tab_undo *top;$/;"	m	struct:isl_tab	typeref:struct:isl_tab::isl_tab_undo
 top	polysa_codegen.c	/^  struct polysa_hw_top_module *top;$/;"	m	struct:polysa_at_domain_data	typeref:struct:polysa_at_domain_data::polysa_hw_top_module	file:
+top	polysa_fpga.c	/^  struct polysa_hw_top_module *top;$/;"	m	struct:print_host_user_data	typeref:struct:print_host_user_data::polysa_hw_top_module	file:
 top_build_prefix	Makefile	/^top_build_prefix = $/;"	m
 top_build_prefix	isl/Makefile	/^top_build_prefix = $/;"	m
 top_build_prefix	isl/doc/Makefile	/^top_build_prefix = ..\/$/;"	m

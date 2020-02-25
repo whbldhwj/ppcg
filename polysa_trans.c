@@ -5494,6 +5494,7 @@ static struct polysa_hw_module *sa_io_L1_module_gen(struct polysa_array_ref_grou
     module->in = 1;
   else 
     module->in = 0;
+  module->to_pe = 1;
 
 //  // debug
 //  p = isl_printer_free(p);
@@ -5880,6 +5881,7 @@ static struct polysa_hw_module *sa_io_L3_module_gen(struct polysa_array_ref_grou
     module->in = 1;
   else
     module->in = 0;
+  module->to_mem = 1;
 
   return module;
 }
@@ -6559,6 +6561,7 @@ __isl_give struct polysa_hw_top_module *sa_top_module_gen(struct polysa_gen *gen
   top_module = polysa_hw_top_module_alloc();
   top_module->hw_modules = gen->hw_modules;
   top_module->kernel = gen->kernel;
+  top_module->n_hw_modules = gen->n_hw_modules;
 
   /* PE */
   top_module_pe_gen(gen, top_module, gen->hw_modules[0]);

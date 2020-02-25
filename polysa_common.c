@@ -2230,6 +2230,8 @@ struct polysa_hw_module *polysa_hw_module_alloc()
   module->kernel = NULL;
   module->n_io_group = 0;
   module->io_groups = NULL;
+  module->to_pe = 0;
+  module->to_mem = 0;
 
   return module;
 }
@@ -2252,7 +2254,8 @@ struct polysa_hw_top_module *polysa_hw_top_module_alloc()
 
   module->kernel = NULL;
   module->hw_modules = NULL;
-
+  module->n_hw_modules = 0;
+  
   return module;
 }
 

@@ -549,6 +549,7 @@ struct polysa_hw_top_module {
   isl_ast_node **fifo_decl_wrapped_trees;
   isl_ast_node **module_call_wrapped_trees;
 
+  int n_hw_modules;
   struct polysa_hw_module **hw_modules;
   struct polysa_kernel *kernel;
 };
@@ -577,10 +578,10 @@ struct polysa_hw_module {
   int level;
   /* I/O module copy-in/out */
   int in;
-//  /* Interior I/O */
-//  int interior;
-//  /* Boundary module id */
-//  isl_multi_pw_aff *boundary_id;
+  /* Connect to external memory */
+  int to_mem; 
+  /* Connect to PE */
+  int to_pe; 
 
   struct polysa_kernel *kernel;
 };

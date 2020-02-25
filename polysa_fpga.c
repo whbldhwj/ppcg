@@ -27,6 +27,7 @@
 struct print_host_user_data {
 	struct hls_info *hls;
 	struct polysa_prog *prog;
+  struct polysa_hw_top_module *top;
 };
 
 struct print_hw_module_data {
@@ -59,7 +60,8 @@ static void hls_open_files(struct hls_info *info, const char *input)
   fprintf(info->host_c, "#include \"xcl2.hpp\"\n");
   fprintf(info->host_c, "#include <algorithm>\n");
   fprintf(info->host_c, "#include <vector>\n");
-  fprintf(info->host_c, "#include \"%s\"\n", name);  
+  fprintf(info->host_c, "#include \"%s\"\n\n", name); 
+
   fprintf(info->kernel_c, "#include \"%s\"\n", name);  
 
   strcpy(name + len, "_top_gen.c");
@@ -91,7 +93,49 @@ static void opencl_open_files(struct hls_info *info, const char *input)
 
   fprintf(info->host_c, "#include <assert.h>\n");
   fprintf(info->host_c, "#include <stdio.h>\n");
-  fprintf(info->host_c, "#include \"%s\"\n", name);  
+  fprintf(info->host_c, "#include <math.h>\n");
+  fprintf(info->host_c, "#include <CL/opencl.h>\n");
+  fprintf(info->host_c, "#include \"AOCLUtils/aocl_utils.h\"\n");
+  fprintf(info->host_c, "#include \"%s\"\n", name); 
+  fprintf(info->host_c, "using namespace aocl_utils;\n\n");
+  fprintf(info->host_c, "#define AOCX_FIEL \"krnl.aocx\"\n\n");
+
+  /* Print Intel helper function */
+  fprintf(info->host_c, "#define HOST\n");
+  fprintf(info->host_c, "#define ACL_ALIGNMENT 64\n");
+  fprintf(info->host_c, "#ifdef _WIN32\n");
+  fprintf(info->host_c, "void *acl_aligned_malloc(size_t size) {\n");
+  fprintf(info->host_c, "    return _aligned_malloc(size, ACL_ALIGNMENT);\n");
+  fprintf(info->host_c, "}\n");
+  fprintf(info->host_c, "void acl_aligned_free(void *ptr) {\n");
+  fprintf(info->host_c, "    _aligned_free(ptr);\n");
+  fprintf(info->host_c, "}\n");
+  fprintf(info->host_c, "#else\n");
+  fprintf(info->host_c, "void *acl_aligned_malloc(size_t size) {\n");
+  fprintf(info->host_c, "    void *result = NULL;\n");
+  fprintf(info->host_c, "    if (posix_memalign(&result, ACL_ALIGNMENT, size) != 0)\n");
+  fprintf(info->host_c, "        printf(\"acl_aligned_malloc() failed.\\n\");\n");
+  fprintf(info->host_c, "    return result;\n");
+  fprintf(info->host_c, "}\n");
+  fprintf(info->host_c, "void acl_aligned_free(void *ptr) {\n");
+  fprintf(info->host_c, "    free(ptr);\n");
+  fprintf(info->host_c, "}\n");
+  fprintf(info->host_c, "#endif\n\n");
+
+  fprintf(info->host_c, "void cleanup_host_side_resources();\n");
+  fprintf(info->host_c, "void cleanup();\n\n");
+
+  fprintf(info->host_c, "#define CHECK(status) \\\n");
+  fprintf(info->host_c, "if (status != CL_SUCCESS) { \\\n");
+  fprintf(info->host_c, "    fprintf(stderr, \"error %%d in line %%d.\\n\", status, __LINE__); \\\n");
+  fprintf(info->host_c, "    exit(1); \\\n");
+  fprintf(info->host_c, "}\n\n");
+
+  fprintf(info->host_c, "#define CHECK_NO_EXIT(status) \\\n");
+  fprintf(info->host_c, "if (status != CL_SUCCESS) { \\\n");
+  fprintf(info->host_c, "    fprintf(stderr, \"error %%d in line %%d.\\n\", status, __LINE__); \\\n");
+  fprintf(info->host_c, "}\n\n");
+
   fprintf(info->kernel_c, "#include \"%s\"\n", name);  
 
   strcpy(name + len, "_top_gen.c");
@@ -477,6 +521,72 @@ static __isl_give isl_printer *print_str_new_line(__isl_take isl_printer *p, con
   return p;
 }
 
+static __isl_give isl_printer *declare_and_allocate_device_arrays_intel(__isl_take isl_printer *p, struct polysa_prog *prog)
+{
+  int indent;
+  p = print_str_new_line(p, "// Allocate memory in host memory");
+  for (int i = 0; i < prog->n_array; i++) {
+    struct polysa_array_info *array = &prog->array[i];
+    if (!polysa_array_requires_device_allocation(array))
+      continue;
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, array->type);
+    p = isl_printer_print_str(p, " *dev_");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, " = (");
+    p = isl_printer_print_str(p, array->type);
+    p = isl_printer_print_str(p, "*)acl_aligned_malloc(");
+    p = polysa_array_info_print_size(p, array);
+    p = isl_printer_print_str(p, ");");
+    p = isl_printer_end_line(p);   
+  }
+  p = isl_printer_end_line(p);
+
+  for (int i = 0; i < prog->n_array; i++) {
+    struct polysa_array_info *array = &prog->array[i];
+    if (!polysa_array_requires_device_allocation(array))
+      continue;
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "memcpy(dev_");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, ", ");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, ", ");
+    p = polysa_array_info_print_size(p, array);
+    p = isl_printer_print_str(p, ");");
+    p = isl_printer_end_line(p);
+  }
+  p = isl_printer_end_line(p);
+
+  p = print_str_new_line(p, "// Create device buffers");
+  for (int i = 0; i < prog->n_array; i++) {
+    struct polysa_array_info *array = &prog->array[i];
+    if (!polysa_array_requires_device_allocation(array))
+      continue;
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "buf_");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, " = clCreateBuffer(context");
+    p = isl_printer_end_line(p);
+    indent = strlen("buf_") + strlen(array->name) + strlen(" clCreateBuffer(");
+    p = isl_printer_indent(p, indent);
+    p = print_str_new_line(p, "CL_MEM_READ_WRITE,");
+    p = isl_printer_start_line(p);
+    p = polysa_array_info_print_size(p, array);
+    p = isl_printer_print_str(p, ",");
+    p = isl_printer_end_line(p);
+    p = print_str_new_line(p, "NULL,");
+    p = print_str_new_line(p, "&status); CHECK(status);");
+    p = isl_printer_end_line(p);
+    p = isl_printer_indent(p, -indent);
+  }
+
+  return p;
+}
+
 static __isl_give isl_printer *declare_and_allocate_device_arrays_xilinx(__isl_take isl_printer *p, struct polysa_prog *prog)
 {
   p = print_str_new_line(p, "// Allocate Memory in Host Memory");
@@ -594,6 +704,332 @@ static __isl_give isl_printer *find_device_xilinx(__isl_take isl_printer *p)
   p = isl_printer_end_line(p);
 }
 
+static __isl_give isl_printer *find_device_intel(__isl_take isl_printer *p, struct polysa_prog *prog, struct polysa_hw_top_module *top)
+{
+  int indent;
+  int n_cmd_q = 0;
+  int n_kernel = 0;
+  for (int i = 0; i < prog->n_array; i++) {
+    struct polysa_array_info *array = &prog->array[i];
+    if (!polysa_array_requires_device_allocation(array))
+      continue;
+
+    n_cmd_q++;
+  }
+
+  for (int i = 0; i < top->n_hw_modules; i++) {
+    struct polysa_hw_module *module = top->hw_modules[i];
+    if (module->type != PE_MODULE && module->to_mem) {
+      n_kernel++;
+    }
+  }
+
+  p = print_str_new_line(p, "bool use_emulator = false; // control whether the emulator should be used.");
+  p = print_str_new_line(p, "cl_int status;");
+  p = print_str_new_line(p, "cl_platform_id platform = NULL;");
+  p = print_str_new_line(p, "cl_device_id *devices = NULL;");
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "int NUM_QUEUES_TO_CREATE = ");
+  p = isl_printer_print_int(p, n_cmd_q);
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "int NUM_KERNELS_TO_CREATE = ");
+  p = isl_printer_print_int(p, n_kernel);
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
+
+  p = print_str_new_line(p, "cl_kernel kernel[NUM_KERNELS_TO_CREATE];"); 
+  p = print_str_new_line(p, "cl_command_queue cmdQueue[NUM_QUEUES_TO_CREATE];"); 
+  for (int i = 0; i < prog->n_array; i++) {
+    struct polysa_array_info *array = &prog->array[i];
+    if (!polysa_array_requires_device_allocation(array))
+      continue;
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "cl_mem buf_");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, " = NULL;");
+    p = isl_printer_end_line(p);
+  }
+
+  /* For each global array, we create one command queue */
+  int q_id = 0;
+  for (int i = 0; i < prog->n_array; i++) {
+    struct polysa_array_info *array = &prog->array[i];
+    if (!polysa_array_requires_device_allocation(array))
+      continue;
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "int QID_");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, " = ");
+    p = isl_printer_print_int(p, q_id);
+    p = isl_printer_print_str(p, ";");
+    p = isl_printer_end_line(p);
+    q_id++;
+  }
+  /* For each I/O group, we create one kernel */
+  int k_id = 0;
+  for (int i = 0; i < top->n_hw_modules; i++) {
+    struct polysa_hw_module *module = top->hw_modules[i];
+    struct polysa_array_ref_group *group = module->io_groups[0];
+    if (module->type != PE_MODULE && module->to_mem) {
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "int KID_");
+      p = isl_printer_print_str(p, group->array->name);
+      p = isl_printer_print_str(p, "_");
+      p = isl_printer_print_int(p, group->nr);
+      p = isl_printer_print_str(p, " = ");
+      p = isl_printer_print_int(p, k_id);
+      p = isl_printer_print_str(p, ";");
+      p = isl_printer_end_line(p);
+      k_id++;
+    }
+  }
+
+  p = isl_printer_end_line(p);
+  p = print_str_new_line(p, "// Parse command line arguments");
+  p = print_str_new_line(p, "Options options(argc, argv);");
+  p = print_str_new_line(p, "if (options.has(\"emulator\")) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "use_emulator = options.get<bool>(\"emulator\")");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = print_str_new_line(p, "if (!setCwdToExeDir()) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "return false");
+  p = isl_printer_indent(p, -4);
+  p = isl_printer_end_line(p);
+
+  p = print_str_new_line(p, "// Get the OpenCL platform");
+  p = print_str_new_line(p, "if (use_emulator) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "platform = findPlatform(\"Intel(R) FPGA Emulation Platform for OpenCL(TM)\");");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "} else {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "platform = findPlatform(\"Intel(R) FPGA SDK for OpenCL(TM)\");");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = print_str_new_line(p, "if (platform == NULL) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "printf(\"ERROR: Unable to find Intel(R) FPGA OpenCL platform\");");
+  p = print_str_new_line(p, "return -1;");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = isl_printer_end_line(p);
+
+  p = print_str_new_line(p, "// Discover and initialize the devices");
+  p = print_str_new_line(p, "cl_uint numDevices = 0;");
+  p = print_str_new_line(p, "char buffer[4096];");
+  p = print_str_new_line(p, "unsigned int buf_uint;");
+  p = print_str_new_line(p, "int device_found = 0;");
+  p = print_str_new_line(p, "status = clGetDeviceIDs(platform,");
+  p = isl_printer_indent(p, strlen("status = clGetDeviceIDs("));
+  p = print_str_new_line(p, "CL_DEVICE_TYPE_ALL,");
+  p = print_str_new_line(p, "0,");
+  p = print_str_new_line(p, "NULL,");
+  p = print_str_new_line(p, "&numDevices);");
+  p = isl_printer_indent(p, -strlen("status = clGetDeviceIDs("));
+  p = print_str_new_line(p, "if (status == CL_SUCCESS) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "clGetPlatformInfo(platform,");
+  p = isl_printer_indent(p, strlen("clGetPlatformInfo("));
+  p = print_str_new_line(p, "CL_PLATFORM_VENDOR,");
+  p = print_str_new_line(p, "4096,");
+  p = print_str_new_line(p, "buffer,");
+  p = print_str_new_line(p, "NULL);");
+  p = isl_printer_indent(p, -strlen("clGetPlatformInfo("));
+  p = print_str_new_line(p, "if (strstr(buffer, \"Intel(R)\") != NULL) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "device_found = 1;");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = print_str_new_line(p, "if (device_found) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "devices = (cl_device_id*) acl_aligned_malloc(numDevices * sizeof(cl_device_id));"); 
+  p = print_str_new_line(p, "status = clGetDeviceIDs(platform,");
+  p = isl_printer_indent(p, strlen("status = clGetDeviceIDs("));
+  p = print_str_new_line(p, "CL_DEVICE_TYPE_ALL,");
+  p = print_str_new_line(p, "numDevices,");
+  p = print_str_new_line(p, "devices,");
+  p = print_str_new_line(p, "NULL);");
+  p = isl_printer_indent(p, -strlen("status = clGetDeviceIDs("));
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = print_str_new_line(p, "if (!device_found) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "printf(\"failed to find a OpenCL device\\n\");");
+  p = print_str_new_line(p, "exit(1);");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+
+  p = print_str_new_line(p, "for (int i = 0; i < numDevices; i++) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "clGetDeviceInfo(devices[i],");
+  indent = strlen("clGetDeviceInfo(");
+  p = isl_printer_indent(p, indent);
+  p = print_str_new_line(p, "CL_DEVICE_NAME,");
+  p = print_str_new_line(p, "4096,");
+  p = print_str_new_line(p, "buffer,");
+  p = print_str_new_line(p, "NULL);");
+  p = isl_printer_indent(p, -indent);
+  p = print_str_new_line(p, "fprintf(stdout, \"\\nDevice Name: %s\\n\", buffer);");
+  p = isl_printer_end_line(p);
+
+  p = print_str_new_line(p, "clGetDeviceInfo(devices[i],");
+  indent = strlen("clGetDeviceInfo(");
+  p = isl_printer_indent(p, indent);
+  p = print_str_new_line(p, "CL_DEVICE_VENDOR,");
+  p = print_str_new_line(p, "4096,");
+  p = print_str_new_line(p, "buffer,");
+  p = print_str_new_line(p, "NULL);");
+  p = isl_printer_indent(p, -indent);
+  p = print_str_new_line(p, "fprintf(stdout, \"Device Vendor: %s\\n\", buffer);");
+  p = isl_printer_end_line(p);
+
+  p = print_str_new_line(p, "clGetDeviceInfo(devices[i],");
+  indent = strlen("clGetDeviceInfo(");
+  p = isl_printer_indent(p, indent);
+  p = print_str_new_line(p, "CL_DEVICE_MAX_COMPUTE_UNITS,");
+  p = print_str_new_line(p, "sizeof(buf_uint),");
+  p = print_str_new_line(p, "&buf_uint,");
+  p = print_str_new_line(p, "NULL);");
+  p = isl_printer_indent(p, -indent);
+  p = print_str_new_line(p, "fprintf(stdout, \"Device Computing Units: %u\\n\", buf_uint);");
+  p = isl_printer_end_line(p);
+
+  p = print_str_new_line(p, "clGetDeviceInfo(devices[i],");
+  indent = strlen("clGetDeviceInfo(");
+  p = isl_printer_indent(p, indent);
+  p = print_str_new_line(p, "CL_DEVICE_GLOBAL_MEM_SIZE,");
+  p = print_str_new_line(p, "sizeof(unsigned long),");
+  p = print_str_new_line(p, "&buffer,");
+  p = print_str_new_line(p, "NULL);");
+  p = isl_printer_indent(p, -indent);
+  p = print_str_new_line(p, "fprintf(stdout, \"Global Memory Size: %lu\\n\", *((unsigned long*)buffer));");
+  p = isl_printer_end_line(p);
+
+  p = print_str_new_line(p, "clGetDeviceInfo(devices[i],");
+  indent = strlen("clGetDeviceInfo(");
+  p = isl_printer_indent(p, indent);
+  p = print_str_new_line(p, "CL_DEVICE_MAX_MEM_ALLOC_SIZE,");
+  p = print_str_new_line(p, "sizeof(unsigned long),");
+  p = print_str_new_line(p, "&buffer,");
+  p = print_str_new_line(p, "NULL);");
+  p = isl_printer_indent(p, -indent);
+  p = print_str_new_line(p, "fprintf(stdout, \"Global Memory Allocation Size: %lu\\n\\n\", *((unsigned long*)buffer));");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = isl_printer_end_line(p);
+
+  /* Context */
+  p = print_str_new_line(p, "// Create a context");
+  p = print_str_new_line(p, "context = clCreateContext(NULL,");
+  indent = strlen("context = clCreateContext(");
+  p = isl_printer_indent(p, indent);
+  p = print_str_new_line(p, "1,");
+  p = print_str_new_line(p, "devices,");
+  p = print_str_new_line(p, "NULL,");
+  p = print_str_new_line(p, "NULL,");
+  p = print_str_new_line(p, "&status); CHECK(status);");
+  p = isl_printer_indent(p, -indent);
+  p = isl_printer_end_line(p);
+
+  /* Command Queue */
+  p = print_str_new_line(p, "// Create command queues");
+  p = print_str_new_line(p, "for (int i = 0; i < NUM_QUEUES_TO_CREATE; i++) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "cmdQueue[i] = clCreateCommandQueue(context");
+  indent = strlen("cmdQueue[i] = clCreateCommandQueue(");
+  p = isl_printer_indent(p, indent);
+  p = print_str_new_line(p, "devices[0],");
+  p = print_str_new_line(p, "CL_QUEUE_PROFILING_ENABLE,");
+  p = print_str_new_line(p, "&status); CHECK(status);");
+  p = isl_printer_indent(p, -indent);
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = isl_printer_end_line(p);  
+
+  /* Create the program from binaries */
+  p = print_str_new_line(p, "// Create the program from binaries");
+  p = print_str_new_line(p, "size_t binary_length;");
+  p = print_str_new_line(p, "const unsigned char *binary;");
+  p = print_str_new_line(p, "printf(\"\\nAOCX file: %%s\\n\\n\", AOCX_FILE);");
+  p = print_str_new_line(p, "FILE *fp = fopen(AOCX_FILE, \"rb\");");
+  p = print_str_new_line(p, "if (fp == NULL) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "printf(\"Failed to open the AOCX file (fopen).\\n\");");
+  p = print_str_new_line(p, "return -1;");  
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = print_str_new_line(p, "fseek(fp, 0, SEEK_END);");
+  p = print_str_new_line(p, "long ftell_sz = ftell(fp);");
+  p = print_str_new_line(p, "if (ftell_sz < 0) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "printf(\"ftell returns a negative value.\\n\");");
+  p = print_str_new_line(p, "fclose(fp);");
+  p = print_str_new_line(p, "return -1;");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "} else {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "binary_length = ftell_sz;");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = print_str_new_line(p, "binary = (unsigned char *)malloc(sizeof(unsigned char) * binary_length);");
+  p = print_str_new_line(p, "rewind(fp);");
+  p = print_str_new_line(p, "size_t fread_sz = fread((void *)binary, binary_length, 1, fp);");
+  p = print_str_new_line(p, "if (fread_sz == 0) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "printf(\"Failed to read from the AOCX file (fread).\\n\");");
+  p = print_str_new_line(p, "fclose(fp);");
+  p = print_str_new_line(p, "free(const_char<unsigned char *>(binary))");
+  p = print_str_new_line(p, "return -1;");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = print_str_new_line(p, "fclose(fp);");
+  p = isl_printer_end_line(p);
+  
+  p = print_str_new_line(p, "program = clCreateProgramWithBinary(context,");
+  indent = strlen("program = clCreateProgramWithBinary(");
+  p = isl_printer_indent(p, indent);
+  p = print_str_new_line(p, "1,");
+  p = print_str_new_line(p, "devices,");
+  p = print_str_new_line(p, "&binary_length,");
+  p = print_str_new_line(p, "(const unsigned char **)&binary,");
+  p = print_str_new_line(p, "&status,");
+  p = print_str_new_line(p, "NULL); CHECK(status);");
+  p = isl_printer_indent(p, -indent);
+  p = isl_printer_end_line(p);
+
+  p = print_str_new_line(p, "status = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);");
+  p = print_str_new_line(p, "if (status != CL_SUCCESS) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "char log[10000] = {0};");
+  p = print_str_new_line(p, "clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 10000, log, NULL);");
+  p = print_str_new_line(p, "printf(\"%%s\\n\", log);");
+  p = print_str_new_line(p, "CHECK(status);");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = isl_printer_end_line(p);
+
+  /* Create the kernel */
+  p = print_str_new_line(p, "// Create the kernel");
+  p = print_str_new_line(p, "for (int i = 0; i < NUM_KERNELS_TO_CREATE; i++) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "kernel[i] = clCreateKernel(program, NULL, &status);");
+  p = print_str_new_line(p, "CHECK(status);");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+
+  return p;
+}
+
 /* Print code for initializing the device for execution of the transformed
  * code.  This includes declaring locally defined variables as well as
  * declaring and allocating the required copies of arrays on the device.
@@ -615,11 +1051,13 @@ static __isl_give isl_printer *init_device_xilinx(__isl_take isl_printer *p,
  * declaring and allocating the required copies of arrays on the device.
  */
 static __isl_give isl_printer *init_device_intel(__isl_take isl_printer *p,
-	struct polysa_prog *prog)
+	struct polysa_prog *prog, struct polysa_hw_top_module *top)
 {
 	p = polysa_print_local_declarations(p, prog);
-	p = declare_device_arrays(p, prog);
-	p = allocate_device_arrays(p, prog);
+  p = find_device_intel(p, prog, top);
+  p = declare_and_allocate_device_arrays_intel(p, prog);
+//	p = declare_device_arrays(p, prog);
+//	p = allocate_device_arrays(p, prog);
 
 	return p;
 }
@@ -645,10 +1083,38 @@ static __isl_give isl_printer *free_device_arrays(__isl_take isl_printer *p,
 /* Print code for clearing the device after execution of the transformed code.
  * In particular, free the memory that was allocated on the device.
  */
-static __isl_give isl_printer *clear_device(__isl_take isl_printer *p,
+static __isl_give isl_printer *clear_device_intel(__isl_take isl_printer *p,
 	struct polysa_prog *prog)
 {
 //	p = free_device_arrays(p, prog);
+//  p = print_str_new_line(p, "cleanup();");
+  p = print_str_new_line(p, "// clean up resources");
+  for (int i = 0; i < prog->n_array; i++) {
+    struct polysa_array_info *array = &prog->array[i];
+    if (!polysa_array_requires_device_allocation(&prog->array[i])) 
+      continue;
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "acl_aligned_free(dev_");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, ");");
+    p = isl_printer_end_line(p);
+  }
+  p = isl_printer_end_line(p);
+  p = print_str_new_line(p, "for (int i = 0; i < NUM_KERNELS_TO_CREATE; i++) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "clReleaseKernel(kernel[i]);");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = isl_printer_end_line(p);
+  p = print_str_new_line(p, "for (int i = 0; i < NUM_QUEUES_TO_CREATE; i++) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "clReleaseCommandQueue(cmdQueue[i]);");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
+  p = isl_printer_end_line(p);
+  p = print_str_new_line(p, "clReleaseProgram(program);");
+  p = print_str_new_line(p, "clReleaseContext(context);");
+  p = print_str_new_line(p, "acl_aligned_free(devices);");
 
 	return p;
 }
@@ -670,22 +1136,38 @@ static __isl_give isl_printer *clear_device_xilinx(__isl_take isl_printer *p,
  * been precomputed in extract_array_info and are used in
  * gpu_array_info_print_size.
  */
-static __isl_give isl_printer *copy_array_to_device(__isl_take isl_printer *p,
+static __isl_give isl_printer *copy_array_to_device_intel(__isl_take isl_printer *p,
 	struct polysa_array_info *array)
 {
-	p = isl_printer_start_line(p);
-	p = isl_printer_print_str(p, "cudaCheckReturn(cudaMemcpy(dev_");
-	p = isl_printer_print_str(p, array->name);
-	p = isl_printer_print_str(p, ", ");
-
-	if (polysa_array_is_scalar(array))
-		p = isl_printer_print_str(p, "&");
-	p = isl_printer_print_str(p, array->name);
-	p = isl_printer_print_str(p, ", ");
-
-	p = polysa_array_info_print_size(p, array);
-	p = isl_printer_print_str(p, ", cudaMemcpyHostToDevice));");
-	p = isl_printer_end_line(p);
+  int indent;
+  p = print_str_new_line(p, "status = clEnqueueWriteBuffer(");
+  p = isl_printer_indent(p, 4);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "cmdQueue[QID_");
+  p = isl_printer_print_str(p, array->name);
+  p = isl_printer_print_str(p, "],");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "buf_");
+  p = isl_printer_print_str(p, array->name);
+  p = isl_printer_print_str(p, ",");
+  p = isl_printer_end_line(p);
+  p = print_str_new_line(p, "CL_TRUE,");
+  p = print_str_new_line(p, "0,");
+  p = isl_printer_start_line(p);
+  p = polysa_array_info_print_size(p, array);
+  p = isl_printer_print_str(p, ",");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "dev_");
+  p = isl_printer_print_str(p, array->name);
+  p = isl_printer_print_str(p, ",");
+  p = isl_printer_end_line(p);
+  p = print_str_new_line(p, "0,");
+  p = print_str_new_line(p, "NULL,");
+  p = print_str_new_line(p, "NULL); CHECK(status);");
+  p = isl_printer_indent(p, -4);
+  p = isl_printer_end_line(p);
 
 	return p;
 }
@@ -695,20 +1177,36 @@ static __isl_give isl_printer *copy_array_to_device(__isl_take isl_printer *p,
  * been precomputed in extract_array_info and are used in
  * polysa_array_info_print_size.
  */
-static __isl_give isl_printer *copy_array_from_device(
+static __isl_give isl_printer *copy_array_from_device_intel(
 	__isl_take isl_printer *p, struct polysa_array_info *array)
 {
-	p = isl_printer_start_line(p);
-	p = isl_printer_print_str(p, "cudaCheckReturn(cudaMemcpy(");
-	if (polysa_array_is_scalar(array))
-		p = isl_printer_print_str(p, "&");
-	p = isl_printer_print_str(p, array->name);
-	p = isl_printer_print_str(p, ", dev_");
-	p = isl_printer_print_str(p, array->name);
-	p = isl_printer_print_str(p, ", ");
-	p = polysa_array_info_print_size(p, array);
-	p = isl_printer_print_str(p, ", cudaMemcpyDeviceToHost));");
-	p = isl_printer_end_line(p);
+  p = print_str_new_line(p, "status = clEnqueueReadBuffer(");
+  p = isl_printer_indent(p, 4);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "cmdQueue[QID_");
+  p = isl_printer_print_str(p, array->name);
+  p = isl_printer_print_str(p, "],");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "buf_");
+  p = isl_printer_print_str(p, array->name);
+  p = isl_printer_print_str(p, ",");
+  p = isl_printer_end_line(p);
+  p = print_str_new_line(p, "CL_TRUE,");
+  p = print_str_new_line(p, "0,");
+  p = isl_printer_start_line(p);
+  p = polysa_array_info_print_size(p, array);
+  p = isl_printer_print_str(p, ",");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "dev_");
+  p = isl_printer_print_str(p, array->name);
+  p = isl_printer_end_line(p);
+  p = print_str_new_line(p, "0,");
+  p = print_str_new_line(p, "NULL,");
+  p = print_str_new_line(p, "NULL); CHECK(status);");
+  p = isl_printer_indent(p, -4);
+  p = isl_printer_end_line(p);
 
 	return p;
 }
@@ -814,7 +1312,7 @@ static __isl_give isl_printer *print_device_node_xilinx(__isl_take isl_printer *
  * init_device, clear_device, copy_array_to_device or copy_array_from_device.
  */
 static __isl_give isl_printer *print_device_node_intel(__isl_take isl_printer *p,
-	__isl_keep isl_ast_node *node, struct polysa_prog *prog)
+	__isl_keep isl_ast_node *node, struct polysa_prog *prog, struct polysa_hw_top_module *top)
 {
 	isl_ast_expr *expr, *arg;
 	isl_id *id;
@@ -833,16 +1331,16 @@ static __isl_give isl_printer *print_device_node_intel(__isl_take isl_printer *p
 	if (!name)
 		return isl_printer_free(p);
 	if (!strcmp(name, "init_device"))
-		return init_device_intel(p, prog); 
+		return init_device_intel(p, prog, top); 
 	if (!strcmp(name, "clear_device"))
-		return clear_device(p, prog); 
+		return clear_device_intel(p, prog); 
 	if (!array)
 		return isl_printer_free(p);
 
 	if (!prefixcmp(name, "to_device"))
-		return copy_array_to_device(p, array); 
+		return copy_array_to_device_intel(p, array); 
 	else
-		return copy_array_from_device(p, array); 
+		return copy_array_from_device_intel(p, array); 
 }
 
 /* Print the header of the given kernel.
@@ -2246,7 +2744,7 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
     }
     if (types) {
       p = polysa_array_info_print_declaration_argument(p,
-            module->io_groups[0]->array, NULL);
+            module->io_groups[0]->array, target == INTEL_HW? "global" : NULL);
     } else {
       p = polysa_array_info_print_call_argument(p, 
             module->io_groups[0]->array); // TODO
@@ -2867,6 +3365,8 @@ static __isl_give isl_printer *print_host_user_intel(__isl_take isl_printer *p,
   struct polysa_kernel *kernel;
   struct polysa_kernel_stmt *stmt;
   struct print_host_user_data *data;
+  int indent;
+  struct polysa_hw_top_module *top;
 
   isl_ast_print_options_free(print_options);
 
@@ -2874,7 +3374,7 @@ static __isl_give isl_printer *print_host_user_intel(__isl_take isl_printer *p,
 
   id = isl_ast_node_get_annotation(node);
   if (!id)
-    return print_device_node_intel(p, node, data->prog); 
+    return print_device_node_intel(p, node, data->prog, data->top); 
 
   is_user = !strcmp(isl_id_get_name(id), "user");
   kernel = is_user ? NULL : isl_id_get_user(id);
@@ -2885,34 +3385,75 @@ static __isl_give isl_printer *print_host_user_intel(__isl_take isl_printer *p,
     return polysa_kernel_print_domain(p, stmt); 
 
   p = ppcg_start_block(p); 
+  top = data->top;
 
-  // TODO: CUDA host kernel launch, to be modified later
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "dim3 k");
-  p = isl_printer_print_int(p, kernel->id);
-  p = isl_printer_print_str(p, "_dimBlock");
-  print_reverse_list(isl_printer_get_file(p),
-      kernel->n_block, kernel->block_dim);
-  p = isl_printer_print_str(p, ";");
+  for (int i = 0; i < top->n_hw_modules; i++) {
+    struct polysa_hw_module *module = top->hw_modules[i];
+    struct polysa_array_ref_group *group = module->io_groups[0];
+    if (module->type != PE_MODULE && module->to_mem) {            
+      p = print_str_new_line(p, "status = clSetKernelArg(");
+      p = isl_printer_indent(p, 4);
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "kernel[KID_");
+      p = isl_printer_print_str(p, group->array->name);
+      p = isl_printer_print_str(p, "_");
+      p = isl_printer_print_int(p, group->nr);
+      p = isl_printer_print_str(p, "],");
+      p = isl_printer_end_line(p);
+      p = print_str_new_line(p, "0,");
+      p = print_str_new_line(p, "sizeof(cl_mem),");
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "(void*)&buf_");
+      p = isl_printer_print_str(p, group->array->name);
+      p = isl_printer_print_str(p, "); CHECK(status);");
+      p = isl_printer_end_line(p);
+      p = isl_printer_indent(p, -4);
+    }
+  }
   p = isl_printer_end_line(p);
 
-  p = print_grid(p, kernel); 
-
-  // TODO: add kernel calls for OpenCL
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "kernel");
-  p = isl_printer_print_int(p, kernel->id);
-  p = isl_printer_print_str(p, " <<<k");
-  p = isl_printer_print_int(p, kernel->id);
-  p = isl_printer_print_str(p, "_dimGrid, k");
-  p = isl_printer_print_int(p, kernel->id);
-  p = isl_printer_print_str(p, "_dimBlock>>> (");
-  p = print_kernel_arguments(p, data->prog, kernel, 0); 
-  p = isl_printer_print_str(p, ");");
+  p = print_str_new_line(p, "size_t globalWorkSize[1];");
+  p = print_str_new_line(p, "size_t localWorkSize[1];");
+  p = print_str_new_line(p, "globalWorkSize[0] = 1;");
+  p = print_str_new_line(p, "localWorkSize[0] = 1;");
+  p = isl_printer_end_line(p);
+  
+  p = print_str_new_line(p, "// Enqueue kernels");
+  for (int i = 0; i < top->n_hw_modules; i++) {
+    struct polysa_hw_module *module = top->hw_modules[i];
+    struct polysa_array_ref_group *group = module->io_groups[0];
+    if (module->type != PE_MODULE && module->to_mem) {
+      p = print_str_new_line(p, "status = clEnqueueNDRangeKernel(");
+      p = isl_printer_indent(p, 4);
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "cmdQueue[QID_");
+      p = isl_printer_print_str(p, group->array->name);
+      p = isl_printer_print_str(p, "],");
+      p = isl_printer_end_line(p);
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "kernel[KID_");
+      p = isl_printer_print_str(p, group->array->name);
+      p = isl_printer_print_str(p, "_");
+      p = isl_printer_print_int(p, group->nr);
+      p = isl_printer_print_str(p, "],");
+      p = isl_printer_end_line(p);
+      p = print_str_new_line(p, "1,");
+      p = print_str_new_line(p, "NULL,");
+      p = print_str_new_line(p, "globalWorkSize,");
+      p = print_str_new_line(p, "localWorkSize,");
+      p = print_str_new_line(p, "0,");
+      p = print_str_new_line(p, "NULL,");
+      p = print_str_new_line(p, "NULL); CHECK(statis);");
+      p = isl_printer_indent(p, -4);
+    }
+  }
   p = isl_printer_end_line(p);
 
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "cudaCheckKernel();");
+  p = print_str_new_line(p, "for (int i = 0; i < NUM_QUEUES_TO_CREATE; i++) {");
+  p = isl_printer_indent(p, 4);
+  p = print_str_new_line(p, "status = clFinish(cmdQueue[i]); CHECK(status);");
+  p = isl_printer_indent(p, -4);
+  p = print_str_new_line(p, "}");
   p = isl_printer_end_line(p);
 
   /* Print the top kernel generation function */
@@ -2943,14 +3484,17 @@ static __isl_give isl_printer *print_host_user_intel(__isl_take isl_printer *p,
   return p;
 }
 
+
+
 static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
   struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
   struct polysa_hw_module **modules, int n_modules,
+  struct polysa_hw_top_module *top,
   struct hls_info *hls)
 {
   isl_ast_print_options *print_options;
   isl_ctx *ctx = isl_ast_node_get_ctx(tree);
-  struct print_host_user_data data = { hls, prog };
+  struct print_host_user_data data = { hls, prog, top };
   struct print_hw_module_data hw_data = { hls, prog, NULL };
   isl_printer *p_module;
 
@@ -3031,7 +3575,7 @@ static __isl_give isl_printer *print_hw(__isl_take isl_printer *p,
     return isl_printer_free(p);
 
   /* Print OpenCL host and kernel function */
-  p = polysa_print_host_code(p, prog, tree, modules, n_modules, hls); 
+  p = polysa_print_host_code(p, prog, tree, modules, n_modules, top_module, hls); 
   /* Print seperate top module code generation function */
   print_top_gen_host_code(prog, tree, top_module, hls); 
 
