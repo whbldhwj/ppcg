@@ -119,8 +119,10 @@ static int populate_array_references_pe(struct polysa_local_array_info *local,
     group->group_type = POLYSA_PE_GROUP;
     group->local_tile = NULL;
     group->io_trans = NULL;
-    group->io_trans_mat = NULL;
+//    group->io_trans_mat = NULL;
     group->io_pe_expr = NULL;
+    group->n_io_buffer = 0;
+    group->io_buffers = NULL;
 
 		groups[n++] = group;
 	}
@@ -184,8 +186,11 @@ static int populate_array_references_io(struct polysa_local_array_info *local,
       group->pe_io_dir = IO_NULL;
       group->array_io_dir = IO_NULL;
       group->io_trans = NULL;
-      group->io_trans_mat = NULL;
+//      group->io_trans_mat = NULL;
       group->io_pe_expr = NULL;
+      group->io_L1_pe_expr = NULL;
+      group->n_io_buffer = 0;
+      group->io_buffers = NULL;
 
 		  groups[n++] = group;
     }
@@ -235,8 +240,11 @@ static struct polysa_array_ref_group *join_groups(
   group->pe_io_dir = group1->pe_io_dir;
   group->array_io_dir = group1->array_io_dir;
   group->io_trans = group1->io_trans;
-  group->io_trans_mat = group1->io_trans_mat;
+//  group->io_trans_mat = group1->io_trans_mat;
   group->io_pe_expr = group1->io_pe_expr;
+  group->io_L1_pe_expr = group1->io_L1_pe_expr;
+  group->n_io_buffer = group1->n_io_buffer;
+  group->io_buffers = group1->io_buffers;
 
 	return group;
 }
@@ -622,6 +630,20 @@ static __isl_give isl_map *local_access_io(struct polysa_array_ref_group *group,
   return isl_map_from_union_map(local);
 }
 
+static __isl_give isl_map *local_access_io_at_node(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group,
+  __isl_keep isl_union_map *access, __isl_keep isl_schedule_node *node)
+{
+  isl_union_map *local, *sched;
+
+  local = isl_union_map_copy(access);
+  sched = prefix_with_equalities(node);
+  sched = expand(sched, kernel->contraction);
+  local = isl_union_map_apply_domain(local, sched);
+  
+  return isl_map_from_union_map(local);
+}
+
 /* Given an array access "access", check if for any index i there is
  * a shift a(p) and a stride g such that
  *
@@ -817,6 +839,110 @@ static isl_stat compute_group_bounds_core_pe(struct polysa_kernel *kernel,
     else if (!ok)
       group->local_tile = 
         polysa_array_tile_free(group->local_tile);
+    isl_map_free(acc);
+  }
+
+  if (r < 0) {
+    isl_union_map_free(access);
+    return r;
+  }
+
+  isl_union_map_free(access);
+  return isl_stat_ok;
+}
+
+/* Compute the local memory tiles for the array reference group "group"
+ * of array "array". Return isl_stat_ok on success and isl_stat_error on error.
+ *
+ * If the array is a read-only scalar or if the user requested not to use local
+ * memory, then we do not need to do anything.
+ */
+isl_stat compute_group_bounds_io_at_node(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, __isl_keep isl_schedule_node *node,
+  struct polysa_io_buffer *buffer) 
+{
+  isl_ctx *ctx = isl_space_get_ctx(group->array->space);
+  int use_local = kernel->options->use_local_memory;
+  isl_stat r = isl_stat_ok;
+  isl_union_map *access;
+  isl_map *acc;
+  isl_bool ok;
+
+  if (!use_local)
+    return isl_stat_ok;
+  if (polysa_array_is_read_only_scalar(group->array))
+    return isl_stat_ok;
+  if (!group->exact_write)
+    return isl_stat_ok;
+  if (group->slice)
+    return isl_stat_ok;
+ 
+  /* Collect all accesses in the group. */
+  access = polysa_array_ref_group_access_relation(group, 1, 1);
+  /* Create local tile */
+  if (use_local) {
+    /* Create a tile */
+    buffer->tile = polysa_array_tile_create(ctx, group->array->n_index);
+    /* Map the domain to the outer scheduling dimensions */
+    acc = local_access_io_at_node(kernel, group, access, node);
+    /* Collect the shift and scale factors of the tile */
+    ok = can_tile(acc, buffer->tile);
+    if (ok < 0)
+      r = isl_stat_error;
+    else if (!ok)
+      buffer->tile = polysa_array_tile_free(buffer->tile);
+    isl_map_free(acc);
+  }
+
+  if (r < 0) {
+    isl_union_map_free(access);
+    return r;
+  }
+
+  isl_union_map_free(access);
+  return isl_stat_ok;
+}
+
+/* Compute the local memory tiles for the array reference group "group"
+ * of array "array". Return isl_stat_ok on success and isl_stat_error on error.
+ *
+ * If the array is a read-only scalar or if the user requested not to use local
+ * memory, then we do not need to do anything.
+ */
+isl_stat compute_group_bounds_drain_at_node(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, __isl_keep isl_schedule_node *node,
+  struct polysa_io_buffer *buffer) 
+{
+  isl_ctx *ctx = isl_space_get_ctx(group->array->space);
+  int use_local = kernel->options->use_local_memory;
+  isl_stat r = isl_stat_ok;
+  isl_union_map *access;
+  isl_map *acc;
+  isl_bool ok;
+
+  if (!use_local)
+    return isl_stat_ok;
+  if (polysa_array_is_read_only_scalar(group->array))
+    return isl_stat_ok;
+  if (!group->exact_write)
+    return isl_stat_ok;
+  if (group->slice)
+    return isl_stat_ok;
+ 
+  /* Collect all accesses in the group. */
+  access = polysa_array_ref_group_access_relation(group, 0, 1);
+  /* Create local tile */
+  if (use_local) {
+    /* Create a tile */
+    buffer->tile = polysa_array_tile_create(ctx, group->array->n_index);
+    /* Map the domain to the outer scheduling dimensions */
+    acc = local_access_io_at_node(kernel, group, access, node);
+    /* Collect the shift and scale factors of the tile */
+    ok = can_tile(acc, buffer->tile);
+    if (ok < 0)
+      r = isl_stat_error;
+    else if (!ok)
+      buffer->tile = polysa_array_tile_free(buffer->tile);
     isl_map_free(acc);
   }
 
@@ -1792,6 +1918,10 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
       group->group_type = POLYSA_DRAIN_GROUP;
       group->pe_io_dir = IO_OUT;
       group->array_io_dir = IO_OUT;
+      group->io_pe_expr = NULL;
+      group->io_L1_pe_expr = NULL;
+      group->n_io_buffer = 0;
+      group->io_buffers = NULL;
 
       groups = (struct polysa_array_ref_group **)realloc(groups, (++n) * sizeof(struct polysa_array_ref_group *));
       groups[n - 1] = group;
@@ -2022,7 +2152,7 @@ static __isl_give isl_multi_aff *strided_tile_depth(
 	return tiling;
 }
 
-// TODO
+/* Recompute the tiling by extending the scheduling domain to the "depth". */
 __isl_give isl_multi_aff *polysa_array_ref_group_recompute_tiling(
   struct polysa_array_tile *tile,
   struct polysa_array_ref_group *group,
@@ -2034,11 +2164,8 @@ __isl_give isl_multi_aff *polysa_array_ref_group_recompute_tiling(
 	isl_printer *p;
 	char *local_name;
 
-  if (tile == NULL && polysa_array_ref_group_tile(group) == NULL)
-    return NULL;
-
   if (tile == NULL)
-    tile = polysa_array_ref_group_tile(group);
+    return NULL;
 
 	space = isl_map_get_space(group->access);
 	space = isl_space_from_range(isl_space_range(space));
@@ -2360,3 +2487,43 @@ __isl_give isl_union_map *polysa_io_group_ref_access_relation(
   return access;
 }
 
+__isl_give isl_union_map *polysa_drain_group_ref_access_relation(
+  struct polysa_array_ref_group *group,
+  struct polysa_stmt_access *ref,
+  int read, int write, __isl_keep isl_union_set *domain)
+{
+  isl_union_map *access;
+  isl_set *acc_domain;
+  isl_space *space;
+
+  access = isl_union_map_empty(isl_map_get_space(group->access));
+  acc_domain = isl_map_domain(isl_map_copy(ref->access));
+  space = isl_set_get_space(acc_domain);
+  isl_set_free(acc_domain);
+  acc_domain = isl_union_set_extract_set(domain, space);
+  for (int i = 0; i < ref->n_io_info; i++) {
+    struct polysa_io_info *info_i = ref->io_info[i];
+    if (info_i->dep->type == POLYSA_DEP_WAW) {
+      isl_set *src_domain;
+      isl_space *space, *src_space;
+      isl_id *src_id;
+
+      space = isl_basic_map_get_space(info_i->dep->isl_dep);
+      src_space = isl_space_unwrap(isl_space_domain(space));
+      src_id = isl_space_get_tuple_id(src_space, isl_dim_out);
+      isl_space_free(src_space);
+      if (src_id != ref->ref_id) {
+        isl_id_free(src_id);
+        continue;
+      }
+      isl_id_free(src_id);
+      src_domain = isl_map_domain(isl_map_factor_domain(isl_map_from_basic_map(
+              isl_basic_map_copy(info_i->dep->isl_dep))));
+      acc_domain = isl_set_subtract(acc_domain, src_domain);
+    }
+  }
+  access = isl_union_map_union(access,
+    isl_union_map_from_map(isl_map_intersect_domain(isl_map_copy(ref->access), acc_domain)));
+
+  return access;
+}

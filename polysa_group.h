@@ -34,5 +34,15 @@ __isl_give isl_multi_aff *polysa_array_ref_group_recompute_tiling(
   struct polysa_array_tile *tile,
   struct polysa_array_ref_group *group,
   int depth);
+isl_stat compute_group_bounds_io_at_node(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, __isl_keep isl_schedule_node *node,
+  struct polysa_io_buffer *buffer);
+isl_stat compute_group_bounds_drain_at_node(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, __isl_keep isl_schedule_node *node,
+  struct polysa_io_buffer *buffer);
+__isl_give isl_union_map *polysa_drain_group_ref_access_relation(
+  struct polysa_array_ref_group *group,
+  struct polysa_stmt_access *ref,
+  int read, int write, __isl_keep isl_union_set *domain);
 
 #endif

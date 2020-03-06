@@ -1382,10 +1382,18 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
 		free(group->refs);
   isl_vec_free(group->dir);
   isl_multi_aff_free(group->io_trans);
-  isl_mat_free(group->io_trans_mat);
+  isl_multi_aff_free(group->io_L1_trans);
   isl_ast_expr_free(group->io_pe_expr);
-	free(group);
+  isl_ast_expr_free(group->io_L1_pe_expr);
+  for (int i = 0; i < group->n_io_buffer; i++) {
+    polysa_array_tile_free(group->io_buffers[i]->tile);
+    free(group->io_buffers[i]);
+  }
+  free(group->io_buffers);
+  isl_schedule_free(group->io_L1_schedule);
+  isl_schedule_free(group->io_schedule);
 
+	free(group);
 	return NULL;
 }
 
@@ -2312,9 +2320,13 @@ void *polysa_hw_top_module_free(struct polysa_hw_top_module *module)
   }
 
 //  // TODO: valgrind
-//  for (int i = 0; i < module->n_hw_modules; i++) {
-//    isl_schedule_free(module->scheds[i]);
+//  for (int i = 0; i < module->n_fifo_decls; i++) {
+//    isl_schedule_free(module->fifo_decl_scheds[i]);
 //  }
+//  for (int i = 0; i < module->n_module_calls; i++) {
+//    isl_schedule_free(module->module_call_scheds[i]);
+//  }
+
   free(module->module_call_scheds);
   free(module->fifo_decl_scheds);
   free(module->module_call_trees);

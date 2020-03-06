@@ -386,6 +386,13 @@ struct polysa_array_info {
 	isl_union_map *dep_order;
 };
 
+struct polysa_io_buffer {
+  /* The local buffer tile, NULL if none. */
+  struct polysa_array_tile *tile;
+  /* The buffer is located at io_L"level". */
+  int level;
+};
+
 /* A group of array references in a kernel that should be handled together.
  * If private_tile is not NULL, then it is mapped to registers.
  * Otherwise, if shared_tile is not NULL, it is mapped to shared memory.
@@ -431,20 +438,39 @@ struct polysa_array_ref_group {
 	struct polysa_stmt_access **refs;  
 
   /* PolySA Extended */
+
+  /* I/O buffers inserted at each IO level */
+  struct polysa_io_buffer **io_buffers;   
+  int n_io_buffer;
+  /* I/O type: interior/exterior I/O */
   enum polysa_io_type io_type;
+  /* I/O direction at the PE level */
   isl_vec *dir;
+  /* Group type: I/O/drain/PE group */
   enum polysa_group_type group_type;
+  /* I/O direction at the PE level */
   enum polysa_io_dir pe_io_dir;
+  /* I/O direction at the array level */
   enum polysa_io_dir array_io_dir;
-  isl_multi_aff *io_trans; /* pe ids -> io ids */
-  isl_mat *io_trans_mat;
-  isl_ast_expr *io_pe_expr; /* io ids -> pe ids */
+  /* Maps PE identifiers to I/O identifiers */
+  isl_multi_aff *io_trans; /* pe ids -> io ids */ // TODO
+  isl_multi_aff *io_L1_trans; /* pe ids -> L1 io ids */
+//  /* Maps PE identifiers to I/O identifiers */
+//  isl_mat *io_trans_mat; // TODO
+  /* AST expression maps L1 I/O identifiers to PE identifiers */
+  isl_ast_expr *io_pe_expr; /* io ids -> pe ids */ // TODO
+  isl_ast_expr *io_L1_pe_expr; /* L1 io ids -> pe ids */ // TODO
+  /* I/O schedule */
+  isl_schedule *io_schedule;
+  isl_schedule *io_L1_schedule;
+
   /* PolySA Extended */
 };
 
 struct polysa_array_ref_group_pair {
-  struct polysa_array_ref_group *local_group; /* Compute the local tile */
+  struct polysa_array_ref_group *local_group; 
   struct polysa_array_ref_group *io_group;
+  struct polysa_array_tile *local_tile; /* Compute the local tile */
   int in_use;
 };
 

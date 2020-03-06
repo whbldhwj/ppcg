@@ -831,7 +831,8 @@ static __isl_give isl_printer *find_device_intel(__isl_take isl_printer *p, stru
   p = print_str_new_line(p, "0,");
   p = print_str_new_line(p, "NULL,");
   p = print_str_new_line(p, "&numDevices);");
-  p = isl_printer_indent(p, -strlen("status = clGetDeviceIDs("));
+  indent = strlen("status = clGetDeviceIDs(");
+  p = isl_printer_indent(p, -indent);
   p = print_str_new_line(p, "if (status == CL_SUCCESS) {");
   p = isl_printer_indent(p, 4);
   p = print_str_new_line(p, "clGetPlatformInfo(platform,");
@@ -840,7 +841,8 @@ static __isl_give isl_printer *find_device_intel(__isl_take isl_printer *p, stru
   p = print_str_new_line(p, "4096,");
   p = print_str_new_line(p, "buffer,");
   p = print_str_new_line(p, "NULL);");
-  p = isl_printer_indent(p, -strlen("clGetPlatformInfo("));
+  indent = strlen("clGetPlatformInfo(");
+  p = isl_printer_indent(p, -indent);
   p = print_str_new_line(p, "if (strstr(buffer, \"Intel(R)\") != NULL) {");
   p = isl_printer_indent(p, 4);
   p = print_str_new_line(p, "device_found = 1;");
@@ -855,7 +857,8 @@ static __isl_give isl_printer *find_device_intel(__isl_take isl_printer *p, stru
   p = print_str_new_line(p, "numDevices,");
   p = print_str_new_line(p, "devices,");
   p = print_str_new_line(p, "NULL);");
-  p = isl_printer_indent(p, -strlen("status = clGetDeviceIDs("));
+  indent = strlen("status = clGetDeviceIDs(");
+  p = isl_printer_indent(p, -indent);
   p = isl_printer_indent(p, -4);
   p = print_str_new_line(p, "}");
   p = isl_printer_indent(p, -4);
@@ -1760,11 +1763,11 @@ static __isl_give isl_printer *print_inst_ids_suffix(__isl_take isl_printer *p,
 
 /* Print out
  * "_[c0 + val]"
+ * Increase the "pos"th index by the value of "val"
  */
 static __isl_give isl_printer *print_inst_ids_inc_suffix(__isl_take isl_printer *p,
-  int n, int val)
+  int n, int pos, int val)
 {
-  assert(n == 1);
   for (int i = 0; i < n; i++) {
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"_\");");
@@ -1772,9 +1775,11 @@ static __isl_give isl_printer *print_inst_ids_inc_suffix(__isl_take isl_printer 
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "p = isl_printer_print_int(p, c");
     p = isl_printer_print_int(p, i);
-    if (val != 0) {
-      p = isl_printer_print_str(p, " + ");
-      p = isl_printer_print_int(p, val);
+    if (i == pos) {
+      if (val != 0) {
+        p = isl_printer_print_str(p, " + ");
+        p = isl_printer_print_int(p, val);
+      }
     }
     p = isl_printer_print_str(p, ");");
     p = isl_printer_end_line(p);
@@ -1896,7 +1901,7 @@ static __isl_give isl_printer *print_fifo_prefix_lower(__isl_take isl_printer *p
   p = isl_printer_print_str(p, "_");
   assert(module->type != PE_MODULE);
 
-  if (module->level == 1 || (module->level == 2 && group->io_type == POLYSA_EXT_IO))
+  if (module->to_pe)
     lower_is_PE = 1;
   else
     lower_is_PE = 0;
@@ -1983,21 +1988,15 @@ __isl_give isl_printer *print_fifo_decl(__isl_take isl_printer *p,
   n = isl_id_list_n_id(module->inst_ids);
   if (module->type == IO_MODULE || module->type == DRAIN_MODULE) {
     if (boundary) {
-      if (module->level == 2) {
-        p = print_inst_ids_inc_suffix(p, n, 1);
-      } else {
-        isl_vec *new_dir = get_trans_dir(group->dir, group->io_trans_mat);
-        p = print_inst_ids_suffix(p, n, new_dir);
-        isl_vec_free(new_dir);
-      }
+      p = print_inst_ids_inc_suffix(p, n, n - 1, 1);
     } else {
       p = print_inst_ids_suffix(p, n, NULL);
     }
   } else if (module->type == PE_MODULE) {
     if (boundary) 
-      p = print_pretrans_inst_ids_suffix(p, isl_id_list_n_id(module->inst_ids), group->io_pe_expr, group->dir);
+      p = print_pretrans_inst_ids_suffix(p, n, group->io_L1_pe_expr, group->dir);
     else
-      p = print_pretrans_inst_ids_suffix(p, isl_id_list_n_id(module->inst_ids), group->io_pe_expr, NULL); 
+      p = print_pretrans_inst_ids_suffix(p, n, group->io_L1_pe_expr, NULL); 
   }
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \";\");");
@@ -2149,7 +2148,7 @@ __isl_give isl_printer *print_module_call_upper(__isl_take isl_printer *p,
       }
     }
   } else {
-    if (module->level != 3) {
+    if (!module->to_mem) {
       for (int i = 0; i < module->n_io_group; i++) {
         struct polysa_array_ref_group *group = module->io_groups[i]; 
         p = print_delimiter(p, &first);
@@ -2160,12 +2159,13 @@ __isl_give isl_printer *print_module_call_upper(__isl_take isl_printer *p,
         p = print_delimiter(p, &first);
         p = print_fifo_annotation(p, module, group, 0, 0);
         p = print_fifo_prefix(p, module, group);
-        if (module->level == 1) {
-          isl_vec *new_dir = get_trans_dir(group->dir, group->io_trans_mat);
-          p = print_inst_ids_suffix(p, n, new_dir);
-          isl_vec_free(new_dir);
-        } else 
-          p = print_inst_ids_inc_suffix(p, n, 1);
+//        if (module->level == 1) {
+//          isl_vec *new_dir = get_trans_dir(group->dir, group->io_trans_mat);
+//          p = print_inst_ids_suffix(p, n, new_dir);
+//          isl_vec_free(new_dir);
+//        } else 
+//          p = print_inst_ids_inc_suffix(p, n, 1);
+        p = print_inst_ids_inc_suffix(p, n, n - 1, 1);
       }
     }
   }
@@ -2189,33 +2189,25 @@ static __isl_give isl_printer *print_module_call_lower(__isl_take isl_printer *p
 
     p = print_fifo_annotation(p, module, group, module->in? 0 : 1, 1); 
     p = print_fifo_prefix_lower(p, module, group);
-    if (module->level == 1 || (module->level == 2 && group->io_type == POLYSA_EXT_IO))
+    if (module->to_pe)
       lower_is_PE = 1;
     else
       lower_is_PE = 0;
 
     if (lower_is_PE) {
       if (module->in)
-        p = print_pretrans_inst_ids_suffix(p, min(n + 1, module->kernel->n_sa_dim),
-              group->io_pe_expr, NULL);
+        p = print_pretrans_inst_ids_suffix(p, module->kernel->n_sa_dim, group->io_pe_expr, NULL);
       else {
         if (module->level == 1)
-          p = print_pretrans_inst_ids_suffix(p, min(n + 1, module->kernel->n_sa_dim),
-                group->io_pe_expr, NULL);
+          p = print_pretrans_inst_ids_suffix(p, module->kernel->n_sa_dim, group->io_pe_expr, NULL);
         else
-          p = print_pretrans_inst_ids_suffix(p, min(n + 1, module->kernel->n_sa_dim),
-                group->io_pe_expr, group->dir);
+          p = print_pretrans_inst_ids_suffix(p, module->kernel->n_sa_dim, group->io_pe_expr, group->dir);
       }
     } else {
       if (module->in)
         p = print_inst_ids_suffix(p, n + 1, NULL);
       else {
-        if (module->level == 2) {
-          isl_vec *new_dir = get_trans_dir(group->dir, group->io_trans_mat);
-          p = print_inst_ids_suffix(p, n + 1, new_dir);
-          isl_vec_free(new_dir);
-        } else
-          p = print_inst_ids_inc_suffix(p, n + 1, 1);
+        p = print_inst_ids_inc_suffix(p, n + 1, n, 1);
       }
     }
   } 
@@ -2451,7 +2443,7 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
       p = isl_printer_print_str(p, " = fifo_data;");
       p = isl_printer_end_line(p);
     } else {
-      fifo_name = concat(ctx, stmt->u.i.fifo_name, "out");
+      fifo_name = concat(ctx, stmt->u.i.fifo_name, "_local_out");
       p = isl_printer_start_line(p);
       if (hls->target == XILINX_HW)
         p = print_fifo_rw_xilinx(p, fifo_name, 0);
@@ -2503,7 +2495,7 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
       p = isl_printer_print_str(p, ";");
       p = isl_printer_end_line(p);
     } else {
-      fifo_name = concat(ctx, stmt->u.i.fifo_name, "in");
+      fifo_name = concat(ctx, stmt->u.i.fifo_name, "local_in");
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "fifo_data = ");
       if (hls->target == XILINX_HW)
@@ -3184,7 +3176,7 @@ static void print_top_gen_host_code(
   for (int i = 0; i < top->n_fifo_decls; i++) {
     print_options = isl_ast_print_options_alloc(ctx);
     print_options = isl_ast_print_options_set_print_user(print_options,
-                      &print_top_module_fifo_stmt, &hw_data); // TODO
+                      &print_top_module_fifo_stmt, &hw_data); 
   
     p = isl_ast_node_print(top->fifo_decl_wrapped_trees[i], 
           p, print_options); 

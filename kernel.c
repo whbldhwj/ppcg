@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   if (err)
     printf("Failed with %d errors!\n", err);
   else
-    prnitf("passed!\n");
+    printf("passed!\n");
 
   return 0;
 }

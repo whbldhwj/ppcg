@@ -1,5 +1,3 @@
-#include <string.h>
-
 #include <isl/space.h>
 #include <isl/set.h>
 #include <isl/union_set.h>
@@ -66,6 +64,30 @@ static int node_is_kernel(__isl_keep isl_schedule_node *node)
 static int node_is_mark(__isl_keep isl_schedule_node *node, char *mark)
 {
   return is_marked(node, mark);
+}
+
+static int node_is_io_mark(__isl_keep isl_schedule_node *node)
+{
+  isl_id *mark;
+  const char *name;
+  int has_name;
+
+  if (!node)
+    return -1;
+
+  if (isl_schedule_node_get_type(node) != isl_schedule_node_mark)
+    return 0;
+
+  mark = isl_schedule_node_mark_get_id(node);
+  if (!mark)
+    return -1;
+
+  name = isl_id_get_name(mark);
+  has_name = strncmp(name, "io_L", strlen("io_L"));
+
+  isl_id_free(mark);
+
+  return has_name;
 }
 
 /* Assuming "node" is a filter node, does it correspond to the branch
@@ -214,6 +236,43 @@ __isl_give isl_schedule_node *polysa_tree_move_down_to_mark(
   if (is_mark < 0)
     node = isl_schedule_node_free(node);
 
+  return node;
+}
+
+__isl_give isl_schedule_node *polysa_tree_move_down_to_first_io_mark(
+  __isl_take isl_schedule_node *node, __isl_keep isl_union_set *core)
+{
+  int is_io_mark;
+
+  while ((is_io_mark = node_is_io_mark(node)) == 0) 
+    node = core_child(node, core);
+
+  if (is_io_mark < 0)
+    node = isl_schedule_node_free(node);
+
+  return node;
+}
+
+__isl_give isl_schedule_node *polysa_tree_move_down_to_io_mark(
+  __isl_take isl_schedule_node *node, __isl_keep isl_union_set *core, int io_level)
+{
+  int is_mark;
+  isl_printer *p;
+  char *mark;
+  
+  p = isl_printer_to_str(isl_schedule_node_get_ctx(node));
+  p = isl_printer_print_str(p, "io_L");
+  p = isl_printer_print_int(p, io_level);
+  mark = isl_printer_get_str(p);
+  p = isl_printer_free(p);
+
+  while ((is_mark = node_is_mark(node, mark)) == 0)
+    node = core_child(node, core);
+
+  if (is_mark < 0)
+    node = isl_schedule_node_free(node);
+ 
+  free(mark);
   return node;
 }
 

@@ -57,6 +57,7 @@ struct ppcg_options {
 
   /* Use HBM memory. */
   int hbm;
+  int n_hbm_port;
 
   /* Maximal systolic array dimension. */
   int max_sa_dim;
