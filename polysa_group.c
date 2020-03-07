@@ -6,6 +6,7 @@
 /* Internal data structure for polysa_group_references.
  */
 struct polysa_group_data {
+  struct polysa_gen *gen;
 	struct ppcg_scop *scop;
   /* The schedule depth where the kernel launch will be 
    * introduced.
@@ -79,7 +80,7 @@ static int populate_array_references_pe(struct polysa_local_array_info *local,
 	int i;
   int j;
 	int n;
-	isl_ctx *ctx = isl_union_map_get_ctx(data->copy_sched);
+	isl_ctx *ctx = isl_union_map_get_ctx(data->pe_sched);
 
 	n = 0;
 	for (i = 0; i < local->array->n_ref; ++i) {
@@ -144,7 +145,7 @@ static int populate_array_references_io(struct polysa_local_array_info *local,
 	int i;
   int j;
 	int n;
-	isl_ctx *ctx = isl_union_map_get_ctx(data->copy_sched);
+	isl_ctx *ctx = isl_union_map_get_ctx(data->pe_sched);
 
 	n = 0;
 	for (i = 0; i < local->array->n_ref; ++i) {
@@ -506,86 +507,60 @@ __isl_give isl_schedule *get_io_schedule(__isl_take isl_schedule *schedule, __is
   return schedule;
 }
 
-/* Given the schedule node "node" that points to "kernel" mark, and the data transfer vector "dir",
- * modify the space band of the schedule to reflect the data transfer scheme. 
- * Return the new schedule with depth down to the PE ray level.
- *
- * When modifying the schedule, we are performing a space-time transformation on the space band.
- * Specifically, by choosing "dir" as the projection vector d , and the same "dir" as the scheduling vector s.
- * We first build the transformation matrix, then apply it to the partial schedule of the schedule node.
- *
- * The transformation matrix is composed of:
- * | P |
- *  ---
- * | S |
- *
- * Pd^T = 0
- * Given a projection vector d with length of n, P is composed of (n - 1) basises from the null space of d.
- * Since rank(null(d)) + rank(d) = n, and rank(d) = 1, therefore, rank(null(d)) = n - 1
- * We will first compute the null space of d and then use them to compose the matrix P
- * S = s.
- *
- * The pe_ray_sched_depth = array_depth + rank(P)
- */
-static __isl_give isl_union_map *get_io_L1_schedule(__isl_take isl_schedule *sched, __isl_keep isl_vec *dir)
+/* Return the prefix I/O schedule at io_level "level". */
+static __isl_give isl_union_map *get_io_schedule_at_level(__isl_keep isl_schedule *sched, int level)
 {
   isl_schedule_node *node;
   struct polysa_kernel *kernel;
   isl_id *id;
   isl_union_map *io_sched;
-  isl_multi_aff *io_trans;
-  isl_mat *io_trans_mat;
 
-  sched = get_io_schedule(sched, dir, &io_trans, &io_trans_mat, 0);
   node = isl_schedule_get_root(sched);
-  isl_schedule_free(sched);
   
   node = polysa_tree_move_down_to_kernel(node);
   id = isl_schedule_node_mark_get_id(node);
   kernel = isl_id_get_user(id);
   isl_id_free(id);
 
-  node = polysa_tree_move_down_to_mark(node, kernel->core, "io_L1");
+  node = polysa_tree_move_down_to_io_mark(node, kernel->core, level);
 
   io_sched = prefix_with_equalities(node);
   io_sched = expand(io_sched, kernel->contraction);
 
   isl_schedule_node_free(node);
-  isl_multi_aff_free(io_trans);
-  isl_mat_free(io_trans_mat);
 
   return io_sched;
 }
 
-static __isl_give isl_union_map *get_io_pe_schedule(__isl_take isl_schedule *sched, __isl_keep isl_vec *dir)
-{
-  isl_schedule_node *node;
-  struct polysa_kernel *kernel;
-  isl_id *id;
-  isl_union_map *io_sched;
-  isl_multi_aff *io_trans;
-  isl_mat *io_trans_mat;
-
-  sched = get_io_schedule(sched, dir, &io_trans, &io_trans_mat, 0);
-  node = isl_schedule_get_root(sched);
-  isl_schedule_free(sched);
-
-  node = polysa_tree_move_down_to_kernel(node);
-  id = isl_schedule_node_mark_get_id(node);
-  kernel = isl_id_get_user(id);
-  isl_id_free(id);
-
-  node = polysa_tree_move_down_to_mark(node, kernel->core, "pe");
-
-  io_sched = prefix_with_equalities(node);
-  io_sched = expand(io_sched, kernel->contraction);
-
-  isl_schedule_node_free(node);
-  isl_multi_aff_free(io_trans);
-  isl_mat_free(io_trans_mat);
-
-  return io_sched;
-}
+//static __isl_give isl_union_map *get_io_pe_schedule(__isl_take isl_schedule *sched, __isl_keep isl_vec *dir)
+//{
+//  isl_schedule_node *node;
+//  struct polysa_kernel *kernel;
+//  isl_id *id;
+//  isl_union_map *io_sched;
+//  isl_multi_aff *io_trans;
+//  isl_mat *io_trans_mat;
+//
+//  sched = get_io_schedule(sched, dir, &io_trans, &io_trans_mat, 0);
+//  node = isl_schedule_get_root(sched);
+//  isl_schedule_free(sched);
+//
+//  node = polysa_tree_move_down_to_kernel(node);
+//  id = isl_schedule_node_mark_get_id(node);
+//  kernel = isl_id_get_user(id);
+//  isl_id_free(id);
+//
+//  node = polysa_tree_move_down_to_mark(node, kernel->core, "pe");
+//
+//  io_sched = prefix_with_equalities(node);
+//  io_sched = expand(io_sched, kernel->contraction);
+//
+//  isl_schedule_node_free(node);
+//  isl_multi_aff_free(io_trans);
+//  isl_mat_free(io_trans_mat);
+//
+//  return io_sched;
+//}
 
 /* Map the domain of "access" to the outer data->pe_depth
  * schedule dimensions.   
@@ -609,21 +584,16 @@ static __isl_give isl_map *local_access_io(struct polysa_array_ref_group *group,
 	__isl_keep isl_union_map *access, struct polysa_group_data *data)
 {
 	isl_union_map *local;
-  isl_schedule *sched;
-
   local = isl_union_map_copy(access);
-  sched = isl_schedule_dup(data->schedule);
 
   if (group->io_type == POLYSA_EXT_IO) {
-    /* Group at the IO_L1 level */
-    isl_vec *dir = group->dir;
-    isl_union_map *new_sched = get_io_L1_schedule(sched, dir); 
+    /* Group at the IO_L2 level */
+    isl_union_map *new_sched = get_io_schedule_at_level(group->io_schedule, 2); 
     local = isl_union_map_apply_domain(local,
         new_sched);
   } else if (group->io_type == POLYSA_INT_IO) {
-    /* Group at the PE level. */
-    isl_vec *dir = group->dir;
-    isl_union_map *new_sched = get_io_pe_schedule(sched, dir);
+    /* Group at the IO_L1 level. */
+    isl_union_map *new_sched = get_io_schedule_at_level(group->io_schedule, 1);
     local = isl_union_map_apply_domain(local,
         new_sched);
   }
@@ -1319,25 +1289,25 @@ static isl_stat tile_set_depth(struct polysa_group_data *data,
 	return isl_stat_ok;
 }
 
-/* Determine the number of schedule dimensions that affect the offset of the
- * local tile and store it in group->min_depth, with a lower bound of data->kernel_depth.
- * If there is no tile defined on the array reference group,
- * then set group->min_depth to data->local_depth.
- */
-static int set_depth(struct polysa_group_data *data,
-	struct polysa_array_ref_group *group)
-{
-	group->min_depth = data->local_depth;
-
-	if (group->local_tile) {
-		if (tile_set_depth(data, group->local_tile) < 0) 
-			return -1;
-		if (group->local_tile->depth < group->min_depth)
-			group->min_depth = group->local_tile->depth;
-	}
-
-	return 0;
-}
+///* Determine the number of schedule dimensions that affect the offset of the
+// * local tile and store it in group->min_depth, with a lower bound of data->kernel_depth.
+// * If there is no tile defined on the array reference group,
+// * then set group->min_depth to data->local_depth.
+// */
+//static int set_depth(struct polysa_group_data *data,
+//	struct polysa_array_ref_group *group)
+//{
+//	group->min_depth = data->local_depth;
+//
+//	if (group->local_tile) {
+//		if (tile_set_depth(data, group->local_tile) < 0) 
+//			return -1;
+//		if (group->local_tile->depth < group->min_depth)
+//			group->min_depth = group->local_tile->depth;
+//	}
+//
+//	return 0;
+//}
 
 /* Compute the local memory tiles for the array
  * reference group "group" of array "array" and set the tile depth.
@@ -1415,9 +1385,9 @@ static int group_io(struct polysa_kernel *kernel,
 
 			if (!groups[i])
 				return -1;
-			if (compute_bounds &&
-			    compute_group_bounds_io(kernel, groups[i], data) < 0) 
-				return -1;
+//			if (compute_bounds &&
+//			    compute_group_bounds_io(kernel, groups[i], data) < 0) 
+//				return -1;
 		}
 	}
 
@@ -1690,11 +1660,14 @@ static void set_array_groups_io(struct polysa_local_array_info *array,
 }
 
 /* Populate the array reference groups with single array reference.
- * If any of the array reference is associated with RAW, or RAR not carried
- * by the space loops, merge all referneces into one single group.
- * And compute the group tiling at the PE level.
- * Otherwise, registers will be allocated for each group. Set the group tiling
- * as NULL.
+ * If any of the array reference is associated with RAW, the array reference
+ * is from an internal array, we will merge all the array references into 
+ * one single group.
+ * Otherwise, the array reference is from an external array, we do nothing
+ * here.
+ * For internal array, we compute the group tiling at the PE level.
+ * For external array, registers are allocated for each access. 
+ * Set the group tiling as NULL.
  * Return -1 on error.
  */
 static int group_array_references_pe(struct polysa_kernel *kernel,
@@ -1702,7 +1675,7 @@ static int group_array_references_pe(struct polysa_kernel *kernel,
 {
   int i, j;
   int n;
-  isl_ctx *ctx = isl_union_map_get_ctx(data->local_sched);
+  isl_ctx *ctx = isl_union_map_get_ctx(data->pe_sched);
   struct polysa_array_ref_group **groups;
   int merge_all = 0;
 
@@ -1721,8 +1694,7 @@ static int group_array_references_pe(struct polysa_kernel *kernel,
     for (int j = 0; j < group_i->n_ref; ++j) {
       struct polysa_stmt_access *ref_i = group_i->refs[j];
       for (int k = 0; k < ref_i->n_io_info; ++k) {
-        if (ref_i->io_info[k]->io_type == POLYSA_INT_IO ||
-            ref_i->io_info[k]->dep->type == POLYSA_DEP_RAW) {
+        if (ref_i->io_info[k]->dep->type == POLYSA_DEP_RAW) {
           merge_all = 1;
           break;
         }
@@ -1755,21 +1727,345 @@ static int group_array_references_pe(struct polysa_kernel *kernel,
   return 0;
 }
 
+static __isl_give isl_schedule_node *io_cluster(__isl_take isl_schedule_node *node,
+  __isl_keep isl_vec *dir, isl_mat **io_trans_mat, isl_multi_aff **io_trans_ma)
+{
+  isl_multi_union_pw_aff *mupa;
+  isl_mat *trans_mat, *d_mat, *null_mat;
+  int space_dim;
+  isl_ctx *ctx;
+  isl_space *space;
+  isl_multi_aff *ma;
+
+  mupa = isl_schedule_node_band_get_partial_schedule(node);
+  space_dim = isl_schedule_node_band_n_member(node);
+  ctx = isl_schedule_node_get_ctx(node);
+  
+  /* Build the transformation matrix */
+  trans_mat = isl_mat_alloc(ctx, space_dim, space_dim);
+  d_mat = isl_mat_alloc(ctx, 1, space_dim);
+  for (int i = 0; i < isl_vec_size(dir); i++) {
+    d_mat = isl_mat_set_element_val(d_mat, 0, i, 
+        isl_vec_get_element_val(dir, i));
+  }
+  null_mat = isl_mat_right_kernel(d_mat);
+  for (int i = 0; i < isl_mat_cols(null_mat); i++)
+    for (int j = 0; j < isl_mat_rows(null_mat); j++) {
+      trans_mat = isl_mat_set_element_val(trans_mat, i, j,
+          isl_mat_get_element_val(null_mat, j, i));
+    }
+  for (int i = 0; i < isl_vec_size(dir); i++) {
+    trans_mat = isl_mat_set_element_val(trans_mat, isl_mat_cols(null_mat), i,
+          isl_vec_get_element_val(dir, i));
+  }
+  *io_trans_mat = trans_mat;
+
+  /* Convert the transformation matrix to multi_aff */
+  space = isl_multi_union_pw_aff_get_space(mupa);
+  space = isl_space_map_from_set(space);
+  ma = isl_multi_aff_identity(space);
+
+  for (int i = 0; i < isl_mat_rows(trans_mat); i++) {
+    isl_aff *aff = isl_multi_aff_get_aff(ma, i);
+    for (int j = 0; j < isl_mat_cols(trans_mat); j++) {
+      isl_val *val = isl_mat_get_element_val(trans_mat, i, j);
+      aff = isl_aff_set_coefficient_si(aff, isl_dim_in, j, isl_val_get_num_si(val));
+      isl_val_free(val);
+    }
+    ma = isl_multi_aff_set_aff(ma, i, aff);
+  }
+
+  mupa = isl_multi_union_pw_aff_apply_multi_aff(mupa, isl_multi_aff_copy(ma));
+  *io_trans_ma = ma;
+
+  node = isl_schedule_node_delete(node);
+  node = isl_schedule_node_insert_partial_schedule(node, mupa);
+
+  isl_mat_free(null_mat);
+
+  return node;
+}
+
+/* This function computes the schedule for the I/O modules that transfers
+ * the data for the I/O group "group".
+ */
+static isl_stat compute_io_group_schedule(
+  struct polysa_kernel *kernel, struct polysa_array_ref_group *group, 
+  struct polysa_gen *gen)
+{
+  isl_printer *p_str;
+  char *io_str;
+  int io_level = 0;
+  int i;
+  isl_ctx *ctx = gen->ctx;
+  isl_id *id;
+  isl_schedule *sched;
+  isl_mat *io_trans_mat = NULL;
+  isl_multi_aff *io_trans_ma = NULL;
+  isl_map *io_trans_map = NULL;
+  isl_schedule_node *node;
+  int space_dim;
+  isl_schedule *schedule;
+
+  /* Sink to the space band */
+  schedule = isl_schedule_dup(kernel->schedule);
+  node = isl_schedule_get_root(schedule);
+  isl_schedule_free(schedule);
+
+  node = polysa_tree_move_down_to_array(node, kernel->core);
+  node = isl_schedule_node_child(node, 0);
+  space_dim = isl_schedule_node_band_n_member(node);
+
+  /* Insert the IO_L1 mark */
+  node = isl_schedule_node_child(node, 0);
+  p_str = isl_printer_to_str(ctx);
+  p_str = isl_printer_print_str(p_str, "io_L");
+  p_str = isl_printer_print_int(p_str, io_level + 1);
+  io_str = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
+  id = isl_id_alloc(ctx, io_str, NULL);
+  free(io_str);
+  node = isl_schedule_node_insert_mark(node, id);
+  io_level++;
+  node = isl_schedule_node_parent(node);
+
+  /* Cluster the I/O modules from innermost space loops to outermost loops */
+  for (int i = space_dim - 1; i >= 0; i--) {
+    isl_mat *io_trans_mat_i;
+    isl_multi_aff *io_trans_ma_i;
+    isl_vec *dir;
+    isl_mat *mat;
+
+    /* Perform space-time transformation on the current band */
+    if (i == space_dim - 1 && group->io_type == POLYSA_EXT_IO) {
+      dir = isl_vec_dup(group->dir);
+    } else {
+      /* By default, we set the first element of the direction vector as 1 */
+      dir = isl_vec_zero(ctx, i + 1);
+      dir = isl_vec_set_element_si(dir, 0, 1);
+    }
+
+    node = io_cluster(node, dir, &io_trans_mat_i, &io_trans_ma_i);
+    isl_vec_free(dir);
+
+    if (io_level == 1) {
+      sched = isl_schedule_node_get_schedule(node);
+      group->io_L1_schedule = isl_schedule_dup(sched);
+      group->io_L1_trans = isl_multi_aff_copy(io_trans_ma_i);
+
+      isl_schedule_free(sched);
+      io_trans_mat = io_trans_mat_i;
+      io_trans_ma = io_trans_ma_i;
+    } else {
+      isl_multi_aff_free(io_trans_ma_i);
+      /* Apply the transformation */
+      /* Build up the transformation matrix */
+      int nrow = isl_mat_rows(io_trans_mat);
+      int ncol = isl_mat_cols(io_trans_mat);
+      isl_mat *extend_mat = isl_mat_alloc(ctx, nrow, ncol);
+      isl_mat *product_mat = isl_mat_alloc(ctx, nrow, ncol);
+      for (int r = 0; r < nrow; r++)
+        for (int c = 0; c < ncol; c++) {
+          extend_mat = isl_mat_set_element_si(extend_mat, r, c, 0);
+          product_mat = isl_mat_set_element_si(product_mat, r, c, 0);
+        }
+
+      for (int r = 0; r < isl_mat_rows(io_trans_mat_i); r++)
+        for (int c = 0; c < isl_mat_cols(io_trans_mat_i); c++) {
+          extend_mat = isl_mat_set_element_val(extend_mat, r, c,
+              isl_mat_get_element_val(io_trans_mat_i, r, c));
+        }
+      for (int r = isl_mat_rows(io_trans_mat_i); r < nrow; r++) {
+        extend_mat = isl_mat_set_element_si(extend_mat, r, r, 1);
+      }
+      for (int r = 0; r < nrow; r++)
+        for (int c = 0; c < ncol; c++) {
+          for (int k = 0; k < nrow; k++) {
+            isl_val *v1, *v2, *v3;
+            v1 = isl_mat_get_element_val(extend_mat, r, k);
+            v2 = isl_mat_get_element_val(io_trans_mat, k, c);
+            v3 = isl_mat_get_element_val(product_mat, r, c);
+            v1 = isl_val_mul(v1, v2);
+            v3 = isl_val_add(v1, v3);
+            product_mat = isl_mat_set_element_val(product_mat, r, c, v3);
+          }
+        }
+      isl_mat_free(io_trans_mat);
+      isl_mat_free(extend_mat);
+      isl_mat_free(io_trans_mat_i);
+      io_trans_mat = product_mat;
+      /* Reset the transformation function */
+      for (int r = 0; r < nrow; r++) {
+        isl_aff *aff = isl_multi_aff_get_aff(io_trans_ma, r);
+        for (int c = 0; c < ncol; c++) {
+          isl_val *val = isl_mat_get_element_val(io_trans_mat, r, c);
+          aff = isl_aff_set_coefficient_si(aff, isl_dim_in, c, isl_val_get_num_si(val));
+          isl_val_free(val);
+        }
+        io_trans_ma = isl_multi_aff_set_aff(io_trans_ma, r, aff);
+      }        
+    }
+
+    /* Split the band and insert the IO mark */
+    if (i > 0) {
+      node = isl_schedule_node_band_split(node, i);
+      node = isl_schedule_node_child(node, 0);
+    }
+
+    /* If the multi-port DRAM/HBM is to be used, we will need to tile the loop again */
+    if (i == 0 && gen->options->hbm) {
+      printf("[PolySA] Apply HBM optimization.\n");
+      if (group->io_type == POLYSA_EXT_IO && i == space_dim - 1) { 
+        printf("[PolySA] HBM optimization failed! Not enough I/O modules.\n");
+        goto next; 
+      }
+
+      int tile_len = 1;
+      int *tile_size = NULL;
+      tile_size = read_hbm_tile_sizes(kernel, &tile_len);
+      printf("[PolySA] HBM port: %d\n", tile_size[0]);
+      node = polysa_tile_band(node, tile_size);
+      node = isl_schedule_node_child(node, 0);
+      space_dim++;
+
+      /* Update the transformation function */
+      isl_aff *aff = isl_multi_aff_get_aff(io_trans_ma, 0);
+      isl_aff *tile_aff, *point_aff;
+      tile_aff = isl_aff_scale_down_ui(isl_aff_copy(aff), tile_size[0]);
+      tile_aff = isl_aff_floor(tile_aff);
+      point_aff = isl_aff_scale_down_ui(isl_aff_copy(aff), tile_size[0]);
+      point_aff = isl_aff_floor(point_aff);
+      point_aff = isl_aff_scale_val(point_aff, isl_val_int_from_ui(ctx, tile_size[0]));
+      point_aff = isl_aff_sub(aff, point_aff);
+
+      isl_aff_list *aff_list = isl_aff_list_from_aff(tile_aff);
+      aff_list = isl_aff_list_add(aff_list, point_aff);
+      for (int n = 1; n < isl_multi_aff_dim(io_trans_ma, isl_dim_out); n++) {
+        aff = isl_multi_aff_get_aff(io_trans_ma, n);
+        aff_list = isl_aff_list_add(aff_list, aff);
+      }
+
+      isl_space *space = isl_multi_aff_get_space(io_trans_ma);
+      isl_multi_aff_free(io_trans_ma);
+      space = isl_space_add_dims(space, isl_dim_out, 1);
+      io_trans_ma = isl_multi_aff_from_aff_list(space, aff_list);
+      free(tile_size);
+    }
+next:
+    p_str = isl_printer_to_str(ctx);
+    p_str = isl_printer_print_str(p_str, "io_L");
+    p_str = isl_printer_print_int(p_str, io_level + 1);
+    io_str = isl_printer_get_str(p_str);
+    isl_printer_free(p_str);
+    id = isl_id_alloc(ctx, io_str, NULL);
+    free(io_str);
+    node = isl_schedule_node_insert_mark(node, id);
+    node = isl_schedule_node_parent(node);
+    io_level++;
+  }
+
+  isl_mat_free(io_trans_mat);
+
+  /* Store the I/O schedule */
+  sched = isl_schedule_node_get_schedule(node);
+  group->io_schedule = isl_schedule_dup(sched);
+  group->io_trans = io_trans_ma;
+  isl_schedule_free(sched);
+  group->io_level = io_level;
+  group->space_dim = space_dim;
+  isl_schedule_node_free(node);
+
+  return isl_stat_ok;
+}
+
+static isl_stat compute_io_group_buffer(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, struct polysa_gen *gen)
+{
+  isl_schedule_node *node;
+  int io_level = group->io_level;
+  int i;
+
+  node = isl_schedule_get_root(group->io_schedule);
+
+  /* Compute the group tiling at each I/O level */
+  node = polysa_tree_move_down_to_pe(node, kernel->core);
+  i = 1;
+  assert(group->io_buffers == NULL);
+  assert(group->n_io_buffer == 0);
+  group->io_buffers = NULL;
+  group->n_io_buffer = 0;
+  while (i <= io_level) {
+    node = isl_schedule_node_parent(node);
+    if (isl_schedule_node_is_io_mark(node, i)) {
+      /* In the automatic mode, PolySA only computes the tiling at L1
+       * for drain group and I/O group with interior I/O, and at L2 for I/O 
+       * group with exterior I/O.
+       */
+      (group->n_io_buffer)++;
+      group->io_buffers = (struct polysa_io_buffer **)realloc(group->io_buffers, sizeof(struct polysa_io_buffer *) * group->n_io_buffer);
+      group->io_buffers[group->n_io_buffer - 1] = (struct polysa_io_buffer *)malloc(
+          sizeof(struct polysa_io_buffer));
+      group->io_buffers[group->n_io_buffer - 1]->level = i;
+      if (group->group_type == POLYSA_DRAIN_GROUP) {
+        if (i == 1) {
+          /* Compute the group tiling at this level */
+          compute_group_bounds_drain_at_node(kernel, group, node, group->io_buffers[group->n_io_buffer - 1]); 
+          polysa_array_ref_group_compute_tiling(group->io_buffers[group->n_io_buffer - 1]->tile, group);
+        } else {
+          group->io_buffers[group->n_io_buffer - 1]->tile = NULL;
+        }
+      } else if (group->group_type == POLYSA_IO_GROUP) {
+        if ((group->io_type == POLYSA_EXT_IO && i == 2) ||
+           (group->io_type == POLYSA_INT_IO && i == 1)) {
+          /* Compute the group tiling at this level */
+          compute_group_bounds_io_at_node(kernel, group, node, group->io_buffers[group->n_io_buffer - 1]); 
+          polysa_array_ref_group_compute_tiling(group->io_buffers[group->n_io_buffer - 1]->tile, group);
+        } else {
+          group->io_buffers[group->n_io_buffer - 1]->tile = NULL;
+        }
+      } else {
+        group->io_buffers[group->n_io_buffer - 1]->tile = NULL;
+      }
+      i++;
+    }
+  }
+
+  isl_schedule_node_free(node);
+
+  return isl_stat_ok;
+}
+
+/* "node" points to the space band node.
+ * "space_dim" denotes the band width.
+ * Return "level" denoting the number of I/O levels being clustered.
+ * This function clusters I/O level by level and computes the array tiling
+ * at each level.
+ */
+static isl_stat polysa_io_construct(
+  struct polysa_kernel *kernel, struct polysa_array_ref_group *group, 
+  struct polysa_gen *gen) 
+{
+  compute_io_group_schedule(kernel, group, gen);
+  compute_io_group_buffer(kernel, group, gen);
+
+  return isl_stat_ok;
+}
+
 /* Group array references together if they share the same data transfer chain.
  * Return -1 on error.
  *
  * Two array references are grouped together if they share the same data transfer
  * direction "dir" and I/O type "io_type".
  *
- * For exterior I/O pair, calculate the group tiling at the PE ray level.
- * For interior I/O pair, calculate the group tiling at the PE level.
+ * For exterior I/O pair, calculate the group tiling at the io_L2 level.
+ * For interior I/O pair, calculate the group tiling at the io_L1 level.
  */
 static int group_array_references_io(struct polysa_kernel *kernel,
 	struct polysa_local_array_info *local, struct polysa_group_data *data)
 {
 	int i, j;
 	int n;
-	isl_ctx *ctx = isl_union_map_get_ctx(data->local_sched);
+	isl_ctx *ctx = isl_union_map_get_ctx(data->pe_sched);
 	struct polysa_array_ref_group **groups;
 
   /* Count the total number of groups. */
@@ -1789,8 +2085,13 @@ static int group_array_references_io(struct polysa_kernel *kernel,
   /* Group references that share the same data transfer direction and I/O type. */
   n = group_share_io(kernel, n, groups, data);
 
+  /* Construct the I/O and compute the I/O buffers */
+  for (i = 0; i < n; ++i) {
+    polysa_io_construct(kernel, groups[i], data->gen);
+  }
+
 	for (i = 0; i < n; ++i) {
-		if (compute_group_bounds_io(kernel, groups[i], data) < 0) {
+		if (compute_group_bounds_io(kernel, groups[i], data) < 0) { 
 		  for (j = 0; j < n; ++j) {
         polysa_array_ref_group_free(groups[j]);
       }
@@ -1867,7 +2168,7 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
 {
   int i, j;
   int n;
-  isl_ctx *ctx = isl_union_map_get_ctx(data->local_sched);
+  isl_ctx *ctx = isl_union_map_get_ctx(data->pe_sched);
   struct polysa_array_ref_group **groups = NULL;
   isl_union_map *dep_waw = kernel->scop->tagged_dep_waw;
 
@@ -1935,6 +2236,11 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
   }
   if (n > 1)
     n = 1;
+
+  /* Construct the I/O and compute the I/O buffers */
+  for (i = 0; i < n; ++i) {
+    polysa_io_construct(kernel, groups[i], data->gen);
+  }
 
   /* Calculate the group tiling. */
   for (i = 0; i < n; ++i) {
@@ -2280,7 +2586,7 @@ void polysa_array_ref_group_compute_tiling(
  * Drain group: Assign the I/O modules for transferring out the results from
  *   PEs to the external memory.
  */
-isl_stat sa_group_references(struct polysa_kernel *kernel)
+isl_stat sa_group_references(struct polysa_kernel *kernel, struct polysa_gen *gen)
 {
   int r = 0;
   struct polysa_group_data data;
@@ -2292,12 +2598,13 @@ isl_stat sa_group_references(struct polysa_kernel *kernel)
 
   /* Set up polysa_group_data */
   data.scop = kernel->prog->scop;
+  data.gen = gen;
   data.kernel_depth = isl_schedule_node_get_schedule_depth(node);
   data.host_sched = isl_schedule_node_get_prefix_schedule_relation(node);
 
-  node = polysa_tree_move_down_to_local(node, kernel->core);
-  data.local_depth = isl_schedule_node_get_schedule_depth(node);
-  data.local_sched = prefix_with_equalities(node);
+//  node = polysa_tree_move_down_to_local(node, kernel->core);
+//  data.local_depth = isl_schedule_node_get_schedule_depth(node);
+//  data.local_sched = prefix_with_equalities(node);
   
   node = polysa_tree_move_down_to_pe(node, kernel->core);
   data.pe_depth = isl_schedule_node_get_schedule_depth(node);
@@ -2305,12 +2612,12 @@ isl_stat sa_group_references(struct polysa_kernel *kernel)
 
   contraction = isl_union_pw_multi_aff_copy(kernel->contraction);
   data.host_sched = expand(data.host_sched, contraction);
-  data.local_sched = expand(data.local_sched, contraction);
-  data.copy_sched = isl_union_map_copy(data.local_sched); 
+//  data.local_sched = expand(data.local_sched, contraction);
+  data.copy_sched = isl_union_map_copy(data.pe_sched); 
   data.pe_sched = expand(data.pe_sched, contraction);
   isl_union_pw_multi_aff_free(contraction);
   
-  data.full_sched = isl_union_map_copy(data.local_sched);
+  data.full_sched = isl_union_map_copy(data.pe_sched);
   data.full_sched = isl_union_map_flat_range_product(data.full_sched,
       isl_schedule_node_get_subtree_schedule_union_map(node));
   data.schedule = kernel->schedule;
@@ -2346,7 +2653,7 @@ isl_stat sa_group_references(struct polysa_kernel *kernel)
   }
 
   isl_union_map_free(data.host_sched);
-  isl_union_map_free(data.local_sched);
+//  isl_union_map_free(data.local_sched);
   isl_union_map_free(data.copy_sched);
   isl_union_map_free(data.full_sched);
   isl_union_map_free(data.pe_sched);

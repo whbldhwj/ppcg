@@ -38,160 +38,6 @@ static struct polysa_array_ref_group *polysa_find_pe_group(
   return NULL;
 }
 
-/* This function is called for each set in a union_set.
- * If the name of the set matches data->type, we store the
- * set in data->res.
- */
-static isl_stat extract_size_of_type(__isl_take isl_set *size, void *user)
-{
-  struct polysa_extract_size_data *data = user;
-  const char *name;
-
-  name = isl_set_get_tuple_name(size);
-  if (name && !strcmp(name, data->type)) {
-    data->res = size;
-    return isl_stat_error;
-  }
-
-  isl_set_free(size);
-  return isl_stat_ok;
-}
-
-/* Given a union map { kernel[i] -> *[...] },
- * return the range in the space called "type" for the kernel with 
- * sequence number "id".
- */
-static __isl_give isl_set *extract_sa_sizes(__isl_keep isl_union_map *sizes,
-    const char *type, int id)
-{
-  isl_space *space;
-  isl_set *dom;
-  isl_union_set *local_sizes;
-  struct polysa_extract_size_data data = { type, NULL};
-
-  if (!sizes)
-    return NULL;
-
-  space = isl_union_map_get_space(sizes);
-  space = isl_space_set_from_params(space);
-  space = isl_space_add_dims(space, isl_dim_set, 1);
-  space = isl_space_set_tuple_name(space, isl_dim_set, "kernel");
-  dom = isl_set_universe(space);
-  dom = isl_set_fix_si(dom, isl_dim_set, 0, id);
-
-  local_sizes = isl_union_set_apply(isl_union_set_from_set(dom),
-      isl_union_map_copy(sizes));
-  isl_union_set_foreach_set(local_sizes, &extract_size_of_type, &data);
-  isl_union_set_free(local_sizes);
-  return data.res;
-}
-
-/* Given a singleton set, extract the *len elements of the single integer tuple
- * into *sizes. 
- *
- * If the element value is "-1", the loop at the same position is not tiled.
- *  
- * If "set" is NULL, then the "sizes" array is not updated.
- */
-static isl_stat read_sa_sizes_from_set(__isl_take isl_set *set, int *sizes, int *len)
-{
-  int i;
-  int dim;
-
-  if (!set)
-    return isl_stat_ok;
-
-  dim = isl_set_dim(set, isl_dim_set);
-  if (dim < *len)
-    isl_die(isl_set_get_ctx(set), isl_error_invalid, 
-        "fewer sa_sizes than required", return isl_stat_error);
-
-  for (i = 0; i < *len; ++i) {
-    isl_val *v;
-
-    v = isl_set_plain_get_val_if_fixed(set, isl_dim_set, i);
-    if (!v)
-      goto error;
-    sizes[i] = isl_val_get_num_si(v);
-    isl_val_free(v);
-  }
-
-  isl_set_free(set);
-  return isl_stat_ok;
-error:
-  isl_set_free(set);
-  return isl_stat_error;
-}
-
-/* Add the map { kernel[id] -> type[sizes] } to gen->used-sizes 
- * if the option debug->dump_sa_sizes is set.
- */
-static void set_sa_used_sizes(struct polysa_kernel *sa, const char *type, int id,
-    int *sizes, int len)
-{
-// TODO
-}
-
-/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
- * defaulting to option->sa_tile_size in each dimension.
- * *tile_len contains the maximum number of tile sizes needed.
- * Update *tile_len to the number of specified tile sizes, if any, and 
- * return a pointer to the tile sizes (or NULL on error).
- * And the effectively used sizes to sa->used_sizes.
- */
-static int *read_array_part_tile_sizes(struct polysa_kernel *sa, int *tile_len)
-{
-  int n;
-  int *tile_size;
-  isl_set *size;
-
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
-  if (!tile_size)
-    return NULL;
-  for (n = 0; n < *tile_len; ++n)
-    tile_size[n] = sa->scop->options->sa_tile_size;
-  
-  size = extract_sa_sizes(sa->sizes, "array_part", sa->id);
-  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
-    goto error;
-  set_sa_used_sizes(sa, "array_part", sa->id, tile_size, *tile_len);
-
-  return tile_size;
-error:
-  free(tile_size);
-  return NULL;
-}
-
-/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line options,
- * defaulting to option->sa_tile_size in each dimension.
- * *tile_len contains the maximum number of tile sizes needed.
- * Update *tile_len to the number of specified tile sizes, if any, and
- * return a pointer to the tile sizes (or NULL on error).
- * And the effectively used sizes to sa->used_sizes.
- */
-static int *read_hbm_tile_sizes(struct polysa_kernel *sa, int *tile_len)
-{
-  int n;
-  int *tile_size;
-  isl_set *size;
-
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
-  if (!tile_size)
-    return NULL;
-  for (n = 0; n < *tile_len; ++n) 
-    tile_size[n] = sa->scop->options->n_hbm_port;
-
-  size = extract_sa_sizes(sa->sizes, "hbm", sa->id);
-  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
-    goto error;
-  set_sa_used_sizes(sa, "hbm", sa->id, tile_size, *tile_len);
-
-  return tile_size;
-error:
-  free(tile_size);
-  return NULL;
-}
-
 /* Apply array partitioning.
  * Apply loop tiling on the band that contains the space loops
  * Reorganize the array partitioning loops and place them following the
@@ -330,36 +176,6 @@ static isl_bool count_latency_hiding_loop(__isl_keep isl_schedule_node *node, vo
   } 
   
   return isl_bool_true;
-}
-
-/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
- * defaulting to option->sa_tile_size in each dimension.
- * *tile_len contains the maximum number of tile sizes needed.
- * Update *tile_len to the number of specified tile sizes, if any, and
- * return a pointer to the tile sizes (or NULL on error).
- * And store the effectively used sizes to sa->used_sizes.
- */
-static int *read_latency_tile_sizes(struct polysa_kernel *sa, int *tile_len)
-{
-  int n;
-  int *tile_size;
-  isl_set *size;
-
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
-  if (!tile_size)
-    return NULL;
-  for (n = 0; n < *tile_len; n++)
-    tile_size[n] = sa->scop->options->sa_tile_size / 2;
-
-  size = extract_sa_sizes(sa->sizes, "latency", sa->id);
-  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
-    goto error;
-  set_sa_used_sizes(sa, "latency", sa->id, tile_size, *tile_len);
-
-  return tile_size;
-error:
-  free(tile_size);
-  return NULL;
 }
 
 /* Given two nested nodes,
@@ -1015,7 +831,7 @@ isl_bool data_transfer_update_wrap(__isl_keep isl_map *map, void *user)
  * data between PEs and the external memory. Otherwise, global interconnects
  * are introduced for interior I/O which will hurt the timing.
  */
-isl_stat sa_data_transfer_optimize(struct polysa_kernel *sa)
+isl_stat sa_data_transfer_optimize(struct polysa_kernel *sa, struct polysa_gen *gen)
 {
   printf("[PolySA] Apply data transfer optimization.\n");
   struct polysa_local_array_info *local_array;
@@ -1058,7 +874,7 @@ isl_stat sa_data_transfer_optimize(struct polysa_kernel *sa)
   }
 
   /* Group all the accesses based on the updated IO information */
-  sa_group_references(sa);
+  sa_group_references(sa, gen);
 
   return isl_stat_ok;
 }
@@ -2778,20 +2594,6 @@ static __isl_give isl_schedule_node *mark_kernels(
   node = isl_schedule_node_insert_mark(node, id);
   node = polysa_tree_move_up_to_kernel(node);
 
-  kernel->schedule = isl_schedule_free(kernel->schedule);
-  kernel->schedule = isl_schedule_node_get_schedule(node);
-
-  /* Data transfer optimization */
-  sa_data_transfer_optimize(kernel);
-
-  /* Localize the array bounds using parameters from the host domain. */
-  localize_bounds(kernel, host_domain);
-
-  /* Compute a tiling for all the array reference groups in "kernel". */
-  compute_group_tilings_pe(kernel); 
-  compute_group_tilings_io(kernel);  
-  compute_group_tilings_drain(kernel);
-
   /* Save a copy of copy_schedule */
   node = polysa_tree_move_down_to_pe(node, kernel->core);
   kernel->copy_schedule_dim = isl_schedule_node_get_schedule_depth(node);
@@ -2808,6 +2610,20 @@ static __isl_give isl_schedule_node *mark_kernels(
   node = isl_schedule_node_delete(node);
 
   node = polysa_tree_move_up_to_kernel(node);
+
+  kernel->schedule = isl_schedule_free(kernel->schedule);
+  kernel->schedule = isl_schedule_node_get_schedule(node);
+
+  /* Data transfer optimization */
+  sa_data_transfer_optimize(kernel, gen);
+
+  /* Localize the array bounds using parameters from the host domain. */
+  localize_bounds(kernel, host_domain);
+
+  /* Compute a tiling for all the array reference groups in "kernel". */
+  compute_group_tilings_pe(kernel); 
+  compute_group_tilings_io(kernel);  
+  compute_group_tilings_drain(kernel);
 
   return node;
 }
@@ -5506,65 +5322,6 @@ static __isl_give isl_multi_pw_aff *extract_filter_size(
   return isl_multi_pw_aff_gist(size, context);
 }
 
-static __isl_give isl_schedule_node *io_cluster(__isl_take isl_schedule_node *node,
-  __isl_keep isl_vec *dir, isl_mat **io_trans_mat, isl_multi_aff **io_trans_ma)
-{
-  isl_multi_union_pw_aff *mupa;
-  isl_mat *trans_mat, *d_mat, *null_mat;
-  int space_dim;
-  isl_ctx *ctx;
-  isl_space *space;
-  isl_multi_aff *ma;
-
-  mupa = isl_schedule_node_band_get_partial_schedule(node);
-  space_dim = isl_schedule_node_band_n_member(node);
-  ctx = isl_schedule_node_get_ctx(node);
-  
-  /* Build the transformation matrix */
-  trans_mat = isl_mat_alloc(ctx, space_dim, space_dim);
-  d_mat = isl_mat_alloc(ctx, 1, space_dim);
-  for (int i = 0; i < isl_vec_size(dir); i++) {
-    d_mat = isl_mat_set_element_val(d_mat, 0, i, 
-        isl_vec_get_element_val(dir, i));
-  }
-  null_mat = isl_mat_right_kernel(d_mat);
-  for (int i = 0; i < isl_mat_cols(null_mat); i++)
-    for (int j = 0; j < isl_mat_rows(null_mat); j++) {
-      trans_mat = isl_mat_set_element_val(trans_mat, i, j,
-          isl_mat_get_element_val(null_mat, j, i));
-    }
-  for (int i = 0; i < isl_vec_size(dir); i++) {
-    trans_mat = isl_mat_set_element_val(trans_mat, isl_mat_cols(null_mat), i,
-          isl_vec_get_element_val(dir, i));
-  }
-  *io_trans_mat = trans_mat;
-
-  /* Convert the transformation matrix to multi_aff */
-  space = isl_multi_union_pw_aff_get_space(mupa);
-  space = isl_space_map_from_set(space);
-  ma = isl_multi_aff_identity(space);
-
-  for (int i = 0; i < isl_mat_rows(trans_mat); i++) {
-    isl_aff *aff = isl_multi_aff_get_aff(ma, i);
-    for (int j = 0; j < isl_mat_cols(trans_mat); j++) {
-      isl_val *val = isl_mat_get_element_val(trans_mat, i, j);
-      aff = isl_aff_set_coefficient_si(aff, isl_dim_in, j, isl_val_get_num_si(val));
-      isl_val_free(val);
-    }
-    ma = isl_multi_aff_set_aff(ma, i, aff);
-  }
-
-  mupa = isl_multi_union_pw_aff_apply_multi_aff(mupa, isl_multi_aff_copy(ma));
-  *io_trans_ma = ma;
-
-  node = isl_schedule_node_delete(node);
-  node = isl_schedule_node_insert_partial_schedule(node, mupa);
-
-  isl_mat_free(null_mat);
-
-  return node;
-}
-
 static char *generate_io_module_name(isl_ctx *ctx, struct polysa_array_ref_group *group, int level, int read) {
   isl_printer *p;
 
@@ -5590,41 +5347,6 @@ static char *generate_io_module_name(isl_ctx *ctx, struct polysa_array_ref_group
   isl_printer_free(p);
 
   return str;
-}
-
-/* Examines if the current schedule node is a io mark at the level "io_level".
- * Specifically, the io mark at the level "io_level" has the name as "io_L[io_level]".
- */
-static isl_bool isl_schedule_node_is_io_mark(__isl_keep isl_schedule_node *node, int io_level) {
-  isl_id *mark;
-  const char *name;
-  isl_printer *p;
-  char *io_mark;
-
-  if (!node)
-    return isl_bool_error;
-
-  if (isl_schedule_node_get_type(node) != isl_schedule_node_mark)
-    return isl_bool_false;
-
-  mark = isl_schedule_node_mark_get_id(node);
-  if (!mark)
-    return isl_bool_error;
-
-  name = isl_id_get_name(mark);
-  p = isl_printer_to_str(isl_schedule_node_get_ctx(node));
-  p = isl_printer_print_str(p, "io_L");
-  p = isl_printer_print_int(p, io_level);
-  io_mark = isl_printer_get_str(p);
-  p = isl_printer_free(p);
-  isl_id_free(mark);
-  if (!strcmp(name, io_mark)) {
-    free(io_mark);
-    return isl_bool_true;
-  } else {
-    free(io_mark);
-    return isl_bool_false;
-  }
 }
 
 /* Generates the I/O modules for transffering the data.
@@ -5942,229 +5664,6 @@ static __isl_give struct polysa_hw_module *generate_io_module_by_type(
   return module;
 }
 
-/* "node" points to the space band node.
- * "space_dim" denotes the band width.
- * Return "level" denoting the number of I/O levels being clustered.
- * This function clusters I/O level by level and computes the array tiling
- * at each level.
- */
-static __isl_give isl_schedule_node *polysa_io_construct(
-  __isl_take isl_schedule_node *node, struct polysa_array_ref_group *group, 
-  struct polysa_kernel *kernel, struct polysa_gen *gen, int *space_dim, int *level) 
-{
-  isl_printer *p_str;
-  char *io_str;
-  int io_level = 0;
-  int i;
-  isl_ctx *ctx = isl_schedule_node_get_ctx(node);
-  isl_id *id;
-  isl_schedule *sched;
-  isl_mat *io_trans_mat = NULL;
-  isl_multi_aff *io_trans_ma = NULL;
-  isl_map *io_trans_map = NULL;
-
-  /* Insert the IO_L1 mark */
-  node = isl_schedule_node_child(node, 0);
-  p_str = isl_printer_to_str(ctx);
-  p_str = isl_printer_print_str(p_str, "io_L");
-  p_str = isl_printer_print_int(p_str, io_level + 1);
-  io_str = isl_printer_get_str(p_str);
-  isl_printer_free(p_str);
-  id = isl_id_alloc(ctx, io_str, NULL);
-  free(io_str);
-  node = isl_schedule_node_insert_mark(node, id);
-  io_level++;
-  node = isl_schedule_node_parent(node);
-
-  /* Cluster the I/O modules from innermost space loops to outermost loops */
-  for (int i = *space_dim - 1; i >= 0; i--) {
-    isl_mat *io_trans_mat_i;
-    isl_multi_aff *io_trans_ma_i;
-    isl_vec *dir;
-    isl_mat *mat;
-
-    /* Perform space-time transformation on the current band */
-    if (i == *space_dim - 1 && group->io_type == POLYSA_EXT_IO) {
-      dir = isl_vec_dup(group->dir);
-    } else {
-      /* By default, we set the first element of the direction vector as 1 */
-      dir = isl_vec_zero(ctx, i + 1);
-      dir = isl_vec_set_element_si(dir, 0, 1);
-    }
-
-    node = io_cluster(node, dir, &io_trans_mat_i, &io_trans_ma_i);
-    isl_vec_free(dir);
-
-    if (io_level == 1) {
-      sched = isl_schedule_node_get_schedule(node);
-      group->io_L1_schedule = isl_schedule_dup(sched);
-      group->io_L1_trans = isl_multi_aff_copy(io_trans_ma_i);
-
-      isl_schedule_free(sched);
-      io_trans_mat = io_trans_mat_i;
-      io_trans_ma = io_trans_ma_i;
-    } else {
-      isl_multi_aff_free(io_trans_ma_i);
-      /* Apply the transformation */
-      /* Build up the transformation matrix */
-      int nrow = isl_mat_rows(io_trans_mat);
-      int ncol = isl_mat_cols(io_trans_mat);
-      isl_mat *extend_mat = isl_mat_alloc(ctx, nrow, ncol);
-      isl_mat *product_mat = isl_mat_alloc(ctx, nrow, ncol);
-      for (int r = 0; r < nrow; r++)
-        for (int c = 0; c < ncol; c++) {
-          extend_mat = isl_mat_set_element_si(extend_mat, r, c, 0);
-          product_mat = isl_mat_set_element_si(product_mat, r, c, 0);
-        }
-
-      for (int r = 0; r < isl_mat_rows(io_trans_mat_i); r++)
-        for (int c = 0; c < isl_mat_cols(io_trans_mat_i); c++) {
-          extend_mat = isl_mat_set_element_val(extend_mat, r, c,
-              isl_mat_get_element_val(io_trans_mat_i, r, c));
-        }
-      for (int r = isl_mat_rows(io_trans_mat_i); r < nrow; r++) {
-        extend_mat = isl_mat_set_element_si(extend_mat, r, r, 1);
-      }
-      for (int r = 0; r < nrow; r++)
-        for (int c = 0; c < ncol; c++) {
-          for (int k = 0; k < nrow; k++) {
-            isl_val *v1, *v2, *v3;
-            v1 = isl_mat_get_element_val(extend_mat, r, k);
-            v2 = isl_mat_get_element_val(io_trans_mat, k, c);
-            v3 = isl_mat_get_element_val(product_mat, r, c);
-            v1 = isl_val_mul(v1, v2);
-            v3 = isl_val_add(v1, v3);
-            product_mat = isl_mat_set_element_val(product_mat, r, c, v3);
-          }
-        }
-      isl_mat_free(io_trans_mat);
-      isl_mat_free(extend_mat);
-      isl_mat_free(io_trans_mat_i);
-      io_trans_mat = product_mat;
-      /* Reset the transformation function */
-      for (int r = 0; r < nrow; r++) {
-        isl_aff *aff = isl_multi_aff_get_aff(io_trans_ma, r);
-        for (int c = 0; c < ncol; c++) {
-          isl_val *val = isl_mat_get_element_val(io_trans_mat, r, c);
-          aff = isl_aff_set_coefficient_si(aff, isl_dim_in, c, isl_val_get_num_si(val));
-          isl_val_free(val);
-        }
-        io_trans_ma = isl_multi_aff_set_aff(io_trans_ma, r, aff);
-      }        
-    }
-
-    /* Split the band and insert the IO mark */
-    if (i > 0) {
-      node = isl_schedule_node_band_split(node, i);
-      node = isl_schedule_node_child(node, 0);
-    }
-
-    /* If the multi-port DRAM/HBM is to be used, we will need to tile the loop again */
-    if (i == 0 && gen->options->hbm) {
-      printf("[PolySA] Apply HBM optimization.\n");
-      if (group->io_type == POLYSA_EXT_IO && i == *space_dim - 1) { 
-        printf("[PolySA] HBM optimization failed! Not enough I/O modules.\n");
-        goto next; 
-      }
-
-      int tile_len = 1;
-      int *tile_size = NULL;
-      tile_size = read_hbm_tile_sizes(kernel, &tile_len);
-      printf("[PolySA] HBM port: %d\n", tile_size[0]);
-      node = polysa_tile_band(node, tile_size);
-      node = isl_schedule_node_child(node, 0);
-      (*space_dim)++;
-
-      /* Update the transformation function */
-      isl_aff *aff = isl_multi_aff_get_aff(io_trans_ma, 0);
-      isl_aff *tile_aff, *point_aff;
-      tile_aff = isl_aff_scale_down_ui(isl_aff_copy(aff), tile_size[0]);
-      tile_aff = isl_aff_floor(tile_aff);
-      point_aff = isl_aff_scale_down_ui(isl_aff_copy(aff), tile_size[0]);
-      point_aff = isl_aff_floor(point_aff);
-      point_aff = isl_aff_scale_val(point_aff, isl_val_int_from_ui(ctx, tile_size[0]));
-      point_aff = isl_aff_sub(aff, point_aff);
-
-      isl_aff_list *aff_list = isl_aff_list_from_aff(tile_aff);
-      aff_list = isl_aff_list_add(aff_list, point_aff);
-      for (int n = 1; n < isl_multi_aff_dim(io_trans_ma, isl_dim_out); n++) {
-        aff = isl_multi_aff_get_aff(io_trans_ma, n);
-        aff_list = isl_aff_list_add(aff_list, aff);
-      }
-
-      isl_space *space = isl_multi_aff_get_space(io_trans_ma);
-      isl_multi_aff_free(io_trans_ma);
-      space = isl_space_add_dims(space, isl_dim_out, 1);
-      io_trans_ma = isl_multi_aff_from_aff_list(space, aff_list);
-      free(tile_size);
-    }
-next:
-    p_str = isl_printer_to_str(ctx);
-    p_str = isl_printer_print_str(p_str, "io_L");
-    p_str = isl_printer_print_int(p_str, io_level + 1);
-    io_str = isl_printer_get_str(p_str);
-    isl_printer_free(p_str);
-    id = isl_id_alloc(ctx, io_str, NULL);
-    free(io_str);
-    node = isl_schedule_node_insert_mark(node, id);
-    node = isl_schedule_node_parent(node);
-    io_level++;
-  }
-
-  isl_mat_free(io_trans_mat);
-  /* Store the I/O schedule */
-  sched = isl_schedule_node_get_schedule(node);
-  group->io_schedule = isl_schedule_dup(sched);
-  group->io_trans = io_trans_ma;
-  isl_schedule_free(sched);
-
-  /* Compute the group tiling at each I/O level */
-  node = polysa_tree_move_down_to_pe(node, kernel->core);
-  i = 1;
-  assert(group->io_buffers == NULL);
-  assert(group->n_io_buffer == 0);
-  group->io_buffers = NULL;
-  group->n_io_buffer = 0;
-  while (i <= io_level) {
-    node = isl_schedule_node_parent(node);
-    if (isl_schedule_node_is_io_mark(node, i)) {
-      /* In the automatic mode, PolySA only computes the tiling at L1
-       * for drain group and I/O group with interior I/O, and at L2 for I/O 
-       * group with exterior I/O.
-       */
-      (group->n_io_buffer)++;
-      group->io_buffers = (struct polysa_io_buffer **)realloc(group->io_buffers, sizeof(struct polysa_io_buffer *) * group->n_io_buffer);
-      group->io_buffers[group->n_io_buffer - 1] = (struct polysa_io_buffer *)malloc(
-          sizeof(struct polysa_io_buffer));
-      group->io_buffers[group->n_io_buffer - 1]->level = i;
-      if (group->group_type == POLYSA_DRAIN_GROUP) {
-        if (i == 1) {
-          /* Compute the group tiling at this level */
-          compute_group_bounds_drain_at_node(kernel, group, node, group->io_buffers[group->n_io_buffer - 1]); 
-          polysa_array_ref_group_compute_tiling(group->io_buffers[group->n_io_buffer - 1]->tile, group);
-        } else {
-          group->io_buffers[group->n_io_buffer - 1]->tile = NULL;
-        }
-      } else if (group->group_type == POLYSA_IO_GROUP) {
-        if ((group->io_type == POLYSA_EXT_IO && i == 2) ||
-           (group->io_type == POLYSA_INT_IO && i == 1)) {
-          /* Compute the group tiling at this level */
-          compute_group_bounds_io_at_node(kernel, group, node, group->io_buffers[group->n_io_buffer - 1]); 
-          polysa_array_ref_group_compute_tiling(group->io_buffers[group->n_io_buffer - 1]->tile, group);
-        } else {
-          group->io_buffers[group->n_io_buffer - 1]->tile = NULL;
-        }
-      } else {
-        group->io_buffers[group->n_io_buffer - 1]->tile = NULL;
-      }
-      i++;
-    }
-  }
-
-  *level = io_level;
-  return node;
-}
-
 /* For each I/O group, we will construct a set of I/O modules.
  * We inspect and transform the space loops. Starting from the innermost space loop,
  * we will cluster the I/O modules level by level.
@@ -6180,40 +5679,22 @@ __isl_give struct polysa_hw_module **sa_io_module_gen(struct polysa_array_ref_gr
   struct polysa_gen *gen, int *n_modules, int in, int out)
 {
   // TODO: Add the support for manual tuning
-
-  isl_schedule *schedule;
   isl_schedule_node *node;
   isl_ctx *ctx;
-  isl_id *id;
   struct polysa_kernel *kernel;
   int space_dim;
-  int io_level = 0;
-  isl_printer *p_str;
-  char *io_str;
-  int i;
+  int io_level;
   struct polysa_hw_module **modules = NULL;
   int module_cnt = 0;
 
   ctx = gen->ctx;
-
-  /* Sink to the space band */
-  schedule = isl_schedule_dup(gen->schedule);
-  node = isl_schedule_get_root(schedule);
-  node = polysa_tree_move_down_to_kernel(node);
-  id = isl_schedule_node_mark_get_id(node);
-  kernel = isl_id_get_user(id);
-  isl_id_free(id);
-  isl_schedule_free(schedule);
-
-  node = polysa_tree_move_down_to_array(node, kernel->core);
-  node = isl_schedule_node_child(node, 0);
-  space_dim = isl_schedule_node_band_n_member(node);
-
-  /* Construct the I/O system and optimize it by clustering */
-  node = polysa_io_construct(node, group, kernel, gen, &space_dim, &io_level);
+  node = isl_schedule_get_root(group->io_schedule);
+  io_level = group->io_level;
+  space_dim = group->space_dim;
+  kernel = gen->kernel;
 
   /* Generate the I/O modules */
-  node = polysa_tree_move_up_to_kernel(node);
+  node = polysa_tree_move_down_to_kernel(node);
 
   /* For each I/O level, generate one I/O module */
   /* Copy-in group */

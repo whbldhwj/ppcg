@@ -9,15 +9,6 @@
 #include "polysa_codegen.h"
 #include "polysa_group.h"
 
-/* Internal data structure for extract_size_of_type.
- * "type" specifies the name of the space that we want to extract.
- * "res" is used to store the subset of that space.
- */
-struct polysa_extract_size_data {
-	const char *type;
-	isl_set *res;
-};
-
 /* Internal structure for loop tiling in PE optimization.
  */
 struct polysa_pe_opt_tile_data {

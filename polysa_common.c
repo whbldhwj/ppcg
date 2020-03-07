@@ -822,6 +822,41 @@ __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_no
   return node;
 }
 
+/* Examines if the current schedule node is a io mark at the level "io_level".
+ * Specifically, the io mark at the level "io_level" has the name as "io_L[io_level]".
+ */
+isl_bool isl_schedule_node_is_io_mark(__isl_keep isl_schedule_node *node, int io_level) {
+  isl_id *mark;
+  const char *name;
+  isl_printer *p;
+  char *io_mark;
+
+  if (!node)
+    return isl_bool_error;
+
+  if (isl_schedule_node_get_type(node) != isl_schedule_node_mark)
+    return isl_bool_false;
+
+  mark = isl_schedule_node_mark_get_id(node);
+  if (!mark)
+    return isl_bool_error;
+
+  name = isl_id_get_name(mark);
+  p = isl_printer_to_str(isl_schedule_node_get_ctx(node));
+  p = isl_printer_print_str(p, "io_L");
+  p = isl_printer_print_int(p, io_level);
+  io_mark = isl_printer_get_str(p);
+  p = isl_printer_free(p);
+  isl_id_free(mark);
+  if (!strcmp(name, io_mark)) {
+    free(io_mark);
+    return isl_bool_true;
+  } else {
+    free(io_mark);
+    return isl_bool_false;
+  }
+}
+
 /***************************************************************
  * PolySA kernel related functions 
  ***************************************************************/
@@ -1383,6 +1418,7 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
   isl_vec_free(group->dir);
   isl_multi_aff_free(group->io_trans);
   isl_multi_aff_free(group->io_L1_trans);
+//  isl_mat_free(group->io_trans_mat);
   isl_ast_expr_free(group->io_pe_expr);
   isl_ast_expr_free(group->io_L1_pe_expr);
   for (int i = 0; i < group->n_io_buffer; i++) {
@@ -1390,10 +1426,10 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
     free(group->io_buffers[i]);
   }
   free(group->io_buffers);
-  isl_schedule_free(group->io_L1_schedule);
   isl_schedule_free(group->io_schedule);
-
+  isl_schedule_free(group->io_L1_schedule);
 	free(group);
+
 	return NULL;
 }
 
@@ -2320,13 +2356,9 @@ void *polysa_hw_top_module_free(struct polysa_hw_top_module *module)
   }
 
 //  // TODO: valgrind
-//  for (int i = 0; i < module->n_fifo_decls; i++) {
-//    isl_schedule_free(module->fifo_decl_scheds[i]);
+//  for (int i = 0; i < module->n_hw_modules; i++) {
+//    isl_schedule_free(module->scheds[i]);
 //  }
-//  for (int i = 0; i < module->n_module_calls; i++) {
-//    isl_schedule_free(module->module_call_scheds[i]);
-//  }
-
   free(module->module_call_scheds);
   free(module->fifo_decl_scheds);
   free(module->module_call_trees);
@@ -2337,3 +2369,197 @@ void *polysa_hw_top_module_free(struct polysa_hw_top_module *module)
 
   return NULL;
 }
+
+/* Internal data structure for extract_size_of_type.
+ * "type" specifies the name of the space that we want to extract.
+ * "res" is used to store the subset of that space.
+ */
+struct polysa_extract_size_data {
+	const char *type;
+	isl_set *res;
+};
+
+/* This function is called for each set in a union_set.
+ * If the name of the set matches data->type, we store the
+ * set in data->res.
+ */
+static isl_stat extract_size_of_type(__isl_take isl_set *size, void *user)
+{
+  struct polysa_extract_size_data *data = user;
+  const char *name;
+
+  name = isl_set_get_tuple_name(size);
+  if (name && !strcmp(name, data->type)) {
+    data->res = size;
+    return isl_stat_error;
+  }
+
+  isl_set_free(size);
+  return isl_stat_ok;
+}
+
+/* Given a singleton set, extract the *len elements of the single integer tuple
+ * into *sizes. 
+ *
+ * If the element value is "-1", the loop at the same position is not tiled.
+ *  
+ * If "set" is NULL, then the "sizes" array is not updated.
+ */
+static isl_stat read_sa_sizes_from_set(__isl_take isl_set *set, int *sizes, int *len)
+{
+  int i;
+  int dim;
+
+  if (!set)
+    return isl_stat_ok;
+
+  dim = isl_set_dim(set, isl_dim_set);
+  if (dim < *len)
+    isl_die(isl_set_get_ctx(set), isl_error_invalid, 
+        "fewer sa_sizes than required", return isl_stat_error);
+
+  for (i = 0; i < *len; ++i) {
+    isl_val *v;
+
+    v = isl_set_plain_get_val_if_fixed(set, isl_dim_set, i);
+    if (!v)
+      goto error;
+    sizes[i] = isl_val_get_num_si(v);
+    isl_val_free(v);
+  }
+
+  isl_set_free(set);
+  return isl_stat_ok;
+error:
+  isl_set_free(set);
+  return isl_stat_error;
+}
+
+/* Add the map { kernel[id] -> type[sizes] } to gen->used-sizes 
+ * if the option debug->dump_sa_sizes is set.
+ */
+static void set_sa_used_sizes(struct polysa_kernel *sa, const char *type, int id,
+    int *sizes, int len)
+{
+// TODO
+}
+
+/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line options,
+ * defaulting to option->sa_tile_size in each dimension.
+ * *tile_len contains the maximum number of tile sizes needed.
+ * Update *tile_len to the number of specified tile sizes, if any, and
+ * return a pointer to the tile sizes (or NULL on error).
+ * And the effectively used sizes to sa->used_sizes.
+ */
+int *read_hbm_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+{
+  int n;
+  int *tile_size;
+  isl_set *size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < *tile_len; ++n) 
+    tile_size[n] = sa->scop->options->n_hbm_port;
+
+  size = extract_sa_sizes(sa->sizes, "hbm", sa->id);
+  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
+    goto error;
+  set_sa_used_sizes(sa, "hbm", sa->id, tile_size, *tile_len);
+
+  return tile_size;
+error:
+  free(tile_size);
+  return NULL;
+}
+
+/* Given a union map { kernel[i] -> *[...] },
+ * return the range in the space called "type" for the kernel with 
+ * sequence number "id".
+ */
+__isl_give isl_set *extract_sa_sizes(__isl_keep isl_union_map *sizes,
+    const char *type, int id)
+{
+  isl_space *space;
+  isl_set *dom;
+  isl_union_set *local_sizes;
+  struct polysa_extract_size_data data = { type, NULL};
+
+  if (!sizes)
+    return NULL;
+
+  space = isl_union_map_get_space(sizes);
+  space = isl_space_set_from_params(space);
+  space = isl_space_add_dims(space, isl_dim_set, 1);
+  space = isl_space_set_tuple_name(space, isl_dim_set, "kernel");
+  dom = isl_set_universe(space);
+  dom = isl_set_fix_si(dom, isl_dim_set, 0, id);
+
+  local_sizes = isl_union_set_apply(isl_union_set_from_set(dom),
+      isl_union_map_copy(sizes));
+  isl_union_set_foreach_set(local_sizes, &extract_size_of_type, &data);
+  isl_union_set_free(local_sizes);
+  return data.res;
+}
+
+/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
+ * defaulting to option->sa_tile_size in each dimension.
+ * *tile_len contains the maximum number of tile sizes needed.
+ * Update *tile_len to the number of specified tile sizes, if any, and 
+ * return a pointer to the tile sizes (or NULL on error).
+ * And the effectively used sizes to sa->used_sizes.
+ */
+int *read_array_part_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+{
+  int n;
+  int *tile_size;
+  isl_set *size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < *tile_len; ++n)
+    tile_size[n] = sa->scop->options->sa_tile_size;
+  
+  size = extract_sa_sizes(sa->sizes, "array_part", sa->id);
+  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
+    goto error;
+  set_sa_used_sizes(sa, "array_part", sa->id, tile_size, *tile_len);
+
+  return tile_size;
+error:
+  free(tile_size);
+  return NULL;
+}
+
+/* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
+ * defaulting to option->sa_tile_size in each dimension.
+ * *tile_len contains the maximum number of tile sizes needed.
+ * Update *tile_len to the number of specified tile sizes, if any, and
+ * return a pointer to the tile sizes (or NULL on error).
+ * And store the effectively used sizes to sa->used_sizes.
+ */
+int *read_latency_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+{
+  int n;
+  int *tile_size;
+  isl_set *size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < *tile_len; n++)
+    tile_size[n] = sa->scop->options->sa_tile_size / 2;
+
+  size = extract_sa_sizes(sa->sizes, "latency", sa->id);
+  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
+    goto error;
+  set_sa_used_sizes(sa, "latency", sa->id, tile_size, *tile_len);
+
+  return tile_size;
+error:
+  free(tile_size);
+  return NULL;
+}
+

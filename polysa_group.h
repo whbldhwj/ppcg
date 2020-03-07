@@ -5,7 +5,7 @@
 
 int polysa_group_references(struct polysa_kernel *kernel,
   __isl_keep isl_schedule_node *node);
-isl_stat sa_group_references(struct polysa_kernel *kernel);
+isl_stat sa_group_references(struct polysa_kernel *kernel, struct polysa_gen *gen);
 void polysa_array_ref_group_compute_tiling(struct polysa_array_tile *tile,
     struct polysa_array_ref_group *group);
 __isl_give isl_printer *polysa_array_ref_group_print_name(

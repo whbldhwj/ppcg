@@ -463,6 +463,10 @@ struct polysa_array_ref_group {
   /* I/O schedule */
   isl_schedule *io_schedule;
   isl_schedule *io_L1_schedule;
+  /* Number of I/O levels */
+  int io_level;
+  /* Dims of space band */
+  int space_dim;
 
   /* PolySA Extended */
 };
@@ -769,6 +773,7 @@ __isl_give isl_schedule_node *restore_node_band_prop(__isl_take isl_schedule_nod
   __isl_take struct polysa_node_band_prop *prop);
 __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_node *node);
 isl_bool no_permutable_node(isl_schedule_node *node, void *user);
+isl_bool isl_schedule_node_is_io_mark(__isl_keep isl_schedule_node *node, int io_level);
 
 /* PolySA kernel related functions */
 void *polysa_kernel_free(struct polysa_kernel *sa);
@@ -809,4 +814,12 @@ struct polysa_hw_module *polysa_hw_module_alloc();
 void *polysa_hw_module_free(struct polysa_hw_module *module);
 struct polysa_hw_top_module *polysa_hw_top_module_alloc();
 void *polysa_hw_top_module_free(struct polysa_hw_top_module *module);
+
+/* PolySA MISC */
+int *read_hbm_tile_sizes(struct polysa_kernel *sa, int *tile_len);
+__isl_give isl_set *extract_sa_sizes(__isl_keep isl_union_map *sizes,
+    const char *type, int id);
+int *read_array_part_tile_sizes(struct polysa_kernel *sa, int *tile_len);
+int *read_latency_tile_sizes(struct polysa_kernel *sa, int *tile_len);
+
 #endif
