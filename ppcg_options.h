@@ -59,6 +59,9 @@ struct ppcg_options {
   int hbm;
   int n_hbm_port;
 
+  /* Enable double buffering. */
+  int double_buffer;
+
   /* Maximal systolic array dimension. */
   int max_sa_dim;
 

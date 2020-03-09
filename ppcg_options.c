@@ -130,6 +130,8 @@ ISL_ARG_BOOL(struct ppcg_options, hbm, 0, "hbm", 1,
   "Use multi-port DRAM/HBM")
 ISL_ARG_INT(struct ppcg_options, n_hbm_port, 0, "hbm-port-num", "num", 2, 
   "Default HBM port number")
+ISL_ARG_BOOL(struct ppcg_options, double_buffer, 0, "double-buffer", 1,
+  "Enable double-buffering for data transfer")
 ISL_ARG_INT(struct ppcg_options, max_sa_dim, 0,
   "max-sa-dim", "dim", 2, "maximal systolic array dimension")
 ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, sa_type, 0, "sa-type", sa_type,

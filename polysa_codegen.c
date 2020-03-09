@@ -13,6 +13,7 @@ struct polysa_at_domain_data {
   struct polysa_kernel *kernel;
   struct polysa_hw_module *module;
   struct polysa_hw_top_module *top;
+  int filter_buffer;
 };
 
 /* Internal data structure for the index and AST expression transformation
@@ -1162,6 +1163,33 @@ static __isl_give isl_ast_node *create_fifo_decl_leaf(struct polysa_kernel *kern
   return isl_ast_node_set_annotation(node, id);
 }
 
+static __isl_give isl_ast_node *create_io_module_call_leaf(struct polysa_kernel *kernel,
+  __isl_take isl_ast_node *node, struct polysa_hw_module *module,
+  const char *name, __isl_keep isl_ast_build *build)
+{
+  isl_id *id;
+  isl_ctx *ctx;
+  struct polysa_kernel_stmt *stmt;
+  
+  ctx = isl_ast_node_get_ctx(node);
+  stmt = isl_calloc_type(ctx, struct polysa_kernel_stmt);
+  if (!stmt)
+    return isl_ast_node_free(node);
+
+  stmt->u.f.module = module;
+  if (!strcmp(name, "io_module.inter_trans"))
+    stmt->type = POLYSA_KERNEL_STMT_IO_MODULE_CALL_INTER_TRANS;
+  else if (!strcmp(name, "io_module.intra_trans"))
+    stmt->type = POLYSA_KERNEL_STMT_IO_MODULE_CALL_INTRA_TRANS;
+  else if (!strcmp(name, "io_module.state_handle"))
+    stmt->type = POLYSA_KERNEL_STMT_IO_MODULE_CALL_STATE_HANDLE;
+  id = isl_id_alloc(ctx, name, stmt);
+  id = isl_id_set_free_user(id, &polysa_kernel_stmt_free);
+  if (!id)
+    polysa_kernel_stmt_free(stmt);
+  return isl_ast_node_set_annotation(node, id);
+}
+
 /* This function is called for each statement node in the AST
  * for transferring through fifos.
  * Attach a pointer to a polysa_kernel_stmt representing the io
@@ -1536,6 +1564,9 @@ static __isl_give isl_ast_node *at_domain_module(__isl_take isl_ast_node *node,
     struct polysa_array_ref_group *group = p;
     return create_fifo_decl_leaf(data->kernel, node, data->module, group, name, build);
   }
+  if (!prefixcmp(name, "io_module")) {
+    return create_io_module_call_leaf(data->kernel, node, data->module, name, build);
+  }
 
   return node;
 }
@@ -1706,6 +1737,11 @@ static isl_stat before_mark_module(__isl_keep isl_id *mark,
 	if (!strcmp(isl_id_get_name(mark), "module")) {
 		data->module = isl_id_get_user(mark);
 	}
+  if (!strcmp(isl_id_get_name(mark), "io_module.inter_trans") ||
+      !strcmp(isl_id_get_name(mark), "io_module.intra_trans")) {
+    data->filter_buffer = 1;
+  }
+
 	return isl_stat_ok;
 }
 
@@ -1742,20 +1778,57 @@ static __isl_give isl_ast_node *after_mark_module(__isl_take isl_ast_node *node,
     data->kernel = NULL;
     return node;
   }
+  if (!strcmp(isl_id_get_name(id), "io_module.inter_trans")) {
+    module = data->module;
+    if (!module->inter_space)
+      module->inter_space = isl_ast_build_get_schedule_space(build);
+
+    module->inter_tree = isl_ast_node_mark_get_node(node);
+    isl_ast_node_free(node);
+    
+    expr = isl_ast_expr_from_id(isl_id_copy(id));
+    list = isl_ast_expr_list_alloc(ctx, 0);
+    expr = isl_ast_expr_call(expr, list);
+    node = isl_ast_node_alloc_user(expr);
+    node = isl_ast_node_set_annotation(node, id);
+
+    return node;
+  }
+  if (!strcmp(isl_id_get_name(id), "io_module.intra_trans")) {
+    module = data->module;
+    if (!module->intra_space)
+      module->intra_space = isl_ast_build_get_schedule_space(build);
+
+    module->intra_tree = isl_ast_node_mark_get_node(node);
+    isl_ast_node_free(node);
+
+    expr = isl_ast_expr_from_id(isl_id_copy(id));
+    list = isl_ast_expr_list_alloc(ctx, 0);
+    expr = isl_ast_expr_call(expr, list);
+    node = isl_ast_node_alloc_user(expr);
+    node = isl_ast_node_set_annotation(node, id);
+
+    return node;
+  }
+
 	if (strcmp(isl_id_get_name(id), "module") || !data->module) {
 		isl_id_free(id);
 		return node;
 	}
-  module = data->module;
-  data->module = NULL;
-  module->device_tree = isl_ast_node_mark_get_node(node);
-	isl_ast_node_free(node);
 
-	expr = isl_ast_expr_from_id(isl_id_copy(id));
-	list = isl_ast_expr_list_alloc(ctx, 0);
-	expr = isl_ast_expr_call(expr, list);
-	node = isl_ast_node_alloc_user(expr);
-	node = isl_ast_node_set_annotation(node, id);
+  if (data->filter_buffer == 0) {
+    module = data->module;
+    data->module = NULL;
+    module->device_tree = isl_ast_node_mark_get_node(node);
+	  isl_ast_node_free(node);
+
+	  expr = isl_ast_expr_from_id(isl_id_copy(id));
+	  list = isl_ast_expr_list_alloc(ctx, 0);
+	  expr = isl_ast_expr_call(expr, list);
+	  node = isl_ast_node_alloc_user(expr);
+	  node = isl_ast_node_set_annotation(node, isl_id_copy(id));
+  }
+  isl_id_free(id);
 
 	return node;
 }
@@ -1901,6 +1974,132 @@ __isl_give isl_ast_node *sa_generate_code(struct polysa_gen *gen,
   return tree;
 }
 
+/* There are three schedules to handle in this module:
+ * - outer loop schdule
+ * - inter trans schedule
+ * - intra trans schedule
+ * We will first generate AST for inter trans function and intra trans function.
+ * The AST trees below the inter trans and intra trans marker are stored 
+ * seperately.
+ * The outer loop AST will print out these two AST trees while handling 
+ * the inter trans and intra trans function calls.
+ */
+isl_stat sa_filter_buffer_io_module_generate_code(struct polysa_gen *gen,
+  struct polysa_hw_module *module)
+{
+  isl_schedule *schedule;
+  struct polysa_at_domain_data data;
+  isl_ast_build *build;
+  isl_ast_node *tree;
+  isl_id_list *iterators;
+  int depth;
+  isl_ctx *ctx;
+
+  /* Generate AST for inter transfer function call. */
+  schedule = module->inter_sched;
+  ctx = gen->ctx;
+
+  data.prog = gen->prog;
+  data.kernel = NULL;
+  data.module = NULL;
+  data.filter_buffer = 0;
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule(p, schedule);
+//  printf("\n");
+//  // debug 
+
+  depth = 0;
+  if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth,
+        &depth) < 0)
+    schedule = isl_schedule_free(schedule);
+  build = isl_ast_build_alloc(gen->prog->ctx);
+  iterators = ppcg_scop_generate_names(gen->prog->scop, depth, "c");
+  build = isl_ast_build_set_iterators(build, iterators);
+  build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
+  build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
+  build = isl_ast_build_set_after_each_mark(build, &after_mark_module, &data);
+  if (gen->prog->scop->options->debug->dump_final_schedule)
+    isl_schedule_dump(schedule);
+  tree = isl_ast_build_node_from_schedule(build, schedule);
+  isl_ast_build_free(build);
+  isl_ast_node_free(tree);
+
+//  // debug
+//  p = isl_printer_print_ast_node(p, module->inter_tree);
+//  printf("\n");
+//  // debug
+ 
+  /* Generate AST for intra transfer function call. */
+  schedule = module->intra_sched;
+  ctx = gen->ctx;
+
+  data.prog = gen->prog;
+  data.kernel = NULL;
+  data.module = NULL;
+  data.filter_buffer = 0;
+
+//  // debug
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule(p, schedule);
+//  printf("\n");
+//  // debug
+
+  depth = 0;
+  if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth,
+        &depth) < 0)
+    schedule = isl_schedule_free(schedule);
+  build = isl_ast_build_alloc(gen->prog->ctx);
+  iterators = ppcg_scop_generate_names(gen->prog->scop, depth, "c");
+  build = isl_ast_build_set_iterators(build, iterators);
+  build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
+  build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
+  build = isl_ast_build_set_after_each_mark(build, &after_mark_module, &data);
+  if (gen->prog->scop->options->debug->dump_final_schedule)
+    isl_schedule_dump(schedule);
+  tree = isl_ast_build_node_from_schedule(build, schedule);
+  isl_ast_build_free(build);
+  isl_ast_node_free(tree);
+ 
+  /* Generate AST for outer loop function call. */
+  schedule = module->outer_sched;
+  ctx = gen->ctx;
+  
+  data.prog = gen->prog;
+  data.kernel = NULL;
+  data.module = NULL;
+  data.filter_buffer = 0;
+
+//  // debug
+//  p = isl_printer_print_schedule(p, schedule);
+//  printf("\n");
+//  // debug
+
+  depth = 0;
+  if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth,
+        &depth) < 0)
+    schedule = isl_schedule_free(schedule);
+  build = isl_ast_build_alloc(gen->prog->ctx);
+  iterators = ppcg_scop_generate_names(gen->prog->scop, depth, "c");
+  build = isl_ast_build_set_iterators(build, iterators);
+  build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
+  build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
+  build = isl_ast_build_set_after_each_mark(build, &after_mark_module, &data);
+  if (gen->prog->scop->options->debug->dump_final_schedule)
+    isl_schedule_dump(schedule);
+  tree = isl_ast_build_node_from_schedule(build, schedule);
+  isl_ast_build_free(build);
+  module->tree = tree;
+
+//  // debug
+//  p = isl_printer_free(p);
+//  // debug
+
+  return isl_stat_ok;
+}
+
 /* Use isl to generate code for the hw module from "schedule".
  * The device code of the hw module is marked by "module" mark nodes in the schedule tree,
  * containing a pointer to a polysa_hw_module object.
@@ -1924,6 +2123,7 @@ __isl_give isl_ast_node *sa_module_generate_code(struct polysa_gen *gen,
   data.prog = gen->prog;
   data.kernel = NULL;
   data.module = NULL;
+  data.filter_buffer = 0;
 
 //  // debug
 //  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);

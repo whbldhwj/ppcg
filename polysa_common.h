@@ -39,7 +39,10 @@ enum polysa_kernel_stmt_type {
   POLYSA_KERNEL_STMT_IO_TRANSFER_BUF,
   POLYSA_KERNEL_STMT_IO_DRAM,
   POLYSA_KERNEL_STMT_FIFO_DECL,
-  POLYSA_KERNEL_STMT_MODULE_CALL
+  POLYSA_KERNEL_STMT_MODULE_CALL,
+  POLYSA_KERNEL_STMT_IO_MODULE_CALL_INTER_TRANS,
+  POLYSA_KERNEL_STMT_IO_MODULE_CALL_INTRA_TRANS,
+  POLYSA_KERNEL_STMT_IO_MODULE_CALL_STATE_HANDLE
 };
 
 enum polysa_dep_type {
@@ -611,7 +614,24 @@ struct polysa_hw_module {
   /* Connect to external memory */
   int to_mem; 
   /* Connect to PE */
-  int to_pe; 
+  int to_pe;
+  /* Contains buffer */
+  int is_buffer;
+  /* Filter module */
+  int is_filter;
+
+  /* Module function schedule for buffer_filter modules */
+  isl_schedule *outer_sched; /* Outer loops */
+  isl_schedule *inter_sched; /* Inter transfer */
+  isl_schedule *intra_sched; /* Intra transfer */
+
+  isl_space *inter_space;
+  isl_space *intra_space;
+
+  isl_ast_node *inter_tree;
+  isl_ast_node *intra_tree;
+
+  int double_buffer;
 
   struct polysa_kernel *kernel;
 };
@@ -726,6 +746,9 @@ struct polysa_kernel_stmt {
       int upper;
       int lower;
     } m;
+    struct {
+      struct polysa_hw_module *module;
+    } f;
 	} u;
 };
 

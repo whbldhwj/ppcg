@@ -2276,6 +2276,16 @@ struct polysa_hw_module *polysa_hw_module_alloc()
   module->io_groups = NULL;
   module->to_pe = 0;
   module->to_mem = 0;
+  module->double_buffer = 0;
+  module->is_filter = 0;
+  module->is_buffer = 0;
+  module->outer_sched = NULL;
+  module->inter_sched = NULL;
+  module->intra_sched = NULL;
+  module->inter_space = NULL;
+  module->intra_space = NULL;
+  module->inter_tree = NULL;
+  module->intra_tree = NULL;
 
   return module;
 }
@@ -2314,6 +2324,12 @@ void *polysa_hw_module_free(struct polysa_hw_module *module)
 
   isl_ast_node_free(module->tree);
   isl_ast_node_free(module->device_tree);
+  isl_ast_node_free(module->inter_tree);
+  isl_ast_node_free(module->intra_tree);
+
+  isl_space_free(module->inter_space);
+  isl_space_free(module->intra_space);
+
   isl_id_list_free(module->inst_ids);
   for (int i = 0; i < module->n_var; i++) {
     free(module->var[i].name);
