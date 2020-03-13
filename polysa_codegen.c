@@ -898,6 +898,10 @@ static int extract_is_filter(const char *type)
   return val;
 }
 
+/* Extract the buffer field from the I/O statemnt type.
+ * The I/O statement type is in the format of:
+ * in/out_trans[_dram].[is_filter].[is_buffer].[fifo_name].[sched_depth].[param_id]
+ */
 static int extract_is_buffer(const char *type)
 {
   char ch;
@@ -942,7 +946,7 @@ static int extract_sched_depth(isl_ctx *ctx, const char *type)
 
   p_str = isl_printer_to_str(ctx);
   loc++;
-  while ((ch = type[loc]) != '\0') {
+  while (((ch = type[loc]) != '\0') && ((ch = type[loc]) != '.')) {
     char buf[2];
     buf[0] = ch;
     buf[1] = '\0';
@@ -981,7 +985,7 @@ static int extract_param_id(isl_ctx *ctx, const char *type)
 
   p_str = isl_printer_to_str(ctx);
   loc++;
-  while ((ch = type[loc]) != '\0') {
+  while (((ch = type[loc]) != '\0') && ((ch = type[loc]) != '.')) {
     char buf[2];
     buf[0] = ch;
     buf[1] = '\0';
@@ -995,6 +999,97 @@ static int extract_param_id(isl_ctx *ctx, const char *type)
   isl_printer_free(p_str);
 
   return depth;
+}
+
+/* Extract the filter field from the I/O statemnt type.
+ * The I/O statement type is in the format of:
+ * in/out_trans[_dram].[fifo_name].[is_filter].[is_buffer].[sched_depth].[param_id].[pack_lane]
+ * or 
+ * in/out.[fifo_name].[pack_lane].[nxt_pack_lane]
+ */
+static int extract_data_pack(isl_ctx *ctx, const char *type, int is_trans)
+{
+  int loc = 0;
+  char ch;
+  int dot_time = 0;
+  isl_printer *p_str;
+  char *depth_str;
+  int depth;
+
+  while ((ch = type[loc]) != '\0') {
+    if (ch == '.') 
+      dot_time++;
+    if (dot_time == (is_trans? 6 : 2))
+      break;
+    loc++;
+  }
+
+  if (dot_time < (is_trans? 6 : 2))
+    return -1;
+
+  p_str = isl_printer_to_str(ctx);
+  loc++;
+  while (((ch = type[loc]) != '\0') && ((ch = type[loc]) != '.')) {
+    char buf[2];
+    buf[0] = ch;
+    buf[1] = '\0';
+    p_str = isl_printer_print_str(p_str, buf);
+    loc++;
+  }
+
+  depth_str = isl_printer_get_str(p_str);
+  depth = atoi(depth_str);
+  free(depth_str);
+  isl_printer_free(p_str);
+
+  return depth; 
+}
+
+/* Extract the filter field from the I/O statemnt type.
+ * The I/O statement type is in the format of:
+ * in/out_trans[_dram].[fifo_name].[is_filter].[is_buffer].[sched_depth].[param_id].[pack_lane]
+ * or 
+ * in/out.[fifo_name].[pack_lane].[nxt_pack_lane]
+ */
+static int extract_next_data_pack(isl_ctx *ctx, const char *type, int is_trans) 
+{
+  if (is_trans)
+    return -1;
+
+  int loc = 0;
+  char ch;
+  int dot_time = 0;
+  isl_printer *p_str;
+  char *depth_str;
+  int depth;
+
+  while ((ch = type[loc]) != '\0') {
+    if (ch == '.') 
+      dot_time++;
+    if (dot_time == 3)
+      break;
+    loc++;
+  }
+
+  if (dot_time < 3)
+    return -1;
+
+  p_str = isl_printer_to_str(ctx);
+  loc++;
+  while (((ch = type[loc]) != '\0') && ((ch = type[loc]) != '.')) {
+    char buf[2];
+    buf[0] = ch;
+    buf[1] = '\0';
+    p_str = isl_printer_print_str(p_str, buf);
+    loc++;
+  }
+
+  depth_str = isl_printer_get_str(p_str);
+  depth = atoi(depth_str);
+  free(depth_str);
+  isl_printer_free(p_str);
+
+  return depth; 
 }
 
 __isl_give isl_ast_expr_list *decl_args_generate(struct polysa_hw_module *module)
@@ -1237,7 +1332,6 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
   int is_trans_filter; // i/o transfer statment with filters
   int is_trans_buf; // i/o transfer statment with local buffers
   struct polysa_array_ref_group *group = pair->local_group;
-
   int depth;
   isl_ctx *ctx;
 
@@ -1246,6 +1340,10 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
     return isl_ast_node_free(node);
 
   ctx = kernel->ctx;
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(kernel->ctx, stdout);
+//  // debug
 
   /* type[D -> A] -> L */
   access = isl_map_from_union_map(isl_ast_build_get_schedule(build)); 
@@ -1263,7 +1361,9 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
   }
   stmt->u.i.in = type && !prefixcmp(type, "in");
   stmt->u.i.buf = is_trans_buf;
-
+  stmt->u.i.data_pack = extract_data_pack(ctx, type, is_trans || is_trans_dram);
+  stmt->u.i.nxt_data_pack = extract_next_data_pack(ctx, type, is_trans || is_trans_dram);
+    
   /* Compute the global index */
   /* L -> type[D -> A] */
   access = isl_map_reverse(access); 
@@ -1278,14 +1378,41 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
   pma2 = isl_pw_multi_aff_pullback_pw_multi_aff(pma2,
             isl_pw_multi_aff_copy(pma));
   expr = isl_ast_build_access_from_pw_multi_aff(build, pma2); 
-  if (group->array->linearize) 
+  if (group->array->linearize) {
     expr = polysa_local_array_info_linearize_index(group->local_array,
               expr);
+
+    if (stmt->u.i.data_pack > 1) {
+      isl_ast_expr *arg, *div;
+      arg = isl_ast_expr_get_op_arg(expr, 1);
+      div = isl_ast_expr_from_val(isl_val_int_from_si(kernel->ctx, stmt->u.i.data_pack));
+      arg = isl_ast_expr_div(arg, div); 
+      expr = isl_ast_expr_set_op_arg(expr, 1, arg);
+    }
+  } else {
+    if (stmt->u.i.data_pack > 1) {
+      int n_arg;
+      isl_ast_expr *arg, *div;
+      n_arg = isl_ast_expr_get_op_n_arg(expr);
+      arg = isl_ast_expr_get_op_arg(expr, n_arg - 1);
+      div = isl_ast_expr_from_val(isl_val_int_from_si(kernel->ctx, stmt->u.i.data_pack));
+      arg = isl_ast_expr_div(arg, div);
+      expr = isl_ast_expr_set_op_arg(expr, n_arg - 1, arg);
+    }
+  }
+//  // debug
+//  p = isl_printer_print_ast_expr(p, expr);
+//  printf("\n");
+//  // debug
+
   stmt->u.i.index = expr; 
 
   /* Compute the local index */
   tile = pair->local_tile;
   if (tile) {
+    isl_ast_expr *arg, *div;
+    int n_arg;
+
     /* [D -> A] -> T */
     pma2 = isl_pw_multi_aff_from_multi_aff(
               isl_multi_aff_copy(tile->tiling)); 
@@ -1299,7 +1426,23 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
     /* L -> T */
     pma2 = isl_pw_multi_aff_pullback_pw_multi_aff(pma2, pma);
     expr = isl_ast_build_access_from_pw_multi_aff(build, pma2);
+//    // debug
+//    p = isl_printer_print_ast_expr(p, expr);
+//    printf("\n");
+//    // debug
+    if (stmt->u.i.data_pack > 1) {
+      n_arg = isl_ast_expr_get_op_n_arg(expr);
+      arg = isl_ast_expr_get_op_arg(expr, n_arg - 1);
+      div = isl_ast_expr_from_val(isl_val_int_from_si(kernel->ctx, stmt->u.i.data_pack));
+      arg = isl_ast_expr_div(arg, div);
+      expr = isl_ast_expr_set_op_arg(expr, n_arg - 1, arg);
+    }
+//    // debug
+//    p = isl_printer_print_ast_expr(p, expr);
+//    printf("\n");
+//    // debug
     stmt->u.i.local_index = expr;
+    stmt->u.i.reg = 0;
   } else {
     /* Create a scalar expr */
     isl_printer *p_str;
@@ -1321,8 +1464,12 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
     indice = isl_ast_expr_from_val(isl_val_zero(kernel->ctx));
     indices = isl_ast_expr_list_from_ast_expr(indice);
     expr = isl_ast_expr_access(array, indices);
-    
+//    // debug
+//    p = isl_printer_print_ast_expr(p, expr);
+//    printf("\n");
+//    // debug
     stmt->u.i.local_index = expr;
+    stmt->u.i.reg = 1;
   }
 
   isl_printer *p_str = isl_printer_to_str(isl_ast_node_get_ctx(node));

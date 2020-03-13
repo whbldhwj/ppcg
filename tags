@@ -133,14 +133,19 @@ AWK	isl/Makefile	/^AWK = mawk$/;"	m
 AWK	isl/doc/Makefile	/^AWK = mawk$/;"	m
 AWK	isl/interface/Makefile	/^AWK = mawk$/;"	m
 AWK	pet/Makefile	/^AWK = mawk$/;"	m
-A_IO_L2_in	kernel_kernel.c	/^void A_IO_L2_in(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_A_local_out)$/;"	f
-A_IO_L2_in_inter_trans	kernel_kernel.c	/^void A_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, int local_C[1][1], hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out)$/;"	f
-A_IO_L2_in_intra_trans	kernel_kernel.c	/^void A_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, int local_C[1][1], hls::stream<int> &fifo_A_local_out)$/;"	f
-A_IO_L3_in	kernel_kernel.c	/^void A_IO_L3_in(int idx, int *A, hls::stream<int> &fifo_A_local_out)$/;"	f
+A_IO_L2_in	kernel_kernel.c	/^void A_IO_L2_in(int idx, int idy, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<int> &fifo_A_local_out)$/;"	f
+A_IO_L2_in	kernel_kernel_cp.c	/^void A_IO_L2_in(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_A_local_out)$/;"	f
+A_IO_L2_in_inter_trans	kernel_kernel.c	/^void A_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, A_t4 local_A[1][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out)$/;"	f
+A_IO_L2_in_inter_trans	kernel_kernel_cp.c	/^void A_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, int local_A[1][4], hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out)$/;"	f
+A_IO_L2_in_intra_trans	kernel_kernel.c	/^void A_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[1][1], hls::stream<int> &fifo_A_local_out)$/;"	f
+A_IO_L2_in_intra_trans	kernel_kernel_cp.c	/^void A_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, int local_A[1][4], hls::stream<int> &fifo_A_local_out)$/;"	f
+A_IO_L3_in	kernel_kernel.c	/^void A_IO_L3_in(int idx, A_t4 *A, hls::stream<A_t4> &fifo_A_local_out)$/;"	f
+A_IO_L3_in	kernel_kernel_cp.c	/^void A_IO_L3_in(int idx, int *A, hls::stream<int> &fifo_A_local_out)$/;"	f
 A_L2_in_IO	kernel_intel.c	/^__kernel void A_L2_in_IO()$/;"	f
 A_L2_in_IO	kernel_xilinx.c	/^__kernel void A_L2_in_IO(int idx, channel int fifo_A_in, channel int fifo_A_out, channel int fifo_A_local_out)$/;"	f
 A_L3_in_IO	kernel_intel.c	/^__kernel void A_L3_in_IO(int *A)$/;"	f
 A_L3_in_IO	kernel_xilinx.c	/^__kernel void A_L3_in_IO(int *A, channel int fifo_A_local_out)$/;"	f
+A_t4	kernel_kernel.h	/^typedef ap_uint<128> A_t4;$/;"	t
 An tt Omega	isl/doc/implementation.tex	/^the composition of these extra elements with powers of $R_i$.$/;"	b
 BASE	isl/flow_cmp.c	48;"	d	file:
 BASE	isl/flow_cmp.c	49;"	d	file:
@@ -262,9 +267,13 @@ BUILT_SOURCES	Makefile	/^BUILT_SOURCES = gitversion.h$/;"	m
 BUILT_SOURCES	isl/Makefile	/^BUILT_SOURCES = gitversion.h $(CPP_INTERFACES)$/;"	m
 BUILT_SOURCES	pet/Makefile	/^BUILT_SOURCES = \\$/;"	m
 B_IO_L2_in	kernel_kernel.c	/^void B_IO_L2_in(int idx, int idy, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_B_local_out)$/;"	f
-B_IO_L2_in_inter_trans	kernel_kernel.c	/^void B_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, int local_C[1][1], hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out)$/;"	f
-B_IO_L2_in_intra_trans	kernel_kernel.c	/^void B_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, int local_C[1][1], hls::stream<int> &fifo_B_local_out)$/;"	f
+B_IO_L2_in	kernel_kernel_cp.c	/^void B_IO_L2_in(int idx, int idy, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_B_local_out)$/;"	f
+B_IO_L2_in_inter_trans	kernel_kernel.c	/^void B_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, int local_B[4][1], hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out)$/;"	f
+B_IO_L2_in_inter_trans	kernel_kernel_cp.c	/^void B_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, int local_B[4][1], hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out)$/;"	f
+B_IO_L2_in_intra_trans	kernel_kernel.c	/^void B_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, int local_B[4][1], hls::stream<int> &fifo_B_local_out)$/;"	f
+B_IO_L2_in_intra_trans	kernel_kernel_cp.c	/^void B_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, int local_B[4][1], hls::stream<int> &fifo_B_local_out)$/;"	f
 B_IO_L3_in	kernel_kernel.c	/^void B_IO_L3_in(int idx, int *B, hls::stream<int> &fifo_B_local_out)$/;"	f
+B_IO_L3_in	kernel_kernel_cp.c	/^void B_IO_L3_in(int idx, int *B, hls::stream<int> &fifo_B_local_out)$/;"	f
 B_L2_in_IO	kernel_intel.c	/^__kernel void B_L2_in_IO()$/;"	f
 B_L2_in_IO	kernel_xilinx.c	/^__kernel void B_L2_in_IO(int idx, channel int fifo_B_in, channel int fifo_B_out, channel int fifo_B_local_out)$/;"	f
 B_L3_in_IO	kernel_intel.c	/^__kernel void B_L3_in_IO(int *B)$/;"	f
@@ -448,10 +457,15 @@ CYGPATH_W	isl/doc/Makefile	/^CYGPATH_W = echo$/;"	m
 CYGPATH_W	isl/interface/Makefile	/^CYGPATH_W = echo$/;"	m
 CYGPATH_W	pet/Makefile	/^CYGPATH_W = echo$/;"	m
 C_drain_IO_L1_out	kernel_kernel.c	/^void C_drain_IO_L1_out(int idx, int idy, int idz, hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L1_out	kernel_kernel_cp.c	/^void C_drain_IO_L1_out(int idx, int idy, int idz, hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L1_out_inter_trans	kernel_kernel.c	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int idz, int c0_prev, int c1_prev, int local_C[1][1], hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out)$/;"	f
+C_drain_IO_L1_out_inter_trans	kernel_kernel_cp.c	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int idz, int c0_prev, int c1_prev, int local_C[1][1], hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out)$/;"	f
 C_drain_IO_L1_out_intra_trans	kernel_kernel.c	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int idz, int c0, int c1, int local_C[1][1], hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L1_out_intra_trans	kernel_kernel_cp.c	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int idz, int c0, int c1, int local_C[1][1], hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L2_out	kernel_kernel.c	/^void C_drain_IO_L2_out(int idx, int idy, hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L2_out	kernel_kernel_cp.c	/^void C_drain_IO_L2_out(int idx, int idy, hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L3_out	kernel_kernel.c	/^void C_drain_IO_L3_out(int idx, int *C, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L3_out	kernel_kernel_cp.c	/^void C_drain_IO_L3_out(int idx, int *C, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_L1_out_IO	kernel_intel.c	/^__kernel void C_drain_L1_out_IO()$/;"	f
 C_drain_L1_out_IO	kernel_xilinx.c	/^__kernel void C_drain_L1_out_IO(int idx, int idy, channel int fifo_C_drain_in, channel int fifo_C_drain_out, channel int fifo_C_drain_local_in)$/;"	f
 C_drain_L2_out_IO	kernel_intel.c	/^__kernel void C_drain_L2_out_IO()$/;"	f
@@ -2282,6 +2296,7 @@ PDFLATEX	isl/doc/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PDFLATEX	isl/interface/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PE	kernel_intel.c	/^__kernel void PE()$/;"	f
 PE	kernel_kernel.c	/^void PE(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)$/;"	f
+PE	kernel_kernel_cp.c	/^void PE(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)$/;"	f
 PE	kernel_xilinx.c	/^__kernel void PE(int idx, int idy, channel int fifo_A_in, channel int fifo_A_out, channel int fifo_B_in, channel int fifo_B_out, channel int fifo_C_drain_out)$/;"	f
 PERL	isl/Makefile	/^PERL = perl$/;"	m
 PERL	isl/doc/Makefile	/^PERL = perl$/;"	m
@@ -2362,12 +2377,12 @@ POLYSA_KERNEL_STMT_IO_TRANSFER_BUF	polysa_common.h	/^  POLYSA_KERNEL_STMT_IO_TRA
 POLYSA_KERNEL_STMT_MODULE_CALL	polysa_common.h	/^  POLYSA_KERNEL_STMT_MODULE_CALL,$/;"	e	enum:polysa_kernel_stmt_type
 POLYSA_KERNEL_STMT_SYNC	polysa_common.h	/^  POLYSA_KERNEL_STMT_SYNC,$/;"	e	enum:polysa_kernel_stmt_type
 POLYSA_PE_GROUP	polysa_common.h	/^  POLYSA_PE_GROUP,$/;"	e	enum:polysa_group_type
-POLYSA_SA_TYPE_ASYNC	ppcg_options.h	145;"	d
-POLYSA_SA_TYPE_SYNC	ppcg_options.h	144;"	d
-POLYSA_TARGET_C	ppcg_options.h	139;"	d
-POLYSA_TARGET_INTEL_OPENCL	ppcg_options.h	141;"	d
-POLYSA_TARGET_T2S	ppcg_options.h	142;"	d
-POLYSA_TARGET_XILINX_HLS	ppcg_options.h	140;"	d
+POLYSA_SA_TYPE_ASYNC	ppcg_options.h	148;"	d
+POLYSA_SA_TYPE_SYNC	ppcg_options.h	147;"	d
+POLYSA_TARGET_C	ppcg_options.h	142;"	d
+POLYSA_TARGET_INTEL_OPENCL	ppcg_options.h	144;"	d
+POLYSA_TARGET_T2S	ppcg_options.h	145;"	d
+POLYSA_TARGET_XILINX_HLS	ppcg_options.h	143;"	d
 POLYSA_TREE_H	polysa_tree.h	2;"	d
 POLYSA_UNKNOWN_GROUP	polysa_common.h	/^  POLYSA_UNKNOWN_GROUP$/;"	e	enum:polysa_group_type
 POLYSA_UNKNOWN_IO	polysa_common.h	/^  POLYSA_UNKNOWN_IO$/;"	e	enum:polysa_io_type
@@ -2385,9 +2400,9 @@ PP	pet/pet.cc	/^	Preprocessor &PP;$/;"	m	struct:PetASTConsumer	file:
 PP	pet/scan.h	/^	clang::Preprocessor &PP;$/;"	m	struct:PetScan
 PPCG_H	ppcg.h	2;"	d
 PPCG_OPTIONS_H	ppcg_options.h	2;"	d
-PPCG_TARGET_C	ppcg_options.h	136;"	d
-PPCG_TARGET_CUDA	ppcg_options.h	137;"	d
-PPCG_TARGET_OPENCL	ppcg_options.h	138;"	d
+PPCG_TARGET_C	ppcg_options.h	139;"	d
+PPCG_TARGET_CUDA	ppcg_options.h	140;"	d
+PPCG_TARGET_OPENCL	ppcg_options.h	141;"	d
 PRE_INSTALL	Makefile	/^PRE_INSTALL = :$/;"	m
 PRE_INSTALL	isl/Makefile	/^PRE_INSTALL = :$/;"	m
 PRE_INSTALL	isl/doc/Makefile	/^PRE_INSTALL = :$/;"	m
@@ -5008,6 +5023,7 @@ compute_group_tilings_pe	polysa_trans.c	/^static void compute_group_tilings_pe(s
 compute_hexagon	hybrid.c	/^static __isl_give isl_set *compute_hexagon(__isl_take isl_space *space,$/;"	f	file:
 compute_incremental	isl/isl_transitive_closure.c	/^static __isl_give isl_map *compute_incremental($/;"	f	file:
 compute_io_group_buffer	polysa_group.c	/^static isl_stat compute_io_group_buffer(struct polysa_kernel *kernel,$/;"	f	file:
+compute_io_group_data_pack	polysa_group.c	/^static isl_stat compute_io_group_data_pack(struct polysa_kernel *kernel,$/;"	f	file:
 compute_io_group_schedule	polysa_group.c	/^static isl_stat compute_io_group_schedule($/;"	f	file:
 compute_live_out	ppcg.c	/^static void compute_live_out(struct ppcg_scop *ps)$/;"	f	file:
 compute_live_range_reordering_dependences	ppcg.c	/^static void compute_live_range_reordering_dependences(struct ppcg_scop *ps)$/;"	f	file:
@@ -5644,6 +5660,10 @@ d	polysa_t2s.h	/^  int d; \/\/ drain URE$/;"	m	struct:t2s_URE
 data	isl/include/isl/hash.h	/^	void     *data;$/;"	m	struct:isl_hash_table_entry
 data	isl/isl_blk.h	/^	isl_int *data;$/;"	m	struct:isl_blk
 data	isl/isl_flow.c	/^	void		*data;$/;"	m	struct:isl_labeled_map	file:
+data_pack	polysa_common.h	/^      int data_pack;$/;"	m	struct:polysa_kernel_stmt::__anon104::__anon107
+data_pack	ppcg_options.h	/^  int data_pack;$/;"	m	struct:ppcg_options
+data_pack_inter	polysa_common.h	/^  int data_pack_inter;$/;"	m	struct:polysa_hw_module
+data_pack_intra	polysa_common.h	/^  int data_pack_intra;$/;"	m	struct:polysa_hw_module
 data_t	kernel.h	/^typedef int data_t;$/;"	t
 data_t	polysa_tests/2dconv/kernel.h	/^typedef float data_t;$/;"	t
 data_t	polysa_tests/cholesky/kernel.h	/^typedef float data_t;$/;"	t
@@ -6350,6 +6370,8 @@ extract_compressed_stride_constraints	isl/isl_map_simplify.c	/^static __isl_give
 extract_context	gpu.c	/^static __isl_give isl_set *extract_context(__isl_keep isl_schedule_node *node,$/;"	f	file:
 extract_context	polysa_trans.c	/^static __isl_give isl_set *extract_context(__isl_keep isl_schedule_node *node,$/;"	f	file:
 extract_cst	pet/aff.c	/^static isl_stat extract_cst(__isl_take isl_set *set, __isl_take isl_aff *aff,$/;"	f	file:
+extract_data_pack	polysa_codegen.c	/^static int extract_data_pack(isl_ctx *ctx, const char *type, int is_trans)$/;"	f	file:
+extract_data_pack_factors	polysa_fpga.c	/^static int *extract_data_pack_factors(int *data_pack_factors,$/;"	f	file:
 extract_declared_arrays	pet/tree2scop.c	/^static int extract_declared_arrays(__isl_keep pet_tree *node, void *user)$/;"	f	file:
 extract_deps	polysa_t2s.c	/^static __isl_give isl_schedule *extract_deps(__isl_take isl_schedule *schedule, struct t2s_data *data) {$/;"	f	file:
 extract_depth	pet/expr_plus.cc	/^static int extract_depth(__isl_keep isl_multi_pw_aff *index)$/;"	f	file:
@@ -6451,6 +6473,7 @@ extract_modulo	isl/isl_ast_build_expr.c	/^static int extract_modulo(struct isl_e
 extract_modulos	isl/isl_ast_build_expr.c	/^static __isl_give isl_aff *extract_modulos(__isl_take isl_aff *aff,$/;"	f	file:
 extract_mpa_from_tuple	isl/isl_input.c	/^static __isl_give isl_multi_pw_aff *extract_mpa_from_tuple($/;"	f	file:
 extract_multi_pw_aff	pet/parse.c	/^static __isl_give isl_multi_pw_aff *extract_multi_pw_aff(isl_ctx *ctx,$/;"	f	file:
+extract_next_data_pack	polysa_codegen.c	/^static int extract_next_data_pack(isl_ctx *ctx, const char *type, int is_trans) $/;"	f	file:
 extract_node	isl/isl_scheduler.c	/^static isl_stat extract_node(__isl_take isl_set *set, void *user)$/;"	f	file:
 extract_node_band_prop	polysa_common.c	/^struct polysa_node_band_prop *extract_node_band_prop(__isl_keep isl_schedule_node *node)$/;"	f
 extract_node_list	isl/isl_ast_graft.c	/^static __isl_give isl_ast_node_list *extract_node_list($/;"	f	file:
@@ -6616,6 +6639,7 @@ fifo_decl_scheds	polysa_common.h	/^  isl_schedule **fifo_decl_scheds;$/;"	m	stru
 fifo_decl_trees	polysa_common.h	/^  isl_ast_node **fifo_decl_trees;$/;"	m	struct:polysa_hw_top_module
 fifo_decl_wrapped_trees	polysa_common.h	/^  isl_ast_node **fifo_decl_wrapped_trees;$/;"	m	struct:polysa_hw_top_module
 fifo_name	polysa_common.h	/^      char *fifo_name;$/;"	m	struct:polysa_kernel_stmt::__anon104::__anon107
+fifo_type	polysa_common.h	/^      char *fifo_type;$/;"	m	struct:polysa_kernel_stmt::__anon104::__anon107
 file	isl/isl_printer_private.h	/^	FILE        	*file;$/;"	m	struct:isl_printer
 file	isl/isl_stream_private.h	/^	FILE        	*file;$/;"	m	struct:isl_stream
 file_end_line	isl/isl_printer.c	/^static __isl_give isl_printer *file_end_line(__isl_take isl_printer *p)$/;"	f	file:
@@ -14981,6 +15005,10 @@ n_io_buffer	polysa_common.h	/^  int n_io_buffer;$/;"	m	struct:polysa_array_ref_g
 n_io_group	polysa_common.h	/^  int n_io_group;$/;"	m	struct:polysa_hw_module
 n_io_group	polysa_common.h	/^  int n_io_group;$/;"	m	struct:polysa_local_array_info
 n_io_info	polysa_common.h	/^  int n_io_info;$/;"	m	struct:polysa_stmt_access
+n_lane	polysa_common.h	/^  int n_lane;$/;"	m	struct:polysa_array_ref_group
+n_lane	polysa_common.h	/^  int n_lane;$/;"	m	struct:polysa_io_buffer
+n_lane	polysa_common.h	/^  int n_lane;$/;"	m	struct:polysa_kernel_var
+n_lane	polysa_trans.c	/^  int n_lane;$/;"	m	struct:add_io_copies_stmt_acc_data	file:
 n_loop	pet/state.h	/^	int n_loop;$/;"	m	struct:pet_state
 n_lower	isl/isl_ast_codegen.c	/^	int n_lower;$/;"	m	struct:isl_ast_count_constraints_data	file:
 n_may	isl/isl_flow.c	/^	int		    		n_may;$/;"	m	struct:isl_access_info	file:
@@ -15257,6 +15285,7 @@ num_outputs	isl/imath/imtest.c	/^  int    num_outputs;$/;"	m	struct:__anon86	fil
 number_of_constraints_increases	isl/isl_coalesce.c	/^static int number_of_constraints_increases(int i, int j,$/;"	f	file:
 numref	isl/imath/gmp_compat.c	/^mp_int GMPQAPI(numref)(mp_rat op) {$/;"	f
 nvar	isl/isl_scheduler.c	/^	int	 nvar;$/;"	m	struct:isl_sched_node	file:
+nxt_data_pack	polysa_common.h	/^      int nxt_data_pack;$/;"	m	struct:polysa_kernel_stmt::__anon104::__anon107
 obj	isl/basis_reduction_tab.c	/^	isl_int		*obj;$/;"	m	struct:tab_lp	file:
 obj	isl/isl_test.c	/^	const char *obj;$/;"	m	struct:__anon36	file:
 obj_add	isl/isl_input.c	/^static struct isl_obj obj_add(__isl_keep isl_stream *s,$/;"	f	file:
@@ -16564,7 +16593,7 @@ polysa_dep_type	polysa_common.h	/^enum polysa_dep_type {$/;"	g
 polysa_drain_group_access_relation	polysa_group.c	/^__isl_give isl_union_map *polysa_drain_group_access_relation($/;"	f
 polysa_drain_group_ref_access_relation	polysa_group.c	/^__isl_give isl_union_map *polysa_drain_group_ref_access_relation($/;"	f
 polysa_extract_size_data	polysa_common.c	/^struct polysa_extract_size_data {$/;"	s	file:
-polysa_fifo_print_call_argument	polysa_fpga.c	/^__isl_give isl_printer *polysa_fifo_print_call_argument($/;"	f
+polysa_fifo_print_call_argument	polysa_fpga.c	/^static __isl_give isl_printer *polysa_fifo_print_call_argument($/;"	f	file:
 polysa_fifo_print_declaration_arguments	polysa_fpga.c	/^static __isl_give isl_printer *polysa_fifo_print_declaration_arguments($/;"	f	file:
 polysa_find_pe_group	polysa_trans.c	/^static struct polysa_array_ref_group *polysa_find_pe_group($/;"	f	file:
 polysa_gen	polysa_common.h	/^struct polysa_gen {$/;"	s
@@ -16941,6 +16970,8 @@ print_ctx_decl	isl/interface/cpp.cc	/^void cpp_generator::print_ctx_decl(ostream
 print_ctx_impl	isl/interface/cpp.cc	/^void cpp_generator::print_ctx_impl(ostream &os, const isl_class &clazz)$/;"	f	class:cpp_generator
 print_cuda	cuda.c	/^static __isl_give isl_printer *print_cuda(__isl_take isl_printer *p,$/;"	f	file:
 print_cuda_macros	cuda.c	/^static __isl_give isl_printer *print_cuda_macros(__isl_take isl_printer *p)$/;"	f	file:
+print_data_types_intel	polysa_fpga.c	/^static isl_stat *print_data_types_intel($/;"	f	file:
+print_data_types_xilinx	polysa_fpga.c	/^static isl_stat *print_data_types_xilinx($/;"	f	file:
 print_declaration	pet/pet_codegen.c	/^static isl_stat print_declaration(__isl_take isl_set *set, void *user)$/;"	f	file:
 print_declarations	isl/interface/cpp.cc	/^void cpp_generator::print_declarations(ostream &os)$/;"	f	class:cpp_generator
 print_declarations	pet/pet_codegen.c	/^static __isl_give isl_printer *print_declarations(__isl_take isl_printer *p,$/;"	f	file:
@@ -17098,8 +17129,8 @@ print_module_call_upper	polysa_fpga.c	/^__isl_give isl_printer *print_module_cal
 print_module_def	codegen.py	/^def print_module_def(f, arg_map, module_def, def_args, call_args_type):$/;"	f
 print_module_header_intel	polysa_fpga.c	/^static __isl_give isl_printer *print_module_header_intel(__isl_take isl_printer *p,$/;"	f	file:
 print_module_header_xilinx	polysa_fpga.c	/^static __isl_give isl_printer *print_module_header_xilinx(__isl_take isl_printer *p,$/;"	f	file:
-print_module_headers_intel	polysa_fpga.c	/^__isl_give isl_printer *print_module_headers_intel($/;"	f
-print_module_headers_xilinx	polysa_fpga.c	/^__isl_give isl_printer *print_module_headers_xilinx($/;"	f
+print_module_headers_intel	polysa_fpga.c	/^isl_stat print_module_headers_intel($/;"	f
+print_module_headers_xilinx	polysa_fpga.c	/^static isl_stat print_module_headers_xilinx($/;"	f	file:
 print_module_iterators	polysa_fpga.c	/^static void print_module_iterators(FILE *out, struct polysa_hw_module *module)$/;"	f	file:
 print_module_stmt	polysa_fpga.c	/^static __isl_give isl_printer *print_module_stmt(__isl_take isl_printer *p,$/;"	f	file:
 print_module_vars	polysa_fpga.c	/^static __isl_give isl_printer *print_module_vars(__isl_take isl_printer *p,$/;"	f	file:
@@ -17707,6 +17738,7 @@ refs	polysa_common.h	/^	struct polysa_stmt_access **refs;  $/;"	m	struct:polysa_
 refs	polysa_common.h	/^	struct polysa_stmt_access **refs;$/;"	m	struct:polysa_array_info	typeref:struct:polysa_array_info::polysa_stmt_access
 refs	polysa_t2s.h	/^  struct gpu_stmt_access **refs;$/;"	m	struct:t2s_array_ref_group	typeref:struct:t2s_array_ref_group::gpu_stmt_access
 reg	polysa_codegen.c	/^  int reg;$/;"	m	struct:polysa_transform_data	file:
+reg	polysa_common.h	/^      int reg;$/;"	m	struct:polysa_kernel_stmt::__anon104::__anon107
 region	isl/isl_scheduler.c	/^	struct isl_trivial_region *region;$/;"	m	struct:isl_sched_graph	typeref:struct:isl_sched_graph::isl_trivial_region	file:
 region	isl/isl_tab_pip.c	/^	int region;$/;"	m	struct:isl_local_region	file:
 region	isl/isl_tab_pip.c	/^	struct isl_trivial_region *region;$/;"	m	struct:isl_lexmin_data	typeref:struct:isl_lexmin_data::isl_trivial_region	file:

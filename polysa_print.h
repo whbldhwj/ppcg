@@ -12,7 +12,7 @@ __isl_give isl_printer *polysa_print_types(__isl_take isl_printer *p,
 __isl_give isl_printer *polysa_print_macros(__isl_take isl_printer *p,
 	__isl_keep isl_ast_node *node);
 __isl_give isl_printer *polysa_array_info_print_declaration_argument(
-	__isl_take isl_printer *p, struct polysa_array_info *array,
+	__isl_take isl_printer *p, struct polysa_array_info *array, int n_lane,
 	const char *memory_space);
 __isl_give isl_printer *polysa_kernel_print_domain(__isl_take isl_printer *p,
 	struct polysa_kernel_stmt *stmt);

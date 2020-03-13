@@ -136,6 +136,7 @@ struct polysa_kernel_var {
   enum polysa_group_access_type type;
   char *name;
   isl_vec *size;
+  int n_lane;
 };
 
 struct polysa_kernel {
@@ -394,6 +395,8 @@ struct polysa_io_buffer {
   struct polysa_array_tile *tile;
   /* The buffer is located at io_L"level". */
   int level;
+  /* The data pack factor */
+  int n_lane;
 };
 
 /* A group of array references in a kernel that should be handled together.
@@ -470,6 +473,8 @@ struct polysa_array_ref_group {
   int io_level;
   /* Dims of space band */
   int space_dim;
+  /* Data pack factor inside PEs */
+  int n_lane;
 
   /* PolySA Extended */
 };
@@ -633,6 +638,10 @@ struct polysa_hw_module {
 
   int double_buffer;
 
+  /* Data pack factor */
+  int data_pack_inter;
+  int data_pack_intra;
+
   struct polysa_kernel *kernel;
 };
 
@@ -730,8 +739,12 @@ struct polysa_kernel_stmt {
       int in;
       int buf;
       char *fifo_name;
+      char *fifo_type;
       int filter_sched_depth;
       int filter_param_id;
+      int data_pack;
+      int reg;
+      int nxt_data_pack;
       isl_ast_expr *local_index;
       isl_ast_expr *index;
       struct polysa_array_info *array;

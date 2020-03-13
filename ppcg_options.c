@@ -126,6 +126,8 @@ ISL_ARG_BOOL(struct ppcg_options, unroll_copy_local, 0, "unroll-copy-local",
 /* PolySA Extended */
 ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
   "Generate systolic arrays using PolySA")
+ISL_ARG_BOOL(struct ppcg_options, data_pack, 0, "data-pack", 0,
+  "Enable data packing for data transfer")
 ISL_ARG_BOOL(struct ppcg_options, hbm, 0, "hbm", 1,
   "Use multi-port DRAM/HBM")
 ISL_ARG_INT(struct ppcg_options, n_hbm_port, 0, "hbm-port-num", "num", 2, 

@@ -2035,6 +2035,65 @@ static isl_stat compute_io_group_buffer(struct polysa_kernel *kernel,
   return isl_stat_ok;
 }
 
+/* Select the data pack factor for I/O buffers. The data pack factor
+ * should be sub-multiples of the last dimension of the local array.
+ * Meanwhile, it should also be sub-multiples of the data pack factors 
+ * selected for the upper-level I/O buffers.
+ * 
+ * If SIMD vectorization is enabled, and the data stored in the I/O buffer is 
+ * to be vectorized, the data pack factor should also be multiples of the SIMD factor.
+ */
+static isl_stat compute_io_group_data_pack(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, struct polysa_gen *gen)
+{
+  // TODO: support SIMD
+  isl_val *prev_n_lane = NULL;
+
+  group->n_lane = 1;
+    
+  if (!gen->options->data_pack) {
+    for (int i = group->io_level - 1; i >= 0; i--) {
+      struct polysa_io_buffer *buf = group->io_buffers[i];
+      buf->n_lane = 1;
+    }
+    return isl_stat_ok;
+  }
+
+  for (int i = group->io_level - 1; i >= 0; i--) {
+    struct polysa_io_buffer *buf = group->io_buffers[i];
+    if (buf->tile) {
+      isl_val *size = isl_val_copy(buf->tile->bound[group->array->n_index - 1].size);
+      int ele_size = group->array->size; // bytes
+      /* Given the DRAM port width as 64 Bytes, compute the maximal data pack factor. */
+      int max_n_lane = 64 / ele_size; 
+      /* Start with the max data pack lane, if it is not a sub-multiple of the last dimension of the 
+       * local array, divide it by 2, until it reaches 1. */
+      int cur_n_lane = max_n_lane;
+      while (cur_n_lane != 1) {
+        isl_val *val = isl_val_int_from_si(gen->ctx, cur_n_lane);
+        if (isl_val_is_divisible_by(size, val)) {
+          if (prev_n_lane && isl_val_is_divisible_by(prev_n_lane, val) ||
+              (!prev_n_lane)) {
+            isl_val_free(prev_n_lane);
+            prev_n_lane = isl_val_copy(val);
+            isl_val_free(val);            
+            break;
+          }         
+        }
+        isl_val_free(val);
+        cur_n_lane = cur_n_lane / 2;
+      }
+      buf->n_lane = cur_n_lane;
+      isl_val_free(size);
+    } else {
+      buf->n_lane = 1;
+    }
+  }
+  isl_val_free(prev_n_lane);
+
+  return isl_stat_ok;
+}
+
 /* "node" points to the space band node.
  * "space_dim" denotes the band width.
  * Return "level" denoting the number of I/O levels being clustered.
@@ -2047,6 +2106,7 @@ static isl_stat polysa_io_construct(
 {
   compute_io_group_schedule(kernel, group, gen);
   compute_io_group_buffer(kernel, group, gen);
+  compute_io_group_data_pack(kernel, group, gen);
 
   return isl_stat_ok;
 }

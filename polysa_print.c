@@ -123,12 +123,20 @@ __isl_give isl_printer *polysa_print_macros(__isl_take isl_printer *p,
 /* Print the declaration of a non-linearized array argument.
  */
 static __isl_give isl_printer *print_non_linearized_declaration_argument(
-	__isl_take isl_printer *p, struct polysa_array_info *array)
+	__isl_take isl_printer *p, struct polysa_array_info *array, int n_lane)
 {
-	p = isl_printer_print_str(p, array->type);
-	p = isl_printer_print_str(p, " ");
+  if (n_lane == 1) {
+	  p = isl_printer_print_str(p, array->type);
+	  p = isl_printer_print_str(p, " ");
 
-	p = isl_printer_print_ast_expr(p, array->bound_expr);
+	  p = isl_printer_print_ast_expr(p, array->bound_expr);
+  } else {
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, "_t");
+    p = isl_printer_print_int(p, n_lane);
+
+    p = isl_printer_print_ast_expr(p, array->bound_expr); // TODO
+  }
 
 	return p;
 }
@@ -137,7 +145,7 @@ static __isl_give isl_printer *print_non_linearized_declaration_argument(
  * "memory_space" allows to specify a memory space prefix.
  */
 __isl_give isl_printer *polysa_array_info_print_declaration_argument(
-	__isl_take isl_printer *p, struct polysa_array_info *array,
+	__isl_take isl_printer *p, struct polysa_array_info *array, int n_lane,
 	const char *memory_space)
 {
 	if (polysa_array_is_read_only_scalar(array)) {
@@ -153,9 +161,15 @@ __isl_give isl_printer *polysa_array_info_print_declaration_argument(
 	}
 
 	if (array->n_index != 0 && !array->linearize)
-		return print_non_linearized_declaration_argument(p, array);
+		return print_non_linearized_declaration_argument(p, array, n_lane);
 
-	p = isl_printer_print_str(p, array->type);
+  if (n_lane == 1)
+	  p = isl_printer_print_str(p, array->type);
+  else {
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, "_t");
+    p = isl_printer_print_int(p, n_lane);
+  }
 	p = isl_printer_print_str(p, " ");
 	p = isl_printer_print_str(p, "*");
 	p = isl_printer_print_str(p, array->name);

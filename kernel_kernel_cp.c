@@ -3,9 +3,9 @@
 void PE(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)
 {
     int p0 = idx, p1 = idy; // module id
-    A_t0 local_A[1];
-    B_t0 local_B[1];
-    C_t0 local_C[1][1];
+    int local_A[1];
+    int local_B[1];
+    int local_C[1][1];
 
     for (int c0 = 0; c0 <= 127; c0 += 1)
       for (int c1 = 0; c1 <= 127; c1 += 1) {
@@ -30,7 +30,7 @@ void PE(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_
 /* Module Definition */
 
 /* Module Definition */
-void A_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[1][1], hls::stream<int> &fifo_A_local_out)
+void A_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, int local_A[1][4], hls::stream<int> &fifo_A_local_out)
 {
 #pragma HLS INLINE
     int p0 = idx, p1 = idy; // module id
@@ -39,49 +39,37 @@ void A_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_p
     // io_L1
     // pe
     for (int c6 = 0; c6 <= 3; c6 += 1)
-      {
-        A_t4 local_data;
-        local_data = local_A[0][c6 / 4];
-        ap_uint<32> local_data_split[4];
-        #pragma HLS ARRAY_PARTITION variable=local_data_split complete
-        for (int n = 0; n < 4; n++) {
-        #pragma HLS UNROLL
-            local_data_split[n] = local_data(31, 0);
-            local_data = local_data >> 32;
-        }
-        int split_i = ((c6 / 4) * 4) % 4;
-        fifo_A_local_out.write(Reinterpret<int>(local_data_split[split_i]));
-      }
+      fifo_A_local_out.write(local_A[0][c6]);
 }
 /* Module Definition */
 
 /* Module Definition */
-void A_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, A_t4 local_A[1][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out)
+void A_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, int local_A[1][4], hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out)
 {
 #pragma HLS INLINE
     int p0 = idx, p1 = idy; // module id
 
     for (int c4 = p1; c4 <= 1; c4 += 1) {
       // io_L2
-    {
-      A_t4 fifo_data;
-      fifo_data = fifo_A_in.read();
-      if (c4 == p1) {
-        local_A[0][0 / 4] = fifo_data;
-      } else {
-        fifo_A_out.write(fifo_data);
+      for (int c6 = 0; c6 <= 3; c6 += 1)
+      {
+        fifo_data = fifo_A_in.read();
+        if (c4 == p1) {
+          local_A[0][c6] = fifo_data;
+        } else {
+          fifo_A_out.write(fifo_data);
+        }
       }
-    }
     }
 }
 /* Module Definition */
 
 /* Module Definition */
-void A_IO_L2_in(int idx, int idy, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<int> &fifo_A_local_out)
+void A_IO_L2_in(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_A_local_out)
 {
     int p0 = idx, p1 = idy; // module id
-    A_t4 local_A_ping[1][1];
-    A_t4 local_A_pong[1][1];
+    int local_A_ping[1][4];
+    int local_A_pong[1][4];
     bool arb = 0;
     bool inter_trans_en = 1;
     bool intra_trans_en = 0;
@@ -114,7 +102,7 @@ void A_IO_L2_in(int idx, int idy, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4
 /* Module Definition */
 
 /* Module Definition */
-void A_IO_L3_in(int idx, A_t4 *A, hls::stream<A_t4> &fifo_A_local_out)
+void A_IO_L3_in(int idx, int *A, hls::stream<int> &fifo_A_local_out)
 {
     int p0 = idx; // module id
 
@@ -125,11 +113,12 @@ void A_IO_L3_in(int idx, A_t4 *A, hls::stream<A_t4> &fifo_A_local_out)
           // io_L3
           for (int c4 = 0; c4 <= 1; c4 += 1) {
             // io_L2
-          {
-            A_t4 fifo_data;
-            fifo_data = A[((2 * p0 + 4 * c0 + c4) * 512 + 4 * c2) / 4];
-            fifo_A_local_out.write(fifo_data);
-          }
+            for (int c6 = 0; c6 <= 3; c6 += 1)
+            {
+              int fifo_data;
+              fifo_data = A[(2 * p0 + 4 * c0 + c4) * 512 + (4 * c2 + c6)];
+              fifo_A_local_out.write(fifo_data);
+            }
           }
         }
 }
@@ -159,7 +148,6 @@ void B_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, int local_
       // io_L2
       for (int c5 = 0; c5 <= 3; c5 += 1)
       {
-        int fifo_data;
         fifo_data = fifo_B_in.read();
         if (c4 == p1) {
           local_B[c5][0] = fifo_data;
@@ -252,7 +240,6 @@ void C_drain_IO_L1_out_inter_trans(int idx, int idy, int idz, int c0_prev, int c
     for (int c5 = 0; c5 <= p2; c5 += 1) {
       // io_L1
     {
-      int fifo_data;
       if (c5 == p2) {
         fifo_data = local_C[0][0];
       } else {
@@ -313,7 +300,6 @@ void C_drain_IO_L2_out(int idx, int idy, hls::stream<int> &fifo_C_drain_in, hls:
           for (int c5 = 0; c5 <= 3; c5 += 1) {
             // io_L1
           {
-            int fifo_data;
             if (c4 == p1) {
               fifo_data = fifo_C_drain_local_in.read();
             } else {

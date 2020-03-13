@@ -51,7 +51,7 @@ void top_generate(FILE *f)
           {
             // Print channel declarations of module: PE
             p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<int> fifo_A_PE");
+            p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<A_t0> fifo_A_PE");
             p = isl_printer_print_str(p, "_");
             p = isl_printer_print_int(p, c0);
             p = isl_printer_print_str(p, "_");
@@ -63,7 +63,7 @@ void top_generate(FILE *f)
             {
               // Print channel declarations of module: PE
               p = isl_printer_start_line(p);
-              p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<int> fifo_A_PE");
+              p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<A_t0> fifo_A_PE");
               p = isl_printer_print_str(p, "_");
               p = isl_printer_print_int(p, c0);
               p = isl_printer_print_str(p, "_");
@@ -82,7 +82,7 @@ void top_generate(FILE *f)
           {
             // Print channel declarations of module: PE
             p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<int> fifo_B_PE");
+            p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<B_t0> fifo_B_PE");
             p = isl_printer_print_str(p, "_");
             p = isl_printer_print_int(p, c1);
             p = isl_printer_print_str(p, "_");
@@ -94,7 +94,7 @@ void top_generate(FILE *f)
             {
               // Print channel declarations of module: PE
               p = isl_printer_start_line(p);
-              p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<int> fifo_B_PE");
+              p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<B_t0> fifo_B_PE");
               p = isl_printer_print_str(p, "_");
               p = isl_printer_print_int(p, c1 + 1);
               p = isl_printer_print_str(p, "_");
@@ -112,7 +112,7 @@ void top_generate(FILE *f)
         {
           // Print channel declarations of module: PE
           p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<int> fifo_C_drain_PE");
+          p = isl_printer_print_str(p, "/* PE fifo */ hls::stream<C_t0> fifo_C_drain_PE");
           p = isl_printer_print_str(p, "_");
           p = isl_printer_print_int(p, c1);
           p = isl_printer_print_str(p, "_");
@@ -129,7 +129,7 @@ void top_generate(FILE *f)
         {
           // Print channel declarations of module: A_IO_L2_in
           p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* A_IO_L2_in fifo */ hls::stream<int> fifo_A_A_IO_L2_in");
+          p = isl_printer_print_str(p, "/* A_IO_L2_in fifo */ hls::stream<A_t4> fifo_A_A_IO_L2_in");
           p = isl_printer_print_str(p, "_");
           p = isl_printer_print_int(p, c0);
           p = isl_printer_print_str(p, "_");
@@ -141,7 +141,7 @@ void top_generate(FILE *f)
           {
             // Print channel declarations of module: A_IO_L2_in
             p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "/* A_IO_L2_in fifo */ hls::stream<int> fifo_A_A_IO_L2_in");
+            p = isl_printer_print_str(p, "/* A_IO_L2_in fifo */ hls::stream<A_t4> fifo_A_A_IO_L2_in");
             p = isl_printer_print_str(p, "_");
             p = isl_printer_print_int(p, c0);
             p = isl_printer_print_str(p, "_");

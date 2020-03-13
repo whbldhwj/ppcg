@@ -88,6 +88,9 @@ struct ppcg_options {
 
   /* Unroll the code for copying to/from local memory */
   int unroll_copy_local;
+
+  /* Enable data pack for transferring data */
+  int data_pack;
   /* PolySA Extended */
 
 	/* Generate OpenMP macros (C target only). */
