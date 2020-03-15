@@ -297,6 +297,8 @@ struct polysa_stmt_access {
   /* PolySA extended */
   struct polysa_io_info **io_info;
   int n_io_info;
+  int layout_trans;
+  int simd_dim;
   /* PolySA extended */
 
 	struct polysa_stmt_access *next;  
@@ -840,6 +842,7 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
 struct polysa_stmt *extract_stmts(isl_ctx *ctx, struct ppcg_scop *scop,
   __isl_keep isl_union_map *any_to_outer);
 void polysa_kernel_stmt_free(void *user);
+struct polysa_stmt *find_stmt(struct polysa_prog *prog, __isl_keep isl_id *id);
 
 /* PolySA prog related functions */
 struct polysa_prog *polysa_prog_alloc(isl_ctx *ctx, struct ppcg_scop *scop);
@@ -857,5 +860,6 @@ __isl_give isl_set *extract_sa_sizes(__isl_keep isl_union_map *sizes,
     const char *type, int id);
 int *read_array_part_tile_sizes(struct polysa_kernel *sa, int *tile_len);
 int *read_latency_tile_sizes(struct polysa_kernel *sa, int *tile_len);
+int *read_simd_tile_sizes(struct polysa_kernel *sa, int *tile_len);
 
 #endif

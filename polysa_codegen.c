@@ -65,21 +65,6 @@ static isl_bool update_depth(__isl_keep isl_schedule_node *node, void *user)
 	return isl_bool_false;
 }
 
-/* Find the element in gen->stmt that has the given "id".
- * Return NULL if no such polysa_stmt can be found.
- */
-static struct polysa_stmt *find_stmt(struct polysa_prog *prog, __isl_keep isl_id *id)
-{
-	int i;
-
-	for (i = 0; i < prog->n_stmts; ++i) {
-		if (id == prog->stmts[i].id)
-			break;
-	}
-
-	return i < prog->n_stmts ? &prog->stmts[i] : NULL;
-}
-
 /* Given a mapping "iterator_map" from the AST schedule to a domain,
  * return the corresponding mapping from the AST schedule
  * to the outer kernel->copy_schedule_dim dimensions of

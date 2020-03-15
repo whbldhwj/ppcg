@@ -31,7 +31,7 @@ isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *
 /* PE Optimization */
 isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en);
 isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa);
-isl_stat sa_SIMD_vectorization_optimize(struct polysa_kernel *sa);
+isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa);
 isl_stat sa_pe_optimize(struct polysa_kernel *sa, bool pass_en[]);
 isl_stat sa_loop_init(struct polysa_kernel *sa);
 isl_stat sa_space_time_loop_setup(struct polysa_kernel *sa);

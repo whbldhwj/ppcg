@@ -178,6 +178,462 @@ static isl_bool count_latency_hiding_loop(__isl_keep isl_schedule_node *node, vo
   return isl_bool_true;
 }
 
+struct stride_coalesced_data {
+  struct polysa_kernel *kernel;
+  isl_union_map *prefix;
+  int score;
+};
+
+static __isl_give isl_map *same(__isl_take isl_space *domain_space, int pos)
+{
+  isl_space *space;
+  isl_aff *aff;
+  isl_multi_aff *next;
+
+  space = isl_space_map_from_set(domain_space);
+  next = isl_multi_aff_identity(space);
+  
+  return isl_map_from_multi_aff(next);
+}
+
+/* Construct a map from domain_space to domain_space that increments
+ * the dimension at position "pos" and leaves all other dimensions constant. 
+ */
+static __isl_give isl_map *next(__isl_take isl_space *domain_space, int pos)
+{
+  isl_space *space;
+  isl_aff *aff;
+  isl_multi_aff *next;
+
+  space = isl_space_map_from_set(domain_space);
+  next = isl_multi_aff_identity(space);
+  aff = isl_multi_aff_get_aff(next, pos);
+  aff = isl_aff_add_constant_si(aff, 1);
+  next = isl_multi_aff_set_aff(next, pos, aff);
+
+  return isl_map_from_multi_aff(next);
+}
+
+static int access_is_stride_zero(__isl_keep isl_map *access, int pos)
+{
+//  int dim = isl_map_dim(access, isl_dim_in);
+//  isl_bool ret;
+//
+//  ret = isl_map_involves_dims(access, isl_dim_in, dim - 1, 1);
+//
+//  return !ret;
+  isl_space *space;
+  int dim;
+  isl_map *next_element, *map, *next_iter;
+  isl_set *accessed;
+  int empty, zero;
+
+  space = isl_map_get_space(access);
+  space = isl_space_range(space);
+  dim = isl_space_dim(space, isl_dim_set);
+  if (dim == 0)
+    next_element = isl_map_empty(isl_space_map_from_set(space));
+  else
+    next_element = same(space, pos);
+
+  accessed = isl_map_range(isl_map_copy(access));
+  map = isl_map_copy(next_element);
+  map = isl_map_intersect_domain(map, isl_set_copy(accessed));
+  map = isl_map_intersect_range(map, accessed);
+  empty = isl_map_is_empty(map);
+  isl_map_free(map);
+
+  if (empty < 0 || empty) {
+    isl_map_free(next_element);
+    return empty;
+  } 
+
+  space = isl_map_get_space(access);
+  space = isl_space_domain(space);
+  next_iter = next(space, isl_map_dim(access, isl_dim_in) - 1);
+  map = isl_map_apply_domain(next_iter, isl_map_copy(access));
+  map = isl_map_apply_range(map, isl_map_copy(access));
+  zero = isl_map_is_subset(map, next_element);
+
+  isl_map_free(next_element);
+  isl_map_free(map);
+
+  return zero;
+}
+
+static int access_is_stride_one(__isl_keep isl_map *access, int pos)
+{
+  isl_space *space;
+  int dim;
+  isl_map *next_element, *map, *next_iter;
+  isl_set *accessed;
+  int empty, coalesced;
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_map_get_ctx(access), stdout);
+//  // debug
+
+  space = isl_map_get_space(access);
+  space = isl_space_range(space);
+  dim = isl_space_dim(space, isl_dim_set);
+  if (dim == 0)
+    next_element = isl_map_empty(isl_space_map_from_set(space));
+  else
+    next_element = next(space, pos);
+
+//  // debug
+//  p = isl_printer_print_map(p, access);
+//  printf("\n");
+//  p = isl_printer_print_map(p, next_element);
+//  printf("\n");
+//  // debug
+
+  accessed = isl_map_range(isl_map_copy(access));
+  map = isl_map_copy(next_element);
+  map = isl_map_intersect_domain(map, isl_set_copy(accessed));
+  map = isl_map_intersect_range(map, accessed);
+  empty = isl_map_is_empty(map);
+  isl_map_free(map);
+
+  if (empty < 0 || empty) {
+    isl_map_free(next_element);
+    return empty;
+  } 
+
+  space = isl_map_get_space(access);
+  space = isl_space_domain(space);
+  next_iter = next(space, isl_map_dim(access, isl_dim_in) - 1);
+//  // debug
+//  p = isl_printer_print_map(p, next_iter);
+//  printf("\n");
+//  // debug
+  map = isl_map_apply_domain(next_iter, isl_map_copy(access));
+  map = isl_map_apply_range(map, isl_map_copy(access));
+  coalesced = isl_map_is_subset(map, next_element);
+
+  isl_map_free(next_element);
+  isl_map_free(map);
+
+  return coalesced;
+}
+
+static isl_bool is_stride_coalesced_stmt(__isl_keep isl_set *set, void *user)
+{
+  isl_space *space;
+  isl_id *id;
+  struct polysa_stmt *stmt;
+  struct stride_coalesced_data *data = user;
+  struct polysa_stmt_access *accesses, *access;
+  isl_map *prefix;
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(data->kernel->ctx, stdout);
+//  // debug
+
+  space = isl_set_get_space(set);
+  id = isl_space_get_tuple_id(space, isl_dim_set);
+  isl_space_free(space);
+
+//  // debug
+//  p = isl_printer_print_id(p, id);
+//  printf("\n");
+//  // debug
+
+  prefix = isl_map_from_union_map(isl_union_map_intersect_domain(
+        isl_union_map_copy(data->prefix), isl_union_set_from_set(set)));
+
+  stmt = find_stmt(data->kernel->prog, id);
+  isl_id_free(id);
+  accesses = stmt->accesses;
+  for (access = accesses; access; access = access->next) {
+    isl_map *acc;
+    int n;
+    isl_bool is_zero = isl_bool_false, is_one = isl_bool_false;
+    isl_pw_multi_aff *pma;
+    int i;
+
+    /* Skip the scalar access */
+    if (access->n_index == 0)
+      continue;
+
+    /* Transform the access function */
+    acc = isl_map_copy(access->access);
+//    // debug
+//    p = isl_printer_print_map(p, acc);
+//    printf("\n");
+//    // debug
+    
+    acc = isl_map_apply_domain(acc, isl_map_copy(prefix));
+
+    for (i = access->n_index - 1; i >= 0; i--) {
+      is_zero = access_is_stride_zero(acc, i);
+      if (is_zero)
+        break;
+    }
+    if (!is_zero) {
+      for (i = access->n_index - 1; i >= 0; i--) {
+        is_one = access_is_stride_one(acc, i);
+        if (is_one)
+          break;
+      }
+    }
+   
+    isl_map_free(acc);
+
+    if (!(is_zero || is_one)) {
+      return isl_bool_false;
+    } else {
+      if (i == access->n_index - 1) {
+        access->layout_trans = 0;
+        access->simd_dim = i;
+      } else {
+        access->layout_trans = 1;
+        access->simd_dim = i;
+      }
+      data->score = data->score + (1 - access->layout_trans);
+    }
+  }
+  
+  return isl_bool_true;
+}
+
+/* This function examines if the access function of the statements under the current "node"
+ * has only stride-0/1 access.
+ */
+static isl_bool is_stride_coalesced_at_node(__isl_keep isl_schedule_node *node,
+  void *user)
+{
+  struct stride_coalesced_data *data = user;
+  struct polysa_kernel *kernel = data->kernel;
+  isl_union_set *domain;
+  isl_union_map *prefix;
+  isl_bool one_or_zero;
+
+  if (isl_schedule_node_get_type(node) != isl_schedule_node_leaf)
+    return isl_bool_true;
+
+  domain = isl_schedule_node_get_domain(node);
+  prefix = isl_schedule_node_get_prefix_schedule_union_map(node); 
+  data->prefix = prefix;
+
+  /* Examine each statment under the loop */
+  one_or_zero = isl_union_set_every_set(domain, &is_stride_coalesced_stmt, data);
+
+  isl_union_map_free(data->prefix);
+
+  return one_or_zero;
+}
+
+/* This function calculates the score of the current "node" in terms of 
+ * opportunities of SIMD vectorization.
+ * First of all, the loop has either to be a parallel loop or a reduction loop.
+ * We test the reduction loop by examining if the carried dependence by the 
+ * current loop is from a reduction statement. 
+ * We rely on users to mark the reduction statements in the reduction.annotation file.
+ * Next, we will test if all the array references under the current loop
+ * has only stride-0/1 access.
+ * If either of the two criteria fails, the loop is non-vectorizable.
+ * Finally, we calculate the score of the current loop which is used to rank
+ * the loop given there are multiple SIMD loops available.
+ * The scores is calculated as:
+ * score = Sigma_{all_array_references_under_the_loop} 
+ *           (is_access_stride-0/1 * (1 - is_layout_transformation_required)
+ *              + 2 * is_loop_parallel + 4 * is_loop_reduction) 
+ * With the current heuristic, we favor reduction loop over parallel loop,
+ * because the reduction loop introduces less overhead than the parallel loop.
+ * And we favor loops that doesn't require layout transformation.
+ */
+static int is_stride_coalesced(__isl_keep isl_schedule_node *node, struct polysa_kernel *kernel, int *layout_transform)
+{
+  /* At each leaf node, examine if the access function of the statement has 
+   * stride-0/1 access.
+   */
+  int score = 0;
+  struct stride_coalesced_data data;
+  isl_bool coalesced;
+
+  data.kernel = kernel;
+  data.score = score;
+  coalesced = isl_schedule_node_every_descendant(node, &is_stride_coalesced_at_node, &data);
+  
+  /* Examine and make sure all the array references of the same array have the same
+   * dimenison for layout transformation */
+  if (coalesced) {
+    struct polysa_kernel *kernel = data.kernel;
+    for (int i = 0; i < kernel->n_array; i++) {
+      struct polysa_local_array_info *local_array;
+      int simd_dim = -1;
+      local_array = &kernel->array[i];
+      for (int j = 0; j < local_array->array->n_ref; j++) {
+        struct polysa_stmt_access *acc = local_array->array->refs[j];
+        if (acc->layout_trans == 1) {
+          if (simd_dim == -1)
+            simd_dim = acc->simd_dim;
+          else {
+            if (simd_dim != acc->simd_dim) {
+              coalesced = 0;
+              return coalesced? data.score : -1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* Print out the layout transform information */
+  if (coalesced) {
+    struct polysa_kernel *kernel = data.kernel;
+    isl_printer *p;
+
+    p = isl_printer_to_file(kernel->ctx, stdout);
+    for (int i = 0; i < kernel->n_array; i++) {
+      struct polysa_local_array_info *local_array;
+      local_array = &kernel->array[i];
+      for (int j = 0; j < local_array->array->n_ref; j++) {
+        struct polysa_stmt_access *acc = local_array->array->refs[j];
+        
+        if (acc->layout_trans != -1)  {
+          printf("[PolySA] Array reference ");
+          if (acc->read)
+            printf("(R): ");
+          else
+            printf("(W): ");
+          p = isl_printer_print_map(p, acc->access);
+          printf("\n");
+          if (acc->layout_trans == 1){
+            printf("[PolySA] Layout transform at dim: %d\n", acc->simd_dim);
+            *layout_transform = 1;
+          }
+          acc->layout_trans = -1;
+          acc->simd_dim = -1;
+        }
+      }
+    }
+    isl_printer_free(p);
+  }
+
+  return coalesced? data.score : -1;
+}
+
+struct simd_vectorization_data {
+  struct polysa_kernel *kernel;
+  int *scores;
+  int best_score;
+  int n_loops;
+  int loop_cnt;
+};
+
+/* A loop is identified to be vectorizable if it is a parallel or 
+ * reduction loop; with stride-0/1 access.
+ * Only time loops are examined.
+ */ 
+static isl_schedule_node *detect_simd_vectorization_loop(__isl_take isl_schedule_node *node, void *user)
+{
+  struct simd_vectorization_data *data = user;
+  struct polysa_kernel *sa = data->kernel;
+  isl_ctx *ctx = isl_schedule_node_get_ctx(node);
+  int score;
+  isl_schedule_node *cur_node;
+
+//  // debug
+//  isl_printer *pd = isl_printer_to_file(ctx, stdout);
+//  pd = isl_printer_set_yaml_style(pd, ISL_YAML_STYLE_BLOCK);
+//  pd = isl_printer_print_schedule_node(pd, node);
+//  pd = isl_printer_flush(pd);
+//  // debug
+
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+      if ((isl_schedule_node_band_member_get_space_time(node, i) == polysa_loop_time)) {
+        /* Two types of loops that we are interested in.
+         * Parallel loop.
+         * Reduction loop in the innermost loop band */
+        int is_parallel = 0;
+        int is_reduction = 0;
+        int layout_transform = 0;
+        int score_i;
+
+        if (!isl_schedule_node_band_member_get_coincident(node, i)) {
+          /* Examine if the current node is the innermost node */
+          node = isl_schedule_node_child(node, 0);
+          isl_bool no_inner_band = isl_schedule_node_every_descendant(node, 
+              &no_permutable_node, NULL);
+          node = isl_schedule_node_parent(node);
+          if (no_inner_band) {
+            /* At present, we cannot analyze reduction loop by the PolySA.
+             * We will print each node and take the user guidance.
+             */
+            isl_printer *p;
+            char c;
+             
+            p = isl_printer_to_file(ctx, stdout);
+            p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+            p = isl_printer_print_schedule_node(p, node);
+
+            printf("[PolySA] Detecting the reduction loop.\n");
+            printf("[PolySA] Band member position: %d\n", i);
+            printf("[PolySA] Please input if the current loop is a reduction loop [y/n]: ");
+            c = getchar();
+            is_reduction = (c == 'y')? 1 : 0;
+            isl_printer_free(p);
+          } else {
+            continue;
+          }
+        } else {
+          is_parallel = 1;
+        }
+
+        /* Test if all the array references under the current loop 
+         * has only stride-0/1 access. */
+        if (is_parallel || is_reduction) {
+          cur_node = node;
+          node = isl_schedule_node_dup(cur_node);
+          
+          if (i > 0) {
+            node = isl_schedule_node_band_split(node, i);
+            node = isl_schedule_node_child(node, 0);
+          }
+          if (isl_schedule_node_band_n_member(node) - i - 1 > 0) {
+            node = isl_schedule_node_band_split(node, 1);
+          }
+          /* Sink the band innermost */
+          node = isl_schedule_node_band_sink(node);
+//          // debug
+//          pd = isl_printer_print_schedule_node(pd, node);
+//          pd = isl_printer_flush(pd);
+//          pd = isl_printer_print_schedule_node(pd, cur_node);
+//          pd = isl_printer_flush(pd);
+//          // debug
+          score = 2 * is_parallel + 4 * is_reduction;
+          score_i = is_stride_coalesced(node, sa, &layout_transform);          
+          isl_schedule_node_free(node);
+          node = cur_node;
+          if (score_i < 0) {
+            /* The array references are not coalesced */
+            score = -1;
+            continue;
+          } else {
+            score += score_i;
+            printf("[PolySA] The loop is legal to be vectorized with score: %d\n", score);
+            if (layout_transform)
+              printf("[PolySA] Layout transformation is required to proceed.\n");
+            node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_simd); 
+
+            if (score >= data->best_score) {
+              data->best_score = score;
+            }
+            data->n_loops = data->n_loops + 1;
+            data->scores = (int *)realloc(data->scores, sizeof(int) * data->n_loops);
+            data->scores[data->n_loops - 1] = score;
+          }
+        }
+      }
+    }
+  }
+
+  return node;
+}
+
 /* Given two nested nodes,
  * N1
  * |
@@ -402,6 +858,24 @@ static __isl_give isl_schedule_node *add_latency_mark(__isl_take isl_schedule_no
   return node;
 }
 
+/* Examine if the node is the last band node, if so, add a "simd" mark before the node. */
+static __isl_give isl_schedule_node *add_simd_mark(__isl_take isl_schedule_node *node, void *user)
+{
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    node = isl_schedule_node_child(node, 0);
+    isl_bool no_inner_band = isl_schedule_node_every_descendant(node, 
+        &no_permutable_node, NULL);
+    node = isl_schedule_node_parent(node);
+    if (no_inner_band) {
+      /* Insert the "simd" mark. */
+      isl_id *id = isl_id_alloc(isl_schedule_node_get_ctx(node), "simd", NULL);
+      node = isl_schedule_node_insert_mark(node, id);
+    }
+  }
+
+  return node;
+}
+
 /* Examine if the node contains any space loops. */
 static isl_bool node_has_space(__isl_keep isl_schedule_node *node) {
   if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
@@ -603,49 +1077,43 @@ isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa)
   isl_schedule *schedule = sa->schedule;
   isl_schedule_node *node = isl_schedule_get_root(schedule);
   
-//  /* Detect if the innermost time loop carries RAW dependency. */
-//  isl_bool no_opt = isl_schedule_node_every_descendant(
-//    node, &is_innermost_time_loop_parallel, NULL);     
-  isl_bool no_opt = 0;
+  printf("[PolySA] Apply latency hiding.\n");
+  
+  /* Move down to the array marker. */
+  node = polysa_tree_move_down_to_array(node, sa->core);
+ 
+  // TODO: Add the filtering to check if it is necessary to perform the 
+  // latency hiding
 
-  if (!no_opt) {
-    printf("[PolySA] Apply latency hiding.\n");
-    
-    /* Move down to the array marker. */
-    node = polysa_tree_move_down_to_array(node, sa->core);
+  /* Detect all candidate loops. */
+  node = isl_schedule_node_map_descendant_bottom_up(
+    node, &detect_latency_hiding_loop, sa);
   
-    /* Detect all candidate loops. */
-    node = isl_schedule_node_map_descendant_bottom_up(
-      node, &detect_latency_hiding_loop, sa);
-  
-    /* Display the candidate loops. */
-    isl_schedule_free(schedule);
-    schedule = isl_schedule_node_get_schedule(node);
-    if (sa->scop->options->debug->polysa_verbose) {
-      isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
-      p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
-      p = isl_printer_print_schedule(p, schedule);
-      printf("\n");
-      isl_printer_free(p);
-    }
-    isl_schedule_free(schedule);
-  
-    /* Tile the candidate loop. 
-     * For each candidate loop, if the loop is used for latency hiding,
-     * it is tiled and permuted to the innermost of the time loop band. 
-     * A latency hiding marker is added. */
-    node = polysa_latency_tile_loop(node, sa);
-  
-    /* Clean up the band pe_opt properties. */
-    schedule = isl_schedule_node_get_schedule(node);
-    isl_schedule_node_free(node);
-    schedule = isl_schedule_map_schedule_node_bottom_up(
-        schedule, &clear_pe_opt_prop, NULL);
-  
-    sa->schedule = schedule;
-  } else {
-    isl_schedule_node_free(node);
+  /* Display the candidate loops. */
+  isl_schedule_free(schedule);
+  schedule = isl_schedule_node_get_schedule(node);
+  if (sa->scop->options->debug->polysa_verbose) {
+    isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
+    p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+    p = isl_printer_print_schedule(p, schedule);
+    printf("\n");
+    isl_printer_free(p);
   }
+  isl_schedule_free(schedule);
+  
+  /* Tile the candidate loop. 
+   * For each candidate loop, if the loop is used for latency hiding,
+   * it is tiled and permuted to the innermost of the time loop band. 
+   * A latency hiding marker is added. */
+  node = polysa_latency_tile_loop(node, sa);
+  
+  /* Clean up the band pe_opt properties. */
+  schedule = isl_schedule_node_get_schedule(node);
+  isl_schedule_node_free(node);
+  schedule = isl_schedule_map_schedule_node_bottom_up(
+      schedule, &clear_pe_opt_prop, NULL);
+  
+  sa->schedule = schedule;
 
   return isl_stat_ok;
 }
@@ -913,7 +1381,64 @@ isl_stat sa_pe_optimize(struct polysa_kernel *sa, bool pass_en[])
     sa_latency_hiding_optimize(sa);
   /* SIMD vectorization. */
   if (pass_en[2])
-    sa_SIMD_vectorization_optimize(sa);
+    sa_simd_vectorization_optimize(sa);
+
+  return isl_stat_ok;
+}
+
+static __isl_give isl_schedule_node *polysa_simd_tile_loop(__isl_take isl_schedule_node *node,
+  void *user)
+{
+  struct simd_vectorization_data *data = user;
+  struct polysa_kernel *kernel = data->kernel;
+
+  // debug
+  isl_printer *p = isl_printer_to_file(kernel->ctx, stdout);
+  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+  // debug
+
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
+      if (isl_schedule_node_band_member_get_pe_opt(node, i) == polysa_loop_simd) {
+        if (data->scores[data->loop_cnt] == data->best_score) {
+          int *tile_size;
+          int tile_len = 1;
+//          // debug
+//          p = isl_printer_print_schedule_node(p, node);
+//          p = isl_printer_flush(p);
+//          // debug
+
+          /* Read the tile sizes */
+          tile_size = read_simd_tile_sizes(kernel, &tile_len);
+          /* Tile the loop */
+          node = polysa_node_band_tile_loop(node, tile_size[0], i);
+          /* Reset the candidate loop in the tile loop the pe_opt property to default */
+          node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_default);
+          /* Reset the point loop space_time property to time loop. */
+          node = isl_schedule_node_child(node, 0);
+          node = isl_schedule_node_band_member_set_space_time(node, 0, polysa_loop_time);
+          /* Reset the point loop pe_opt property to default. */
+          node = isl_schedule_node_band_member_set_pe_opt(node, 0, polysa_loop_default);
+          
+          /* Sink the point loop innermost */
+          node = isl_schedule_node_band_sink(node);
+          /* Add the simd marker */
+          node = isl_schedule_node_map_descendant_bottom_up(node, &add_simd_mark, NULL);
+          node = isl_schedule_node_parent(node);
+
+//          // debug
+//          p = isl_printer_print_schedule_node(p, node);
+//          p = isl_printer_flush(p);
+//          // debug
+            
+          free(tile_size);
+        }
+        data->loop_cnt++;
+      }
+    }
+  }
+
+  return node;
 }
 
 /* Apply SIMD vectorization. 
@@ -922,10 +1447,65 @@ isl_stat sa_pe_optimize(struct polysa_kernel *sa, bool pass_en[])
  * the loops by heuristics and pick up one loop to be tiled. The point loops will be permuated 
  * as the innermost loops to be unrolled.
  */
-isl_stat sa_SIMD_vectorization_optimize(struct polysa_kernel *sa)
+isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa)
 {
+  int *scores = NULL;
+  int n_loops = 0;
+  struct simd_vectorization_data data;
+  data.best_score = 0;
+
   printf("[PolySA] Apply SIMD vectorization.\n");
   isl_schedule *schedule = sa->schedule; 
+  isl_schedule_node *node = isl_schedule_get_root(schedule);
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_schedule_node(p, node);
+//  printf("\n");
+//  // debug
+
+  /* Move down to the array marker */
+  node = polysa_tree_move_down_to_array(node, sa->core);
+
+  /* Detect all candidate loops */
+  data.kernel = sa;
+  data.scores = scores;
+  data.n_loops = n_loops;
+  node = isl_schedule_node_map_descendant_bottom_up(
+      node, &detect_simd_vectorization_loop, &data);
+
+  /* Display the candidate loops. */
+  isl_schedule_free(schedule);
+  schedule = isl_schedule_node_get_schedule(node);
+  if (sa->scop->options->debug->polysa_verbose) {
+    isl_printer *p = isl_printer_to_file(sa->ctx, stdout);
+    p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+    p = isl_printer_print_schedule(p, schedule);
+    printf("\n");
+    isl_printer_free(p);
+  }
+  isl_schedule_free(schedule);
+
+  /* Select the candidate loop with the highest score.
+   * Tile the candidate loop and permute the point loop innermost. 
+   * A SIMD vectorization marker is added. */
+  data.loop_cnt = 0; 
+  node = isl_schedule_node_map_descendant_bottom_up(node, 
+      &polysa_simd_tile_loop, &data);
+
+  /* Clean up the band pe_opt properties. */
+  schedule = isl_schedule_node_get_schedule(node);
+  isl_schedule_node_free(node);
+  schedule = isl_schedule_map_schedule_node_bottom_up(
+      schedule, &clear_pe_opt_prop, NULL);
+
+//  // debug
+//  p = isl_printer_print_schedule(p, schedule);
+//  printf("\n");
+//  // debug
+
+  sa->schedule = schedule;
 
   return isl_stat_ok;
 }
@@ -2512,15 +3092,16 @@ static __isl_give isl_schedule_node *mark_kernels(
 
   /* Pick up one systolic array to proceed based on heuristics. */
   kernel = sa_candidates_smart_pick(sa_candidates, num_sa);
+  kernel->prog = gen->prog;
+  /* Create local arrays. */
+  kernel = polysa_kernel_create_local_arrays(kernel, gen->prog);
 
   /* Apply PE optimization. */
   pe_opt_en[1] = 0;
-  pe_opt_en[2] = 0;
+  pe_opt_en[2] = 1;
   sa_pe_optimize(kernel, pe_opt_en);
 
   /* Create the polysa_kernel object and attach to the schedule. */
-  /* Create local arrays. */
-  kernel = polysa_kernel_create_local_arrays(kernel, gen->prog);
   if (!kernel) {
     return NULL;
   }
@@ -2546,7 +3127,7 @@ static __isl_give isl_schedule_node *mark_kernels(
 
   /* Prepare some metadata. */
   kernel->single_statement = single_statement;
-  kernel->prog = gen->prog;
+//  kernel->prog = gen->prog;
   kernel->options = gen->options;
   kernel->context = extract_context(node, gen->prog);
   contraction = isl_schedule_node_get_subtree_contraction(node);

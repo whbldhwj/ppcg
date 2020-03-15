@@ -375,7 +375,7 @@ static __isl_give isl_ast_node *ast_build_after_for(
 
 /* Find the element in scop->stmts that has the given "id".
  */
-static struct pet_stmt *find_stmt(struct ppcg_scop *scop, __isl_keep isl_id *id)
+static struct pet_stmt *find_pet_stmt(struct ppcg_scop *scop, __isl_keep isl_id *id)
 {
 	int i;
 
@@ -521,7 +521,7 @@ static __isl_give isl_ast_node *at_each_domain(__isl_take isl_ast_node *node,
   isl_ast_expr_free(expr);
 	id = isl_ast_expr_get_id(arg);
 	isl_ast_expr_free(arg);
-	stmt->stmt = find_stmt(scop, id);
+	stmt->stmt = find_pet_stmt(scop, id);
   isl_id_free(id);   
 	if (!stmt->stmt)
 		goto error;
@@ -1875,7 +1875,7 @@ static __isl_give isl_schedule_node *gen_stmt_text(__isl_take isl_schedule_node 
   domain = isl_set_from_union_set(isl_schedule_node_get_domain(node));
   space = isl_set_get_space(domain);
   id = isl_space_get_tuple_id(space, isl_dim_set);
-  stmt->stmt = find_stmt(data->scop, id);  
+  stmt->stmt = find_pet_stmt(data->scop, id);  
   isl_space_free(space);
   isl_set_free(domain);
 
@@ -2190,7 +2190,7 @@ static __isl_give isl_schedule_node *gen_op_stmt_text(__isl_take isl_schedule_no
   domain = isl_set_from_union_set(isl_schedule_node_get_domain(node));
   space = isl_set_get_space(domain);
   id = isl_space_get_tuple_id(space, isl_dim_set);
-  stmt->stmt = find_stmt(data->scop, id);
+  stmt->stmt = find_pet_stmt(data->scop, id);
   isl_space_free(space);
   isl_set_free(domain);
 
@@ -2399,7 +2399,7 @@ static __isl_give isl_schedule_node *gen_drain_stmt_text(__isl_take isl_schedule
   domain = isl_set_from_union_set(isl_schedule_node_get_domain(node));
   space = isl_set_get_space(domain);
   id = isl_space_get_tuple_id(space, isl_dim_set);
-  stmt->stmt = find_stmt(data->scop, id);
+  stmt->stmt = find_pet_stmt(data->scop, id);
   isl_space_free(space);
   isl_set_free(domain);
 

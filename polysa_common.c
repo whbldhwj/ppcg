@@ -2099,6 +2099,8 @@ static int extract_access(__isl_keep pet_expr *expr, void *user)
 
   access->n_io_info = 0;
   access->io_info = NULL;
+  access->layout_trans = -1;
+  access->simd_dim = -1;
 
 	*data->next_access = access;
 	data->next_access = &(*data->next_access)->next;
@@ -2189,6 +2191,21 @@ struct polysa_stmt *extract_stmts(isl_ctx *ctx, struct ppcg_scop *scop,
   }
 
   return stmts;
+}
+
+/* Find the element in gen->stmt that has the given "id".
+ * Return NULL if no such polysa_stmt can be found.
+ */
+struct polysa_stmt *find_stmt(struct polysa_prog *prog, __isl_keep isl_id *id)
+{
+	int i;
+
+	for (i = 0; i < prog->n_stmts; ++i) {
+		if (id == prog->stmts[i].id)
+			break;
+	}
+
+	return i < prog->n_stmts ? &prog->stmts[i] : NULL;
 }
 
 /*****************************************************************
@@ -2579,3 +2596,25 @@ error:
   return NULL;
 }
 
+int *read_simd_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+{
+  int n;
+  int *tile_size;
+  isl_set *size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < *tile_len; n++)
+    tile_size[n] = sa->scop->options->sa_tile_size / 2;
+  
+  size = extract_sa_sizes(sa->sizes, "simd", sa->id);
+  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
+    goto error;
+  set_sa_used_sizes(sa, "simd", sa->id, tile_size, *tile_len);
+
+  return tile_size;
+error:
+  free(tile_size);
+  return NULL;
+}
