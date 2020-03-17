@@ -1,14 +1,15 @@
 #include "kernel.h"
 
 int main(int argc, char **argv) {
-  data_t A[I][K], B[K][J], C[I][J], C_golden[I][J]; 
+//  data_t A[I][K], B[K][J], C[I][J], C_golden[I][J]; 
+  data_t A[I][K], B[J][K], C[I][J], C_golden[I][J];
 
 #pragma scop
   for (int i = 0; i < I; i++)
     for (int j = 0; j < J; j++) {
       C[i][j] = 0;
       for (int k = 0; k < K; k++) {
-        C[i][j] = C[i][j] + A[i][k] * B[k][j];
+        C[i][j] = C[i][j] + A[i][k] * B[j][k];
       }
     }
 #pragma endscop
@@ -17,7 +18,7 @@ int main(int argc, char **argv) {
     for (int j = 0; j < J; j++) {
       C_golden[i][j] = 0;
       for (int k = 0; k < K; k++) {
-        C_golden[i][j] = C_golden[i][j] + A[i][k] * B[k][j];
+        C_golden[i][j] = C_golden[i][j] + A[i][k] * B[j][k];
       }
     }
 

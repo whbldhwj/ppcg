@@ -857,6 +857,30 @@ isl_bool isl_schedule_node_is_io_mark(__isl_keep isl_schedule_node *node, int io
   }
 }
 
+/* Examine if the "node" is under the "simd" mark. */
+int is_node_under_simd(__isl_keep isl_schedule_node *node)
+{
+  isl_schedule_node *cur_node;
+
+  cur_node = isl_schedule_node_copy(node);
+  while (isl_schedule_node_get_type(cur_node) != isl_schedule_node_root) {
+    if (isl_schedule_node_get_type(cur_node) == isl_schedule_node_mark) {
+      isl_id *id = isl_schedule_node_mark_get_id(cur_node);
+      if (!strcmp(isl_id_get_name(id), "simd")) {
+        isl_id_free(id);
+        isl_schedule_node_free(cur_node);
+        return 1;
+      }
+      isl_id_free(id);
+    }
+    cur_node = isl_schedule_node_parent(cur_node);
+  }
+
+  isl_schedule_node_free(cur_node);
+
+  return 0;
+}
+
 /***************************************************************
  * PolySA kernel related functions 
  ***************************************************************/
@@ -1428,6 +1452,7 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
   free(group->io_buffers);
   isl_schedule_free(group->io_schedule);
   isl_schedule_free(group->io_L1_schedule);
+  isl_union_pw_multi_aff_free(group->copy_schedule);
 	free(group);
 
 	return NULL;
@@ -2101,6 +2126,7 @@ static int extract_access(__isl_keep pet_expr *expr, void *user)
   access->io_info = NULL;
   access->layout_trans = -1;
   access->simd_dim = -1;
+  access->simd_stride = -1;
 
 	*data->next_access = access;
 	data->next_access = &(*data->next_access)->next;

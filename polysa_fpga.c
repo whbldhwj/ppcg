@@ -1767,6 +1767,7 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
 
   /* Arrays */
   if (module->type != PE_MODULE && module->to_mem) {
+    /* I/O module that accesses the external memory */
     if (!first) {
       p = isl_printer_print_str(p, ", ");
     }
@@ -1851,6 +1852,11 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
   /* fifos */
   if (module->type == PE_MODULE) {
     for (int i = 0; i < module->n_io_group; i++) {
+      struct polysa_array_ref_group *group = module->io_groups[i];
+      int n_lane = (group->local_array->array_type == POLYSA_EXT_ARRAY)? group->n_lane:
+          ((group->group_type == POLYSA_DRAIN_GROUP)? group->n_lane: 
+          ((group->io_type == POLYSA_EXT_IO)? group->n_lane : group->io_buffers[0]->n_lane));
+
       if (module->io_groups[i]->pe_io_dir == IO_IN ||
           module->io_groups[i]->pe_io_dir == IO_INOUT) {
         if (!first) {
@@ -1858,7 +1864,7 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
         }
         if (types) {
           p = polysa_fifo_print_declaration_arguments(p,
-                module->io_groups[i], 1, "in", target); 
+                module->io_groups[i], n_lane, "in", target); 
         } else 
           p = polysa_fifo_print_call_argument(p,
                 module->io_groups[i], "in", target); 
@@ -1870,7 +1876,7 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
           p = isl_printer_print_str(p, ", ");
         if (types)
           p = polysa_fifo_print_declaration_arguments(p,
-                module->io_groups[i], 1, "out", target);
+                module->io_groups[i], n_lane, "out", target);
         else
           p = polysa_fifo_print_call_argument(p,
                 module->io_groups[i], "out", target);
@@ -2402,6 +2408,7 @@ __isl_give isl_printer *print_fifo_decl(__isl_take isl_printer *p,
   struct polysa_array_ref_group *group = stmt->u.m.group;
   int boundary = stmt->u.m.boundary;
   int n;
+  int n_lane;
 
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "// Print channel declarations of module: ");
@@ -2416,10 +2423,17 @@ __isl_give isl_printer *print_fifo_decl(__isl_take isl_printer *p,
   p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"");
   p = print_fifo_comment(p, module);
   p = isl_printer_print_str(p, " ");
+  if (module->type == PE_MODULE) {
+    n_lane = (group->local_array->array_type == POLYSA_EXT_ARRAY)? group->n_lane : 
+      ((group->group_type == POLYSA_DRAIN_GROUP)? group->n_lane: 
+      ((group->io_type == POLYSA_EXT_IO)? group->n_lane : group->io_buffers[0]->n_lane));
+  } else {
+    n_lane = module->data_pack_inter;
+  }
   if (hls->target == XILINX_HW)
-    p = print_fifo_type_xilinx(p, group, module->data_pack_inter);
+    p = print_fifo_type_xilinx(p, group, n_lane);
   else if (hls->target == INTEL_HW)
-    p = print_fifo_type_intel(p, group, module->data_pack_inter);
+    p = print_fifo_type_intel(p, group, n_lane);
   p = isl_printer_print_str(p, " ");
   p = polysa_array_ref_group_print_fifo_name(group, p);
   p = isl_printer_print_str(p, "_");
@@ -2812,7 +2826,6 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
       p = io_stmt_print_local_index(p, stmt);    
       p = isl_printer_print_str(p, ")");
     }
-    free(fifo_name);
     p = isl_printer_print_str(p, ";");
     p = isl_printer_end_line(p);
   } else {
@@ -2966,7 +2979,7 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
 
     p = ppcg_end_block(p);
   }
-  
+  free(fifo_name); 
 
   return p;
 }
@@ -3319,6 +3332,10 @@ static int *extract_data_pack_factors(int *data_pack_factors,
   return data_pack_factors;
 }
 
+/* Examine the local buffers of each array group. 
+ * Extract the data pack factors and build the data types 
+ * required by the program. 
+ */
 static isl_stat *print_data_types_xilinx(
   struct polysa_hw_top_module *top, struct hls_info *hls)
 {
@@ -3330,7 +3347,6 @@ static isl_stat *print_data_types_xilinx(
   p = isl_printer_set_output_format(p, ISL_FORMAT_C);
   for (int i = 0; i < kernel->n_array; i++) {
     struct polysa_local_array_info *local = &kernel->array[i]; 
-    // TODO: add SIMD later
     int *data_pack_factors = NULL;
     int n_factor = 0;
     /* IO group */
@@ -4061,8 +4077,6 @@ static __isl_give isl_printer *print_host_user_intel(__isl_take isl_printer *p,
   return p;
 }
 
-
-
 static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
   struct polysa_prog *prog, __isl_keep isl_ast_node *tree, 
   struct polysa_hw_module **modules, int n_modules,
@@ -4100,7 +4114,6 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
   p_module = isl_printer_set_output_format(p_module, ISL_FORMAT_C);
 
   for (int i = 0; i < n_modules; i++) {
-//  for (int i = 2; i < 3; i++) {
     if (modules[i]->is_filter && modules[i]->is_buffer) {
       /* Print out the definitions for inter_trans and intra_trans function calls */
       /* Intra transfer function */

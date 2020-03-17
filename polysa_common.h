@@ -152,6 +152,7 @@ struct polysa_kernel {
   int array_part_w;
   int space_w;
   int time_w;
+  int simd_w;
 
   int type; // POLYSA_SA_TYPE_ASYNC | POLYSA_SA_TYPE_SYNC
 
@@ -297,8 +298,13 @@ struct polysa_stmt_access {
   /* PolySA extended */
   struct polysa_io_info **io_info;
   int n_io_info;
+  /* Indicates if layout transformation is required for SIMD */
   int layout_trans;
+  /* Indicates which array dimension should be permuted innmermost for SIMD */
   int simd_dim;
+  /* Indicates the stride pattern under the SIMD loop.
+   * Default value as -1. 0 if stride-0 and 1 if stride-1 */
+  int simd_stride;
   /* PolySA extended */
 
 	struct polysa_stmt_access *next;  
@@ -477,6 +483,9 @@ struct polysa_array_ref_group {
   int space_dim;
   /* Data pack factor inside PEs */
   int n_lane;
+  /* Copy schedule for PE group */
+  int copy_schedule_dim;
+  isl_union_pw_multi_aff *copy_schedule;
 
   /* PolySA Extended */
 };
@@ -812,6 +821,7 @@ __isl_give isl_schedule_node *restore_node_band_prop(__isl_take isl_schedule_nod
 __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_node *node);
 isl_bool no_permutable_node(isl_schedule_node *node, void *user);
 isl_bool isl_schedule_node_is_io_mark(__isl_keep isl_schedule_node *node, int io_level);
+int is_node_under_simd(__isl_keep isl_schedule_node *node);
 
 /* PolySA kernel related functions */
 void *polysa_kernel_free(struct polysa_kernel *sa);

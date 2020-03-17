@@ -124,6 +124,7 @@ static int populate_array_references_pe(struct polysa_local_array_info *local,
     group->io_pe_expr = NULL;
     group->n_io_buffer = 0;
     group->io_buffers = NULL;
+    group->copy_schedule = NULL;
 
 		groups[n++] = group;
 	}
@@ -192,6 +193,7 @@ static int populate_array_references_io(struct polysa_local_array_info *local,
       group->io_L1_pe_expr = NULL;
       group->n_io_buffer = 0;
       group->io_buffers = NULL;
+      group->copy_schedule = NULL;
 
 		  groups[n++] = group;
     }
@@ -765,6 +767,165 @@ isl_bool can_tile(__isl_keep isl_map *access,
 	return valid;
 }
 
+struct compute_local_tile_acc_data {
+  struct polysa_kernel *kernel;
+  struct polysa_array_ref_group *group;
+  int depth;
+  isl_union_map *prefix;
+  isl_union_pw_multi_aff *prefix_upma;
+  int status;
+};
+
+static isl_bool compute_local_tile_acc_single(__isl_keep isl_set *set, void *user)
+{
+  isl_space *space;
+  isl_id *id;
+  struct polysa_stmt *stmt;
+  struct compute_local_tile_acc_data *data = user;
+  struct polysa_stmt_access *accesses, *access;
+
+  space = isl_set_get_space(set);
+  id = isl_space_get_tuple_id(space, isl_dim_set);
+  isl_space_free(space);
+  stmt = find_stmt(data->kernel->prog, id);
+  isl_id_free(id);
+  accesses = stmt->accesses;
+
+  for (access = accesses; access; access = access->next) {
+    if (access == data->group->refs[0]) {
+      return isl_bool_false;  
+    }
+  }
+
+  return isl_bool_true;
+}
+
+static __isl_give isl_schedule_node *compute_local_tile_acc(__isl_take isl_schedule_node *node, void *user)
+{
+  struct compute_local_tile_acc_data *data = user;
+  struct polysa_array_ref_group *group = data->group;
+  struct polysa_stmt_access *acc = group->refs[0];
+  isl_union_set *domain;
+  isl_union_map *prefix;
+  isl_union_pw_multi_aff *prefix_upma;
+  isl_bool not_contain_acc;
+  int depth;
+
+  if (isl_schedule_node_get_type(node) != isl_schedule_node_leaf)
+    return node;
+
+  domain = isl_schedule_node_get_domain(node);
+  not_contain_acc = isl_union_set_every_set(domain, &compute_local_tile_acc_single, data);
+  isl_union_set_free(domain);
+
+  if (!not_contain_acc) {
+    int is_simd;
+    is_simd = is_node_under_simd(node);
+    if (is_simd) {
+      isl_schedule_node *new_node;
+
+      new_node = isl_schedule_node_copy(node);
+      new_node = polysa_tree_move_up_to_mark(new_node, "simd");
+      prefix = isl_schedule_node_get_prefix_schedule_union_map(new_node);
+      prefix_upma = isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(new_node);
+      depth = isl_schedule_node_get_schedule_depth(new_node);
+      isl_schedule_node_free(new_node);
+    } else {
+      prefix = isl_schedule_node_get_prefix_schedule_union_map(node);
+      prefix_upma = isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(node);
+      depth = isl_schedule_node_get_schedule_depth(node);
+    }
+    if (data->depth == -1) {
+      data->depth = depth;
+      data->prefix = prefix;
+      data->prefix_upma = prefix_upma;
+      data->status = 1;
+    } else {
+      /* The array reference is found in more than one loop. We will compute the tiling at the PE level. */
+      isl_union_map_free(prefix);
+      isl_union_pw_multi_aff_free(prefix_upma);
+      data->status = 0; 
+    }
+  }
+
+  return node;
+}
+
+static isl_stat compute_group_bounds_core_pe_acc(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, struct polysa_group_data *data)
+{
+  isl_ctx *ctx = isl_space_get_ctx(group->array->space);
+  int use_local = kernel->options->use_local_memory;
+  isl_stat r = isl_stat_ok;
+  isl_union_map *access;
+  isl_map *acc;
+  isl_bool ok;
+  isl_schedule_node *node;
+
+  if (!use_local)
+    return isl_stat_ok;
+  if (polysa_array_is_read_only_scalar(group->array))
+    return isl_stat_ok;
+  if (!group->exact_write) 
+    return isl_stat_ok;
+  if (group->slice)
+    return isl_stat_ok;
+
+  /* Collect all accesses in the group */
+  access = polysa_array_ref_group_access_relation(group, 1, 1);
+  /* Create local tile */
+  if (use_local) {
+    struct compute_local_tile_acc_data tile_data;
+  
+    tile_data.kernel = kernel;
+    tile_data.group = group;
+    tile_data.status = 0;
+    tile_data.depth = -1;
+    tile_data.prefix = NULL;
+    /* Create a tile. */
+    group->local_tile = polysa_array_tile_create(ctx, group->array->n_index);
+    /* Map the domain to the outer scheduling dimensions */
+    node = isl_schedule_get_root(kernel->schedule);
+    node = polysa_tree_move_down_to_pe(node, kernel->core);
+    node = isl_schedule_node_map_descendant_bottom_up(node, &compute_local_tile_acc, &tile_data);
+    isl_schedule_node_free(node);
+    if (tile_data.status) {
+      acc = isl_map_from_union_map(isl_union_map_apply_domain(isl_union_map_copy(access),
+          tile_data.prefix));
+      /* Update the copy schedule */
+      group->copy_schedule_dim = tile_data.depth;
+      group->copy_schedule = tile_data.prefix_upma;
+      group->copy_schedule = isl_union_pw_multi_aff_pullback_union_pw_multi_aff(group->copy_schedule, 
+        isl_union_pw_multi_aff_copy(kernel->contraction));
+    } else {
+      acc = local_access_pe(group, access, data);
+      /* Update the copy schedule */
+      node = isl_schedule_get_root(kernel->schedule);
+      node = polysa_tree_move_down_to_pe(node, kernel->core);
+      group->copy_schedule_dim = isl_schedule_node_get_schedule_depth(node);
+      group->copy_schedule = isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(node);
+      group->copy_schedule = isl_union_pw_multi_aff_pullback_union_pw_multi_aff(group->copy_schedule, 
+          isl_union_pw_multi_aff_copy(kernel->contraction));
+      isl_schedule_node_free(node);
+    }
+    /* Collect the shift and scale factors of the tile. */
+    ok = can_tile(acc, group->local_tile);
+    if (ok < 0)
+      r = isl_stat_error;
+    else if (!ok)
+      group->local_tile = polysa_array_tile_free(group->local_tile);
+    isl_map_free(acc);
+  }
+
+  if (r < 0) {
+    isl_union_map_free(access);
+    return r;
+  }
+
+  isl_union_map_free(access);
+  return isl_stat_ok;
+}
+
 /* If the any reference in the group is associated with RAW/RAW not carried at space
  * loop (contains interior I/O), compute the local memory tiles for the group.
  * Return isl_stat_ok on success and isl_stat_error on error.
@@ -801,6 +962,7 @@ static isl_stat compute_group_bounds_core_pe(struct polysa_kernel *kernel,
     group->local_tile = polysa_array_tile_create(ctx,
             group->array->n_index);
     /* Map the domain to the outer scheduling dimensions */
+    // TODO: to create a register tiling or tile under the SIMD loop
     acc = local_access_pe(group, access, data); 
     /* Collect the shift and scale factors of the tile. */
     ok = can_tile(acc, group->local_tile);
@@ -1324,6 +1486,17 @@ static int compute_group_bounds_pe(struct polysa_kernel *kernel,
 	return 0;
 }
 
+static int compute_group_bounds_pe_acc(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, struct polysa_group_data *data)
+{
+  if (!group)
+    return -1;
+  if (compute_group_bounds_core_pe_acc(kernel, group, data) < 0)
+    return -1;
+
+  return 0;
+}
+
 /* Compute the local memory tiles for the array
  * reference group "group" of array "array" and set the tile depth.
  * Return 0 on success and -1 on error.
@@ -1469,7 +1642,7 @@ static int share_io(struct polysa_array_ref_group *group1,
     if (isl_vec_cmp_element(group1->dir, group2->dir, i))
       return 0;
   }
-    
+
   return 1;
 }
 
@@ -1678,6 +1851,7 @@ static int group_array_references_pe(struct polysa_kernel *kernel,
   isl_ctx *ctx = isl_union_map_get_ctx(data->pe_sched);
   struct polysa_array_ref_group **groups;
   int merge_all = 0;
+  isl_schedule_node *node;
 
   groups = isl_calloc_array(ctx, struct polysa_array_ref_group *, 
       local->array->n_ref);
@@ -1711,13 +1885,36 @@ static int group_array_references_pe(struct polysa_kernel *kernel,
   }
 
   if (merge_all) {
+    /* Internal array */
     for (i = 0; i < n; ++i) { 
       if (compute_group_bounds_pe(kernel, groups[i], data) < 0) {
         for (j = 0; j < n; j++) {
           polysa_array_ref_group_free(groups[j]);
         }
         free(groups);
-      return -1;
+        return -1;
+      }
+      /* Update the copy schedule at the PE level */
+      node = isl_schedule_get_root(kernel->schedule);
+      node = polysa_tree_move_down_to_pe(node, kernel->core);
+      groups[i]->copy_schedule_dim = isl_schedule_node_get_schedule_depth(node);
+      groups[i]->copy_schedule = 
+        isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(node);
+      groups[i]->copy_schedule = 
+        isl_union_pw_multi_aff_pullback_union_pw_multi_aff(groups[i]->copy_schedule, 
+            isl_union_pw_multi_aff_copy(kernel->contraction));
+      isl_schedule_node_free(node);
+    }
+  } else {
+    /* External array. 
+     * We will build the tiling for each array access */
+    for (i = 0; i < n; ++i) {
+      if (compute_group_bounds_pe_acc(kernel, groups[i], data) < 0) {
+        for (j = 0; j < n; j++) {
+          polysa_array_ref_group_free(groups[j]);
+        }
+        free(groups);    
+        return -1;
       }
     }
   }
@@ -2035,6 +2232,74 @@ static isl_stat compute_io_group_buffer(struct polysa_kernel *kernel,
   return isl_stat_ok;
 }
 
+struct update_group_simd_data {
+  struct polysa_array_ref_group *group;
+  struct polysa_kernel *kernel;
+};
+
+/* Examine if there is any array references in the "group" under the SIMD loop.
+ * If so, exmaine if the array reference has a stride of 1 under teh SIMD loop.
+ * If so, update the SIMD lane of the "group".
+ */
+static isl_bool update_group_simd(__isl_keep isl_schedule_node *node, void *user)
+{
+  struct update_group_simd_data *data = user;
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
+//  // debug
+
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_mark) {
+    isl_id *id;
+    isl_union_set *domain;
+    struct polysa_array_ref_group *group = data->group;
+
+    id = isl_schedule_node_mark_get_id(node);
+    if (strcmp(isl_id_get_name(id), "simd")) {
+      isl_id_free(id);
+      return isl_bool_true;
+    }
+    
+    isl_id_free(id);
+    node = isl_schedule_node_child(node, 0);
+    domain = isl_schedule_node_get_domain(node);
+    for (int i = 0; i < group->n_ref; i++) {
+      struct polysa_stmt_access *ref = group->refs[i];
+      for (int j = 0; j < ref->n_io_info; j++) {
+        struct polysa_io_info *info = ref->io_info[j];
+        if (info->io_type == group->io_type && !isl_vec_cmp(info->dir, group->dir)) {
+          /* Test if either the source or dest of the dependence associated with
+           * the array reference is intersected with the current loop domain */
+          struct polysa_dep *dep = info->dep;
+          isl_basic_map *bmap;
+          isl_map *map;
+          isl_set *src, *dest;
+          isl_union_set *uset;
+//          // debug
+//          p = isl_printer_print_basic_map(p, dep->isl_dep);
+//          printf("\n");
+//          // debug
+          bmap = isl_basic_map_copy(dep->isl_dep);
+          map = isl_map_from_basic_map(bmap);
+          map = isl_map_factor_domain(map);
+          src = isl_map_domain(isl_map_copy(map));
+          dest = isl_map_range(map);
+          uset = isl_union_set_union(isl_union_set_from_set(src), 
+                    isl_union_set_from_set(dest));
+          uset = isl_union_set_intersect(uset, isl_union_set_copy(domain));
+          if (!isl_union_set_is_empty(uset)) {
+            if (ref->simd_stride == 1)
+              group->n_lane = data->kernel->simd_w;
+          }
+          isl_union_set_free(uset);
+        }
+      }
+    }
+    isl_union_set_free(domain);
+  }
+
+  return isl_bool_true;
+}
+
 /* Select the data pack factor for I/O buffers. The data pack factor
  * should be sub-multiples of the last dimension of the local array.
  * Meanwhile, it should also be sub-multiples of the data pack factors 
@@ -2046,50 +2311,69 @@ static isl_stat compute_io_group_buffer(struct polysa_kernel *kernel,
 static isl_stat compute_io_group_data_pack(struct polysa_kernel *kernel,
   struct polysa_array_ref_group *group, struct polysa_gen *gen)
 {
-  // TODO: support SIMD
-  isl_val *prev_n_lane = NULL;
+  isl_schedule_node *node; 
+  struct update_group_simd_data data;
+  int ele_size = group->array->size; // bytes
+  /* Given the DRAM port width as 64 Bytes, compute the maximal data pack factor. */
+  int max_n_lane = 64 / ele_size; 
 
+  /* Examine if any of the array reference in the group is in used by SIMD loop.
+   * The default SIMD lane for the group is 1. 
+   * If any of the array references in the group is under the SIMD loop, and 
+   * if the stride of reference under the loop is one. The SIMD lane of the 
+   * group is then updated to the SIMD lane of the loop.
+   */
   group->n_lane = 1;
-    
+  node = isl_schedule_get_root(kernel->schedule);
+  data.group = group;
+  data.kernel = kernel;
+  isl_schedule_node_foreach_descendant_top_down(node, &update_group_simd, &data);
+  isl_schedule_node_free(node);
+  if (max_n_lane % group->n_lane != 0) {
+    printf("[PolySA] The data is not aligned to the DRAM port with SIMD vectorization. Abort!\n");
+    printf("[PolySA] Please try to use SIMD factor as sub-multiples of %d.\n", max_n_lane);
+    exit(1);
+  }
+
   if (!gen->options->data_pack) {
-    for (int i = group->io_level - 1; i >= 0; i--) {
+    for (int i = 0; i < group->io_level; i++) {
       struct polysa_io_buffer *buf = group->io_buffers[i];
-      buf->n_lane = 1;
+      buf->n_lane = group->n_lane;
     }
     return isl_stat_ok;
   }
 
-  for (int i = group->io_level - 1; i >= 0; i--) {
+  int cur_n_lane = group->n_lane;
+  int status = false;
+  for (int i = 0; i < group->io_level; i++) {
     struct polysa_io_buffer *buf = group->io_buffers[i];
     if (buf->tile) {
+      int n_lane = cur_n_lane;
       isl_val *size = isl_val_copy(buf->tile->bound[group->array->n_index - 1].size);
-      int ele_size = group->array->size; // bytes
-      /* Given the DRAM port width as 64 Bytes, compute the maximal data pack factor. */
-      int max_n_lane = 64 / ele_size; 
-      /* Start with the max data pack lane, if it is not a sub-multiple of the last dimension of the 
-       * local array, divide it by 2, until it reaches 1. */
-      int cur_n_lane = max_n_lane;
-      while (cur_n_lane != 1) {
-        isl_val *val = isl_val_int_from_si(gen->ctx, cur_n_lane);
-        if (isl_val_is_divisible_by(size, val)) {
-          if (prev_n_lane && isl_val_is_divisible_by(prev_n_lane, val) ||
-              (!prev_n_lane)) {
-            isl_val_free(prev_n_lane);
-            prev_n_lane = isl_val_copy(val);
-            isl_val_free(val);            
-            break;
-          }         
+      while (n_lane <= max_n_lane) {
+        /* The lane should be multiples of SIMD lane */
+        if (n_lane % group->n_lane == 0) {
+          isl_val *val = isl_val_int_from_si(gen->ctx, n_lane);      
+          /* The lane should be sub-multiples of the last dim of the array */
+          if (isl_val_is_divisible_by(size, val)) {
+            cur_n_lane = n_lane;
+            status = true;          
+          }
+          isl_val_free(val);
         }
-        isl_val_free(val);
-        cur_n_lane = cur_n_lane / 2;
+        n_lane = n_lane * 2;
       }
-      buf->n_lane = cur_n_lane;
+      if (status) {
+        buf->n_lane = cur_n_lane;
+      } else {
+        printf("[PolySA] Cannot find data pack factors as sub-multiples of the last dim of the local array. Abort!\n");
+        printf("[PolySA] Please try to use different tiling factors.\n");
+      }
       isl_val_free(size);
     } else {
-      buf->n_lane = 1;
+      buf->n_lane = cur_n_lane;
     }
   }
-  isl_val_free(prev_n_lane);
 
   return isl_stat_ok;
 }
@@ -2114,8 +2398,9 @@ static isl_stat polysa_io_construct(
 /* Group array references together if they share the same data transfer chain.
  * Return -1 on error.
  *
- * Two array references are grouped together if they share the same data transfer
- * direction "dir" and I/O type "io_type".
+ * Two array references are grouped together if they share the same data 
+ * transfer direction "dir" and I/O type "io_type".
+ * Besides, they should all under the SIMD loop or not.
  *
  * For exterior I/O pair, calculate the group tiling at the io_L2 level.
  * For interior I/O pair, calculate the group tiling at the io_L1 level.
@@ -2283,6 +2568,7 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
       group->io_L1_pe_expr = NULL;
       group->n_io_buffer = 0;
       group->io_buffers = NULL;
+      group->copy_schedule = NULL;
 
       groups = (struct polysa_array_ref_group **)realloc(groups, (++n) * sizeof(struct polysa_array_ref_group *));
       groups[n - 1] = group;

@@ -94,6 +94,25 @@ static __isl_give isl_pw_multi_aff *compute_sched_to_copy(
 	return isl_pw_multi_aff_pullback_pw_multi_aff(pma, iterator_map);
 }
 
+static __isl_give isl_pw_multi_aff *compute_sched_to_copy_group(
+  __isl_take isl_pw_multi_aff *iterator_map, struct polysa_array_ref_group *group)
+{
+  isl_union_pw_multi_aff *upma;
+  isl_pw_multi_aff *pma;
+  isl_space *space;
+
+  space = isl_space_range(isl_pw_multi_aff_get_space(iterator_map));
+  space = isl_space_from_domain(space);
+  space = isl_space_add_dims(space, isl_dim_out,
+            group->copy_schedule_dim);
+  
+  upma = isl_union_pw_multi_aff_copy(group->copy_schedule);
+  pma = isl_union_pw_multi_aff_extract_pw_multi_aff(upma, space);
+  isl_union_pw_multi_aff_free(upma);
+
+  return isl_pw_multi_aff_pullback_pw_multi_aff(pma, iterator_map);
+}
+
 /* Return the polysa_stmt_access in the list "accesses" that corresponds
  * to "ref_id".
  */
@@ -327,6 +346,7 @@ static __isl_give isl_multi_pw_aff *transform_index(
 	isl_multi_pw_aff *tiling;
 	isl_pw_multi_aff *pma;
 	isl_pw_multi_aff *sched2depth;
+  isl_pw_multi_aff *sched2copy;
 
 //  // debug
 //  isl_printer *p = isl_printer_to_file(isl_id_get_ctx(ref_id), stdout);
@@ -360,6 +380,8 @@ static __isl_give isl_multi_pw_aff *transform_index(
 //  // debug
 //  p = isl_printer_print_map(p, access->access);
 //  printf("\n");
+//  p = isl_printer_print_multi_pw_aff(p, index);
+//  printf("\n");
 //  // debug
 
 	group = find_ref_group(data->local_array, access);
@@ -376,11 +398,29 @@ static __isl_give isl_multi_pw_aff *transform_index(
 	if (!tile)
 		return index;
 
+  /* recompute the sched2copy for each index */
+  if (group->group_type == POLYSA_PE_GROUP) {
+//    // debug
+//    p = isl_printer_print_pw_multi_aff(p, data->sched2copy);
+//    printf("\n");
+//    // debug
+//    isl_pw_multi_aff_free(data->sched2copy);
+    sched2copy = compute_sched_to_copy_group(isl_pw_multi_aff_copy(data->iterator_map), group); 
+//    // debug
+//    p = isl_printer_print_pw_multi_aff(p, data->sched2copy);
+//    printf("\n");
+//    // debug
+  }
+
 	space = isl_space_domain(isl_multi_aff_get_space(tile->tiling));
 	space = isl_space_range(isl_space_unwrap(space));
 	space = isl_space_map_from_set(space);
 	pma = isl_pw_multi_aff_identity(space);
-	sched2depth = isl_pw_multi_aff_copy(data->sched2copy);
+  if (group->group_type == POLYSA_PE_GROUP) {
+    sched2depth = sched2copy;
+  } else {
+	  sched2depth = isl_pw_multi_aff_copy(data->sched2copy);
+  }
 	dim = isl_pw_multi_aff_dim(sched2depth, isl_dim_out);
 	sched2depth = isl_pw_multi_aff_drop_dims(sched2depth, isl_dim_out,
 					    tile->depth, dim - tile->depth);
@@ -390,6 +430,11 @@ static __isl_give isl_multi_pw_aff *transform_index(
 	tiling = isl_multi_pw_aff_pullback_pw_multi_aff(tiling, pma);
 
 	index = tile_outer(index, tiling);
+
+//  // debug
+//  p = isl_printer_print_multi_pw_aff(p, index);
+//  printf("\n");
+//  // debug
 
 	return index;
 }
