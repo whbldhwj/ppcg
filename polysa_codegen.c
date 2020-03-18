@@ -1033,7 +1033,7 @@ static int extract_param_id(isl_ctx *ctx, const char *type)
 
 /* Extract the filter field from the I/O statemnt type.
  * The I/O statement type is in the format of:
- * in/out_trans[_dram].[fifo_name].[is_filter].[is_buffer].[sched_depth].[param_id].[pack_lane]
+ * in/out_trans[_dram].[fifo_name].[is_filter].[is_buffer].[sched_depth].[param_id].[pack_lane].[nxt_pack_lane]
  * or 
  * in/out.[fifo_name].[pack_lane].[nxt_pack_lane]
  */
@@ -1083,9 +1083,6 @@ static int extract_data_pack(isl_ctx *ctx, const char *type, int is_trans)
  */
 static int extract_next_data_pack(isl_ctx *ctx, const char *type, int is_trans) 
 {
-  if (is_trans)
-    return -1;
-
   int loc = 0;
   char ch;
   int dot_time = 0;
@@ -1096,12 +1093,12 @@ static int extract_next_data_pack(isl_ctx *ctx, const char *type, int is_trans)
   while ((ch = type[loc]) != '\0') {
     if (ch == '.') 
       dot_time++;
-    if (dot_time == 3)
+    if (dot_time == (is_trans? 7 : 3))
       break;
     loc++;
   }
 
-  if (dot_time < 3)
+  if (dot_time < (is_trans? 7 : 3))
     return -1;
 
   p_str = isl_printer_to_str(ctx);
@@ -1391,6 +1388,7 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
   }
   stmt->u.i.in = type && !prefixcmp(type, "in");
   stmt->u.i.buf = is_trans_buf;
+  stmt->u.i.filter = is_trans_filter;
   stmt->u.i.data_pack = extract_data_pack(ctx, type, is_trans || is_trans_dram);
   stmt->u.i.nxt_data_pack = extract_next_data_pack(ctx, type, is_trans || is_trans_dram);
     

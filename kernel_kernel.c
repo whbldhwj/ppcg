@@ -3,9 +3,11 @@
 void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_A_out, hls::stream<B_t2> &fifo_B_in, hls::stream<B_t2> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)
 {
     int p0 = idx, p1 = idy; // module id
-    A_t0 local_A[1][2];
-    B_t0 local_B[1][2];
-    C_t0 local_C[1][1];
+    int local_A[1][2];
+    #pragma HLS ARRAY_PARTITION variable=local_A dim=2 factor=2 cyclic
+    int local_B[1][2];
+    #pragma HLS ARRAY_PARTITION variable=local_B dim=2 factor=2 cyclic
+    int local_C[1][1];
 
     for (int c0 = 0; c0 <= 127; c0 += 1)
       for (int c1 = 0; c1 <= 127; c1 += 1) {
@@ -17,69 +19,39 @@ void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_
           // array
           // pe
           for (int c5 = 0; c5 <= 1; c5 += 1) {
-            for (int c7 = 0; c7 <= 1; c7 += 1)
-              {
-                A_t2 local_data;
-                local_data = local_A[0][c7 / 2];
-                ap_uint<32> local_data_split[2];
-                #pragma HLS ARRAY_PARTITION variable=local_data_split complete
-                for (int n = 0; n < 2; n++) {
-                #pragma HLS UNROLL
-                    local_data_split[n] = local_data(31, 0);
-                    local_data = local_data >> 32;
-                }
-                int split_i = ((c7 / 2) * 2) % 2;
-                local_data_split[split_i] = Reinterpret<ap_uint<32> >(fifo_A_in.read());                local_data = (local_data_split[1], local_data_split[0]);
-                local_A[0][c7 / 2] = local_data;
+            {
+              A_t2 fifo_data;
+              fifo_data = fifo_A_in.read();
+              for (int n = 0; n < 2; n++) {
+              #pragma HLS UNROLL
+                  local_A[0][(0 / 2) * 2 + n] = Reinterpret<int>(fifo_data(31, 0));
+                  fifo_data = fifo_data >> 32;
               }
-            for (int c7 = 0; c7 <= 1; c7 += 1)
-              {
-                B_t2 local_data;
-                local_data = local_B[0][c7 / 2];
-                ap_uint<32> local_data_split[2];
-                #pragma HLS ARRAY_PARTITION variable=local_data_split complete
-                for (int n = 0; n < 2; n++) {
-                #pragma HLS UNROLL
-                    local_data_split[n] = local_data(31, 0);
-                    local_data = local_data >> 32;
-                }
-                int split_i = ((c7 / 2) * 2) % 2;
-                local_data_split[split_i] = Reinterpret<ap_uint<32> >(fifo_B_in.read());                local_data = (local_data_split[1], local_data_split[0]);
-                local_B[0][c7 / 2] = local_data;
+            }
+            {
+              B_t2 fifo_data;
+              fifo_data = fifo_B_in.read();
+              for (int n = 0; n < 2; n++) {
+              #pragma HLS UNROLL
+                  local_B[0][(0 / 2) * 2 + n] = Reinterpret<int>(fifo_data(31, 0));
+                  fifo_data = fifo_data >> 32;
               }
+            }
             // simd
             for (int c6 = 0; c6 <= 1; c6 += 1)
               local_C[0][0] = (local_C[0][0] + (local_A[0][c6] * local_B[0][c6]));
             if (c2 == 127 && c5 == 1)
               fifo_C_drain_out.write(local_C[0][0]);
-            for (int c7 = 0; c7 <= 1; c7 += 1)
-              {
-                B_t2 local_data;
-                local_data = local_B[0][c7 / 2];
-                ap_uint<32> local_data_split[2];
-                #pragma HLS ARRAY_PARTITION variable=local_data_split complete
-                for (int n = 0; n < 2; n++) {
-                #pragma HLS UNROLL
-                    local_data_split[n] = local_data(31, 0);
-                    local_data = local_data >> 32;
-                }
-                int split_i = ((c7 / 2) * 2) % 2;
-                fifo_B_out.write(Reinterpret<int>(local_data_split[split_i]));
-              }
-            for (int c7 = 0; c7 <= 1; c7 += 1)
-              {
-                A_t2 local_data;
-                local_data = local_A[0][c7 / 2];
-                ap_uint<32> local_data_split[2];
-                #pragma HLS ARRAY_PARTITION variable=local_data_split complete
-                for (int n = 0; n < 2; n++) {
-                #pragma HLS UNROLL
-                    local_data_split[n] = local_data(31, 0);
-                    local_data = local_data >> 32;
-                }
-                int split_i = ((c7 / 2) * 2) % 2;
-                fifo_A_out.write(Reinterpret<int>(local_data_split[split_i]));
-              }
+            {
+              B_t2 fifo_data;
+              fifo_data = (local_B[0][(0 / 2) * 2 + 0], local_B[0][(0 / 2) * 2 + 1]);
+              fifo_B_out.write(fifo_data);
+            }
+            {
+              A_t2 fifo_data;
+              fifo_data = (local_A[0][(0 / 2) * 2 + 0], local_A[0][(0 / 2) * 2 + 1]);
+              fifo_A_out.write(fifo_data);
+            }
           }
         }
       }
@@ -98,17 +70,19 @@ void A_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_p
     for (int c6 = 0; c6 <= 1; c6 += 1) {
       // simd
       {
-        A_t4 local_data;
-        local_data = local_A[0][2 * c6 / 4];
-        ap_uint<64> local_data_split[2];
-        #pragma HLS ARRAY_PARTITION variable=local_data_split complete
+        A_t2 fifo_data;
+        A_t4 buf_data;
+        A_t2 buf_data_split[2];
+        #pragma HLS ARRAY_PARTITION variable=buf_data_split complete
+        buf_data = local_A[0][2 * c6 / 4];
         for (int n = 0; n < 2; n++) {
-        #pragma HLS UNROLL
-            local_data_split[n] = local_data(63, 0);
-            local_data = local_data >> 64;
+            #pragma HLS UNROLL
+            buf_data_split[n] = buf_data(63, 0);
+            buf_data = buf_data >> 64;
         }
         int split_i = ((2 * c6 / 4) * 2) % 2;
-        fifo_A_local_out.write(local_data_split[split_i]);
+        fifo_data = buf_data_split[split_i];
+        fifo_A_local_out.write(fifo_data);
       }
     }
 }
@@ -122,15 +96,15 @@ void A_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, A_t4 local
 
     for (int c4 = p1; c4 <= 1; c4 += 1) {
       // io_L2
-    {
-      A_t4 fifo_data;
-      fifo_data = fifo_A_in.read();
-      if (c4 == p1) {
-        local_A[0][0 / 4] = fifo_data;
-      } else {
-        fifo_A_out.write(fifo_data);
+      {
+        A_t4 fifo_data;
+        fifo_data = fifo_A_in.read();
+        if (c4 == p1) {
+          local_A[0][0 / 4] = fifo_data;
+        } else {
+          fifo_A_out.write(fifo_data);
+        }
       }
-    }
     }
 }
 /* Module Definition */
@@ -206,17 +180,19 @@ void B_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_p
     for (int c6 = 0; c6 <= 1; c6 += 1) {
       // simd
       {
-        B_t4 local_data;
-        local_data = local_B[0][2 * c6 / 4];
-        ap_uint<64> local_data_split[2];
-        #pragma HLS ARRAY_PARTITION variable=local_data_split complete
+        B_t2 fifo_data;
+        B_t4 buf_data;
+        B_t2 buf_data_split[2];
+        #pragma HLS ARRAY_PARTITION variable=buf_data_split complete
+        buf_data = local_B[0][2 * c6 / 4];
         for (int n = 0; n < 2; n++) {
-        #pragma HLS UNROLL
-            local_data_split[n] = local_data(63, 0);
-            local_data = local_data >> 64;
+            #pragma HLS UNROLL
+            buf_data_split[n] = buf_data(63, 0);
+            buf_data = buf_data >> 64;
         }
         int split_i = ((2 * c6 / 4) * 2) % 2;
-        fifo_B_local_out.write(local_data_split[split_i]);
+        fifo_data = buf_data_split[split_i];
+        fifo_B_local_out.write(fifo_data);
       }
     }
 }
@@ -230,15 +206,15 @@ void B_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, B_t4 local
 
     for (int c4 = p1; c4 <= 1; c4 += 1) {
       // io_L2
-    {
-      B_t4 fifo_data;
-      fifo_data = fifo_B_in.read();
-      if (c4 == p1) {
-        local_B[0][0 / 4] = fifo_data;
-      } else {
-        fifo_B_out.write(fifo_data);
+      {
+        B_t4 fifo_data;
+        fifo_data = fifo_B_in.read();
+        if (c4 == p1) {
+          local_B[0][0 / 4] = fifo_data;
+        } else {
+          fifo_B_out.write(fifo_data);
+        }
       }
-    }
     }
 }
 /* Module Definition */
@@ -311,7 +287,11 @@ void C_drain_IO_L1_out_intra_trans(int idx, int idy, int idz, int c0, int c1, in
     // io_L1
     // pe
     // simd
-    local_C[0][0] = fifo_C_drain_local_in.read();
+    {
+      int fifo_data;
+      fifo_data = fifo_C_drain_local_in.read();
+      local_C[0][0] = fifo_data;
+    }
 }
 /* Module Definition */
 
@@ -323,15 +303,15 @@ void C_drain_IO_L1_out_inter_trans(int idx, int idy, int idz, int c0_prev, int c
 
     for (int c5 = 0; c5 <= p2; c5 += 1) {
       // io_L1
-    {
-      int fifo_data;
-      if (c5 == p2) {
-        fifo_data = local_C[0][0];
-      } else {
-        fifo_data = fifo_C_drain_in.read();
+      {
+        int fifo_data;
+        if (c5 == p2) {
+          fifo_data = local_C[0][0];
+        } else {
+          fifo_data = fifo_C_drain_in.read();
+        }
+        fifo_C_drain_out.write(fifo_data);
       }
-      fifo_C_drain_out.write(fifo_data);
-    }
     }
 }
 /* Module Definition */
@@ -384,15 +364,15 @@ void C_drain_IO_L2_out(int idx, int idy, hls::stream<int> &fifo_C_drain_in, hls:
           // io_L2
           for (int c5 = 0; c5 <= 3; c5 += 1) {
             // io_L1
-          {
-            int fifo_data;
-            if (c4 == p1) {
-              fifo_data = fifo_C_drain_local_in.read();
-            } else {
-              fifo_data = fifo_C_drain_in.read();
+            {
+              int fifo_data;
+              if (c4 == p1) {
+                fifo_data = fifo_C_drain_local_in.read();
+              } else {
+                fifo_data = fifo_C_drain_in.read();
+              }
+              fifo_C_drain_out.write(fifo_data);
             }
-            fifo_C_drain_out.write(fifo_data);
-          }
           }
         }
       }

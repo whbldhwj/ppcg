@@ -137,6 +137,8 @@ struct polysa_kernel_var {
   char *name;
   isl_vec *size;
   int n_lane;
+  /* Array partition factors */
+  int n_part; 
 };
 
 struct polysa_kernel {
@@ -749,6 +751,7 @@ struct polysa_kernel_stmt {
     struct {
       int in;
       int buf;
+      int filter;
       char *fifo_name;
       char *fifo_type;
       int filter_sched_depth;
