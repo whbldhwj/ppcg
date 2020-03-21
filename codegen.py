@@ -130,6 +130,53 @@ def generate_intel_kernel(kernel, headers, module_defs, module_calls, fifo_decls
       print_module_def(f, arg_map, module_def, def_args, call_args_type)
       f.write('/* Module Definition */\n\n')
 
+def insert_xlnx_pragmas(lines):
+  """ Insert HLS pragmas for Xilinx program
+
+  Replace the comments of "// hls_pipeline" and "// hls_unroll" with
+  HLS pragmas
+  For "// hls_pipeline", if the next codeline contains for loop, insert
+  the "#pramga HLS PIPELINE II=1" below the for loop;
+  otherwise, insert the pragma in-place.
+  For "// hls_unroll", if the next codeline contains for loop, insert
+  the "#pragma HLS UNROLL" below the for loop;
+  otherwise, do not insert the pragma.
+
+  Args:
+    lines: contains the codelines of the program
+  """
+
+  code_len = len(lines)
+  for pos in range(code_len):
+    line = lines[pos]
+    if line.find("// hls_pipeline") != -1:
+      # check the next line
+      next_line = lines[pos + 1]
+      if next_line.find("for") != -1:
+        indent = next_line.find("for")
+        new_line = " " * indent + "#pragma HLS PIPELINE II=1\n"
+        lines.insert(pos + 2, new_line)
+        # delete the annotation
+        del lines[pos]
+      else:
+        # insert the pragma in-place
+        indent = line.find("//")
+        new_line = " " * indent + "#pragma HLS PIPELINE II=1\n"
+        del lines[pos]
+        lines.insert(pos, new_line)
+    elif line.find("// hls_unroll") != -1:
+      # check the next line
+      next_line = lines[pos + 1]
+      if next_line.find("for") != -1:
+        indent = next_line.find("for")
+        new_line = " " * indent + "#pragma HLS UNROLL\n"
+        lines.insert(pos + 2, new_line)
+        # delete the annotation
+        del lines[pos]
+
+
+  return lines
+
 def xilinx_run(kernel_call, kernel_def, kernel='kernel'):
   """ Generate kernel file for Xilinx platform
 
@@ -147,8 +194,13 @@ def xilinx_run(kernel_call, kernel_def, kernel='kernel'):
   with open(kernel_def, 'r') as f:
     lines = f.readlines()
 
+  # Insert the HLS pragmas
+  lines = insert_xlnx_pragmas(lines)
+
   kernel = str(kernel)
-  kernel += '_xilinx.c'
+  kernel += '_xilinx.cpp'
+  print("Please find the generated file: " + kernel)
+
   with open(kernel, 'w') as f:
     f.writelines(lines)
     with open(kernel_call, 'r') as f2:

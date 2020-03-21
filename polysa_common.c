@@ -109,12 +109,25 @@ static isl_bool is_outermost_permutable_node_update(__isl_keep isl_schedule_node
   return isl_bool_true;
 }
 
-isl_bool no_permutable_node(isl_schedule_node *node, void *user)
+isl_bool no_permutable_node(__isl_keep isl_schedule_node *node, void *user)
 {
   if (isl_schedule_node_get_type(node) == isl_schedule_node_band)
     return isl_bool_false;
   else
     return isl_bool_true;
+}
+
+/* If any band member is non-parallel, return false. */
+isl_bool all_parallel_node(__isl_keep isl_schedule_node *node, void *user) 
+{
+  if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
+    int n = isl_schedule_node_band_n_member(node);
+    for (int i = 0; i < n; i++) {
+      if (!isl_schedule_node_band_member_get_coincident(node, i))
+        return isl_bool_false;
+    }
+  }
+  return isl_bool_true;
 }
 
 /* Examines if the node is a permutable band node. If so,
@@ -863,10 +876,34 @@ int is_node_under_simd(__isl_keep isl_schedule_node *node)
   isl_schedule_node *cur_node;
 
   cur_node = isl_schedule_node_copy(node);
-  while (isl_schedule_node_get_type(cur_node) != isl_schedule_node_root) {
+  while (isl_schedule_node_has_parent(cur_node)) {
     if (isl_schedule_node_get_type(cur_node) == isl_schedule_node_mark) {
       isl_id *id = isl_schedule_node_mark_get_id(cur_node);
       if (!strcmp(isl_id_get_name(id), "simd")) {
+        isl_id_free(id);
+        isl_schedule_node_free(cur_node);
+        return 1;
+      }
+      isl_id_free(id);
+    }
+    cur_node = isl_schedule_node_parent(cur_node);
+  }
+
+  isl_schedule_node_free(cur_node);
+
+  return 0;
+}
+
+/* Examine if the "node" is under the "latency" mark. */
+int is_node_under_latency(__isl_keep isl_schedule_node *node) 
+{
+  isl_schedule_node *cur_node;
+
+  cur_node = isl_schedule_node_copy(node);
+  while (isl_schedule_node_has_parent(cur_node)) {
+    if (isl_schedule_node_get_type(cur_node) == isl_schedule_node_mark) {
+      isl_id *id = isl_schedule_node_mark_get_id(cur_node);
+      if (!strcmp(isl_id_get_name(id), "latency")) {
         isl_id_free(id);
         isl_schedule_node_free(cur_node);
         return 1;
@@ -912,6 +949,9 @@ void *polysa_kernel_free(struct polysa_kernel *kernel)
   isl_union_set_free(kernel->domain);
   for (int i = 0; i < kernel->n_array; ++i) {
     struct polysa_local_array_info *array = &kernel->array[i];
+    for (int j = 0; j < array->n_group; ++j)
+      polysa_array_ref_group_free(array->groups[j]);
+    free(array->groups);
     for (int j = 0; j < array->n_pe_group; ++j)
       polysa_array_ref_group_free(array->pe_groups[j]);
     free(array->pe_groups);
@@ -2327,8 +2367,10 @@ struct polysa_hw_module *polysa_hw_module_alloc()
   module->intra_sched = NULL;
   module->inter_space = NULL;
   module->intra_space = NULL;
+  module->space = NULL;
   module->inter_tree = NULL;
   module->intra_tree = NULL;
+  module->credit = 0;
 
   return module;
 }
@@ -2372,7 +2414,8 @@ void *polysa_hw_module_free(struct polysa_hw_module *module)
 
   isl_space_free(module->inter_space);
   isl_space_free(module->intra_space);
-
+  isl_space_free(module->space);
+    
   isl_id_list_free(module->inst_ids);
   for (int i = 0; i < module->n_var; i++) {
     free(module->var[i].name);
@@ -2428,6 +2471,23 @@ void *polysa_hw_top_module_free(struct polysa_hw_top_module *module)
 
   return NULL;
 }
+
+/*****************************************************************
+ * PolySA ast node related functions
+ *****************************************************************/
+struct polysa_ast_node_userinfo *alloc_ast_node_userinfo()
+{
+  struct polysa_ast_node_userinfo *info = 
+    (struct polysa_ast_node_userinfo *)malloc(sizeof(struct polysa_ast_node_userinfo));
+  info->is_pipeline = 0;
+  info->is_unroll = 0;
+
+  return info;
+}
+
+/*****************************************************************
+ * PolySA MISC functions
+ *****************************************************************/
 
 /* Internal data structure for extract_size_of_type.
  * "type" specifies the name of the space that we want to extract.

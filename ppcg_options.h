@@ -91,6 +91,10 @@ struct ppcg_options {
 
   /* Enable data pack for transferring data */
   int data_pack;
+
+  /* Enable task pipelining between different array partitions */
+  int task_pipeline;
+
   /* PolySA Extended */
 
 	/* Generate OpenMP macros (C target only). */

@@ -192,8 +192,9 @@ __isl_give isl_printer *print_kernel_arguments(__isl_take isl_printer *p,
 	isl_space *space;
 	const char *type;
 
-	for (i = 0; i < prog->n_array; ++i) {
+	for (i = 0; i < kernel->n_array; ++i) {
 		int required;
+    int n_lane;
 
 		required = polysa_kernel_requires_array_argument(kernel, i);
 		if (required < 0)
@@ -201,15 +202,18 @@ __isl_give isl_printer *print_kernel_arguments(__isl_take isl_printer *p,
 		if (!required)
 			continue;
 
+    struct polysa_local_array_info *local_array = &kernel->array[i]; 
+    n_lane = local_array->n_lane;
+
 		if (!first)
 			p = isl_printer_print_str(p, ", ");
 
 		if (types)
 			p = polysa_array_info_print_declaration_argument(p,
-				&prog->array[i], 1, NULL);
+				local_array->array, n_lane, NULL);
 		else
 			p = polysa_array_info_print_call_argument(p,
-				&prog->array[i]);
+				local_array->array);
 
 		first = 0;
 	}
@@ -1804,7 +1808,7 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
 
   /* host iters */
   if (inter == -1)
-    space = kernel->space;
+    space = module->space;
   else if (inter == 0)
     space = module->intra_space;
   else if (inter == 1)
@@ -1992,6 +1996,24 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
         first = 0;
       }
     }
+  }
+
+  /* credit fifo */
+  if (module->credit) {
+    if (!first) {
+      p = isl_printer_print_str(p, ", ");
+    }
+    if (types) {
+      if (target == XILINX_HW) {
+        p = isl_printer_print_str(p, "hls::stream<int> &credit");
+      } else {
+        p = isl_printer_print_str(p, "channel int credit");
+      }
+    } else {
+      p = isl_printer_print_str(p, "credit");
+    }
+    
+    first = 0;
   }
 
   return p;
@@ -2531,6 +2553,42 @@ __isl_give isl_printer *print_fifo_decl(__isl_take isl_printer *p,
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
   p = isl_printer_end_line(p);
+
+  if (hls->target == XILINX_HW) {
+    /* Print fifo pragma */
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
+    p = isl_printer_end_line(p);
+    
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS STREAM variable=");
+    p = polysa_array_ref_group_print_fifo_name(group, p);
+    p = isl_printer_print_str(p, "_");
+    p = isl_printer_print_str(p, module->name);
+    p = isl_printer_print_str(p, "\");");
+    p = isl_printer_end_line(p);
+
+    if (module->type == IO_MODULE || module->type == DRAIN_MODULE) {
+      if (boundary) {
+        p = print_inst_ids_inc_suffix(p, n, n - 1, 1);
+      } else {
+        p = print_inst_ids_suffix(p, n, NULL);
+      }
+    } else if (module->type == PE_MODULE) {
+      if (boundary) {
+        p = print_pretrans_inst_ids_suffix(p, n, group->io_L1_pe_expr, group->dir);
+      } else {
+        p = print_pretrans_inst_ids_suffix(p, n, group->io_L1_pe_expr, NULL);
+      }
+    }
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \" depth=1\");");
+    p = isl_printer_end_line(p);
+ 
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+    p = isl_printer_end_line(p);   
+  }
 
   return p;
 }
@@ -3565,6 +3623,8 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_data_pack(
         p = isl_printer_print_str(p, "buf_data_split[");
         p = isl_printer_print_int(p, i);
         p = isl_printer_print_str(p, "]");
+
+        first = 0;
       }
       p = isl_printer_print_str(p, ");");
     } else if (hls->target = INTEL_HW) {
@@ -3639,6 +3699,66 @@ __isl_give isl_printer *polysa_kernel_print_io_transfer(__isl_take isl_printer *
     p = polysa_kernel_print_io_transfer_data_pack(p, stmt, group, n_lane, nxt_n_lane, hls);
   }
   p = ppcg_end_block(p);
+
+  return p;
+}
+
+static __isl_give isl_printer *print_for_with_pipeline(
+  __isl_keep isl_ast_node *node, __isl_take isl_printer *p,
+  __isl_take isl_ast_print_options *print_options)
+{
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "#pragma HLS PIPELINE II=1");
+  p = isl_printer_end_line(p);
+
+  p = isl_ast_node_for_print(node, p, print_options);
+
+  return p;
+}
+
+static __isl_give isl_printer *print_for_with_unroll(
+  __isl_keep isl_ast_node *node, __isl_take isl_printer *p,
+  __isl_take isl_ast_print_options *print_options)
+{
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "#pragma HLS UNROLL");
+  p = isl_printer_end_line(p);
+
+  p = isl_ast_node_for_print(node, p, print_options);
+
+  return p;
+}
+
+static __isl_give isl_printer *print_for_xilinx(__isl_take isl_printer *p,
+  __isl_take isl_ast_print_options *print_options,
+  __isl_keep isl_ast_node *node, void *user)
+{
+  isl_id *id;
+  int pipeline;
+  int unroll;
+
+  pipeline = 0;
+  unroll = 0;
+  id = isl_ast_node_get_annotation(node);
+
+  if (id) {
+    struct polysa_ast_node_userinfo *info;
+
+    info = (struct polysa_ast_node_userinfo *)isl_id_get_user(id);
+    if (info && info->is_pipeline)
+      pipeline = 1;
+    if (info && info->is_unroll)
+      unroll = 1;    
+  }
+
+  if (pipeline) 
+    p = print_for_with_pipeline(node, p, print_options);
+  else if (unroll)
+    p = print_for_with_unroll(node, p, print_options);
+  else 
+    p = isl_ast_node_for_print(node, p, print_options);
+
+  isl_id_free(id);
 
   return p;
 }
@@ -4012,6 +4132,9 @@ static __isl_give isl_printer *print_module_vars_xilinx(__isl_take isl_printer *
       p = isl_printer_print_str(p, type);
       p = isl_printer_print_str(p, " ");
       p = isl_printer_print_str(p, name);
+      p = isl_printer_print_str(p, ", ");
+      p = isl_printer_print_str(p, name);
+      p = isl_printer_print_str(p, "_prev");
       p = isl_printer_print_str(p, ";");
       p = isl_printer_end_line(p);
     }
@@ -4152,9 +4275,9 @@ static __isl_give isl_printer *print_top_module_interface_xilinx(__isl_take isl_
     if (polysa_kernel_requires_array_argument(kernel, i) && !polysa_array_is_scalar(array)) {
       p = print_str_new_line(p, "p = isl_printer_start_line(p);");
       p = isl_printer_start_line(p);
-      p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE m_axi port = ");
+      p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE m_axi port=");
       p = isl_printer_print_str(p, array->name);
-      p = isl_printer_print_str(p, " offset = slave bundle = gmem\");");
+      p = isl_printer_print_str(p, " offset=slave bundle=gmem\");");
       p = isl_printer_end_line(p);
       p = print_str_new_line(p, "p = isl_printer_end_line(p);");
     }
@@ -4165,9 +4288,9 @@ static __isl_give isl_printer *print_top_module_interface_xilinx(__isl_take isl_
     if (polysa_kernel_requires_array_argument(kernel, i)) {
       p = print_str_new_line(p, "p = isl_printer_start_line(p);");
       p = isl_printer_start_line(p);
-      p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE s_axilite port = ");
+      p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE s_axilite port=");
       p = isl_printer_print_str(p, array->name);
-      p = isl_printer_print_str(p, " bundle = control\");");
+      p = isl_printer_print_str(p, " bundle=control\");");
       p = isl_printer_end_line(p);
       p = print_str_new_line(p, "p = isl_printer_end_line(p);");
     }
@@ -4180,9 +4303,9 @@ static __isl_give isl_printer *print_top_module_interface_xilinx(__isl_take isl_
     name = isl_space_get_dim_name(space, isl_dim_param, i);
     p = print_str_new_line(p, "p = isl_printer_start_line(p);");
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE s_axilite port = ");
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE s_axilite port=");
     p = isl_printer_print_str(p, name);
-    p = isl_printer_print_str(p, " bundle = control\");");
+    p = isl_printer_print_str(p, " bundle=control\");");
     p = isl_printer_end_line(p);
     p = print_str_new_line(p, "p = isl_printer_end_line(p);");
   }
@@ -4195,15 +4318,15 @@ static __isl_give isl_printer *print_top_module_interface_xilinx(__isl_take isl_
     name = isl_space_get_dim_name(kernel->space, isl_dim_set, i);
     p = print_str_new_line(p, "p = isl_printer_start_line(p);");
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE s_axilite port = ");
+    p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE s_axilite port=");
     p = isl_printer_print_str(p, name);
-    p = isl_printer_print_str(p, " bundle = control\");");
+    p = isl_printer_print_str(p, " bundle=control\");");
     p = isl_printer_end_line(p);
     p = print_str_new_line(p, "p = isl_printer_end_line(p);");
   }
 
   p = print_str_new_line(p, "p = isl_printer_start_line(p);");
-  p = print_str_new_line(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE s_axilite port = return bundle = control\");");
+  p = print_str_new_line(p, "p = isl_printer_print_str(p, \"#pragma HLS INTERFACE s_axilite port=return bundle=control\");");
   p = print_str_new_line(p, "p = isl_printer_end_line(p);");
 
   return p;
@@ -4611,7 +4734,7 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
   print_options = isl_ast_print_options_alloc(ctx);
   if (hls->target == XILINX_HW) {
     print_options = isl_ast_print_options_set_print_user(print_options,
-                  &print_host_user_xilinx, &data); 
+                  &print_host_user_xilinx, &data);
   } else if (hls->target == INTEL_HW) {
     print_options = isl_ast_print_options_set_print_user(print_options,
                   &print_host_user_intel, &data);
@@ -4646,7 +4769,7 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
         print_module_headers_intel(prog, modules[i], hls, 0);
       fprintf(hls->kernel_c, "{\n");
       if (hls->target == XILINX_HW)
-        fprintf(hls->kernel_c, "#pragma HLS INLINE\n");
+        fprintf(hls->kernel_c, "#pragma HLS INLINE OFF\n");
       print_module_iterators(hls->kernel_c, modules[i]);
     
       p_module = isl_printer_indent(p_module, 4);
@@ -4659,7 +4782,11 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
       print_options = isl_ast_print_options_alloc(ctx);
       print_options = isl_ast_print_options_set_print_user(print_options,
                         &print_module_stmt, &hw_data); 
-      
+      if (hls->target == XILINX_HW) {
+        print_options = isl_ast_print_options_set_print_for(print_options,
+                          &print_for_xilinx, &hw_data);
+      }
+
       p_module = isl_ast_node_print(modules[i]->intra_tree, p_module, print_options);
       p_module = isl_printer_indent(p_module, -4);
 
@@ -4677,11 +4804,11 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
   
       hw_data.module = modules[i];
       if (hls->target == XILINX_HW)
-        print_module_headers_xilinx(prog, modules[i], hls, 1); // TODO add the outer loops iterators
+        print_module_headers_xilinx(prog, modules[i], hls, 1); 
       if (hls->target == INTEL_HW)
         print_module_headers_intel(prog, modules[i], hls, 1);
       fprintf(hls->kernel_c, "{\n");
-      fprintf(hls->kernel_c, "#pragma HLS INLINE\n");
+      fprintf(hls->kernel_c, "#pragma HLS INLINE OFF\n");
       print_module_iterators(hls->kernel_c, modules[i]);
     
       p_module = isl_printer_indent(p_module, 4);
@@ -4694,7 +4821,11 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
       print_options = isl_ast_print_options_alloc(ctx);
       print_options = isl_ast_print_options_set_print_user(print_options,
                         &print_module_stmt, &hw_data); 
-      
+      if (hls->target == XILINX_HW) {
+        print_options = isl_ast_print_options_set_print_for(print_options,
+                          &print_for_xilinx, &hw_data);
+      }
+     
       p_module = isl_ast_node_print(modules[i]->inter_tree, p_module, print_options);
       p_module = isl_printer_indent(p_module, -4);
 
@@ -4725,11 +4856,36 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
       p_module = print_module_vars_intel(p_module, modules[i], -1);
     p_module = isl_printer_end_line(p_module);
 
+    if (modules[i]->credit && !modules[i]->in) {
+      if (hls->target == XILINX_HW) {
+        p_module = isl_printer_start_line(p_module);
+        p_module = isl_printer_print_str(p, "credit.write(1);");
+        p_module = isl_printer_end_line(p_module);
+      } else if (hls->target == INTEL_HW) {
+        // TODO
+      }
+    }
+
     print_options = isl_ast_print_options_alloc(ctx);
     print_options = isl_ast_print_options_set_print_user(print_options,
                       &print_module_stmt, &hw_data); 
+    if (hls->target == XILINX_HW) {
+      print_options = isl_ast_print_options_set_print_for(print_options,
+                        &print_for_xilinx, &hw_data);
+    }
 
     p_module = isl_ast_node_print(modules[i]->device_tree, p_module, print_options);
+
+    if (modules[i]->credit && modules[i]->in) {
+      if (hls->target == XILINX_HW) {
+        p_module = isl_printer_start_line(p_module);
+        p_module = isl_printer_print_str(p, "int token = credit.read();");
+        p_module = isl_printer_end_line(p_module);
+      } else if (hls->target == INTEL_HW) {
+        // TODO
+      }
+    }
+
     p_module = isl_printer_indent(p_module, -4);
      
     fprintf(hls->kernel_c, "}\n");

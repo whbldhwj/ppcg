@@ -1800,6 +1800,18 @@ static int smaller_tile(struct polysa_array_tile *tile,
 //	return n;
 //}
 
+static void set_array_groups_default(struct polysa_local_array_info *array,
+  int n, struct polysa_array_ref_group **groups)
+{
+  int i;
+  
+  array->n_group = n;
+  array->groups = groups;
+
+  for (i = 0; i < n; ++i) 
+    groups[i]->nr = i;
+}
+
 /* Set array->n_group and array->groups to n and groups.
  *
  * Additionally, set the "nr" field of each group.
@@ -1830,6 +1842,88 @@ static void set_array_groups_io(struct polysa_local_array_info *array,
 
 	for (i = 0; i < n; ++i)
 		groups[i]->nr = i;
+}
+
+static int group_array_references_default(struct polysa_kernel *kernel,
+  struct polysa_local_array_info *local, struct polysa_group_data *data)
+{
+  int i, j;
+  int n;
+  isl_ctx *ctx = isl_union_map_get_ctx(data->pe_sched);
+  struct polysa_array_ref_group **groups;
+  int merge_all = 0;
+  isl_schedule_node *node;
+
+  groups = isl_calloc_array(ctx, struct polysa_array_ref_group *, 
+      local->array->n_ref);
+  if (!groups)
+    return -1;
+
+  n = populate_array_references_pe(local, groups, data);
+
+  /* Examine if any of the array references is associated with RAW or
+   * RAR carried at space loop. If then, merge all the groups. 
+   */
+  for (int i = 0; i < n; ++i) {
+    struct polysa_array_ref_group *group_i = groups[i];
+    for (int j = 0; j < group_i->n_ref; ++j) {
+      struct polysa_stmt_access *ref_i = group_i->refs[j];
+      for (int k = 0; k < ref_i->n_io_info; ++k) {
+        if (ref_i->io_info[k]->dep->type == POLYSA_DEP_RAW) {
+          merge_all = 1;
+          break;
+        }
+      }
+    }
+  }
+
+  if (merge_all) {
+    /* Join all referneces together */
+    for (int i = 1; i < n; ++i) {
+      groups[0] = join_groups_and_free(groups[0], groups[i]);
+    }
+    n = 1;
+  }
+
+//  if (merge_all) {
+//    /* Internal array */
+//    for (i = 0; i < n; ++i) { 
+//      if (compute_group_bounds_pe(kernel, groups[i], data) < 0) {
+//        for (j = 0; j < n; j++) {
+//          polysa_array_ref_group_free(groups[j]);
+//        }
+//        free(groups);
+//        return -1;
+//      }
+//      /* Update the copy schedule at the PE level */
+//      node = isl_schedule_get_root(kernel->schedule);
+//      node = polysa_tree_move_down_to_pe(node, kernel->core);
+//      groups[i]->copy_schedule_dim = isl_schedule_node_get_schedule_depth(node);
+//      groups[i]->copy_schedule = 
+//        isl_schedule_node_get_prefix_schedule_union_pw_multi_aff(node);
+//      groups[i]->copy_schedule = 
+//        isl_union_pw_multi_aff_pullback_union_pw_multi_aff(groups[i]->copy_schedule, 
+//            isl_union_pw_multi_aff_copy(kernel->contraction));
+//      isl_schedule_node_free(node);
+//    }
+//  } else {
+//    /* External array. 
+//     * We will build the tiling for each array access */
+//    for (i = 0; i < n; ++i) {
+//      if (compute_group_bounds_pe_acc(kernel, groups[i], data) < 0) {
+//        for (j = 0; j < n; j++) {
+//          polysa_array_ref_group_free(groups[j]);
+//        }
+//        free(groups);    
+//        return -1;
+//      }
+//    }
+//  }
+
+  set_array_groups_default(local, n, groups);
+
+  return 0;
+
 }
 
 /* Populate the array reference groups with single array reference.
@@ -1983,6 +2077,23 @@ static __isl_give isl_schedule_node *io_cluster(__isl_take isl_schedule_node *no
   return node;
 }
 
+static isl_stat extract_set_max_dim(__isl_take isl_basic_set *bset, void *user)
+{
+  isl_val *val;
+  isl_val **max_val = user;
+
+  val = isl_basic_set_dim_max_val(bset, 0);
+  if (isl_val_gt(val, *max_val)) {
+    isl_val_free(*max_val);
+    *max_val = val;
+  } else {
+    isl_val_free(val);
+  }
+
+//  isl_basic_set_free(bset);
+  return isl_stat_ok;
+}
+
 /* This function computes the schedule for the I/O modules that transfers
  * the data for the I/O group "group".
  */
@@ -2116,11 +2227,45 @@ static isl_stat compute_io_group_schedule(
         printf("[PolySA] HBM optimization failed! Not enough I/O modules.\n");
         goto next; 
       }
-
+      
+      isl_union_set *uset;
+      isl_set *set;
+      isl_basic_set *bset;
+      isl_union_map *umap;
+      isl_val *val;
       int tile_len = 1;
       int *tile_size = NULL;
       tile_size = read_hbm_tile_sizes(kernel, &tile_len);
       printf("[PolySA] HBM port: %d\n", tile_size[0]);
+//      // debug
+//      isl_printer *p = isl_printer_to_file(ctx, stdout);
+//      p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//      p = isl_printer_print_schedule_node(p, node);
+//      printf("\n");
+//      // debug
+
+      /* Check if the tile factor is greater or equal than the loop bound */
+      umap = isl_schedule_node_band_get_partial_schedule_union_map(node);
+      uset = isl_union_map_range(umap);       
+      set = isl_set_from_union_set(uset);
+//      // debug
+//      p = isl_printer_print_union_set(p, uset);
+//      printf("\n");
+//      // debug
+      val = isl_val_zero(ctx);
+      isl_set_foreach_basic_set(set, &extract_set_max_dim, &val);
+      isl_set_free(set);
+      if (isl_val_get_num_si(val) <= tile_size[0]) {
+        /* The current loop bound is smaller than the tile size, 
+         * no need to further tile/
+         */
+        free(tile_size);
+        isl_val_free(val);
+        printf("[PolySA] HBM optimization failed! Please try to use a smaller HBM port number.\n");
+        goto next;
+      }
+      isl_val_free(val);
+
       node = polysa_tile_band(node, tile_size);
       node = isl_schedule_node_child(node, 0);
       space_dim++;
@@ -2309,13 +2454,14 @@ static isl_bool update_group_simd(__isl_keep isl_schedule_node *node, void *user
  * to be vectorized, the data pack factor should also be multiples of the SIMD factor.
  */
 static isl_stat compute_io_group_data_pack(struct polysa_kernel *kernel,
-  struct polysa_array_ref_group *group, struct polysa_gen *gen)
+  struct polysa_array_ref_group *group, struct polysa_gen *gen, int max_n_lane)
 {
   isl_schedule_node *node; 
   struct update_group_simd_data data;
   int ele_size = group->array->size; // bytes
   /* Given the DRAM port width as 64 Bytes, compute the maximal data pack factor. */
-  int max_n_lane = 64 / ele_size; 
+  if (max_n_lane == -1)
+    max_n_lane = 64 / ele_size; 
 
   /* Examine if any of the array reference in the group is in used by SIMD loop.
    * The default SIMD lane for the group is 1. 
@@ -2390,7 +2536,7 @@ static isl_stat polysa_io_construct(
 {
   compute_io_group_schedule(kernel, group, gen);
   compute_io_group_buffer(kernel, group, gen);
-  compute_io_group_data_pack(kernel, group, gen);
+  compute_io_group_data_pack(kernel, group, gen, -1);
 
   return isl_stat_ok;
 }
@@ -2924,6 +3070,18 @@ void polysa_array_ref_group_compute_tiling(
 	tile->tiling = tiling;
 }
 
+static int gcd(int n1, int n2) 
+{
+  while (n1 != n2) {
+    if (n1 > n2)
+      n1 -= n2;
+    else
+      n2 -= n1;
+  }
+
+  return n1;
+}
+
 /* Group references of all arrays in "kernel".
  * Each array is associated with three types of groups:
  * PE group: Assign the local buffers inside PEs.
@@ -2968,6 +3126,13 @@ isl_stat sa_group_references(struct polysa_kernel *kernel, struct polysa_gen *ge
       isl_schedule_node_get_subtree_schedule_union_map(node));
   data.schedule = kernel->schedule;
 
+  /* Create the default array reference groups */
+  for (int i = 0; i < kernel->n_array; i++) {
+    r = group_array_references_default(kernel, &kernel->array[i], &data);
+    if (r < 0)
+      break;
+  }
+
   /* Group the array references for the PE */
   for (int i = 0; i < kernel->n_array; i++) {
     r = group_array_references_pe(kernel, &kernel->array[i], &data); 
@@ -2989,14 +3154,57 @@ isl_stat sa_group_references(struct polysa_kernel *kernel, struct polysa_gen *ge
       break;
   }
 
-  /* Copy the PE group results to the default groups, to
-   * keep the default flow work. 
-   */
+  /* Test if data-packing needs to be re-done */
   for (int i = 0; i < kernel->n_array; i++) {
-    struct polysa_local_array_info *array = &kernel->array[i]; 
-    array->n_group = array->n_pe_group;
-    array->groups = array->pe_groups;
+    struct polysa_local_array_info *local_array = &kernel->array[i];
+    int n_lane = -1;
+    bool repack = false;
+    for (int j = 0; j < local_array->n_io_group; j++) {
+      struct polysa_array_ref_group *group = local_array->io_groups[j];
+      int cur_n_lane = group->io_buffers[group->n_io_buffer - 1]->n_lane;
+      if (n_lane == -1)
+        n_lane = cur_n_lane;
+      else
+        n_lane = gcd(n_lane, cur_n_lane); 
+      if (n_lane != cur_n_lane) {
+        repack = true;
+      }
+    }    
+    if (local_array->drain_group) {
+      struct polysa_array_ref_group *group = local_array->drain_group;
+      int cur_n_lane = group->io_buffers[group->n_io_buffer - 1]->n_lane;
+      if (n_lane == -1)
+        n_lane = cur_n_lane;
+      else 
+        n_lane = gcd(n_lane, cur_n_lane); 
+      if (n_lane != cur_n_lane) {
+        repack = true;
+      }
+    }
+
+    if (repack) {
+      /* We need to repack the data for each I/O buffers */
+      for (int j = 0; j < local_array->n_io_group; j++) {
+        struct polysa_array_ref_group *group = local_array->io_groups[j];
+        compute_io_group_data_pack(kernel, group, gen, n_lane);
+      }
+      if (local_array->drain_group) {
+        struct polysa_array_ref_group *group = local_array->drain_group;
+        compute_io_group_data_pack(kernel, group, gen, n_lane);
+      }
+    }
+
+    local_array->n_lane = n_lane;
   }
+
+//  /* Copy the PE group results to the default groups, to
+//   * keep the default flow work. 
+//   */
+//  for (int i = 0; i < kernel->n_array; i++) {
+//    struct polysa_local_array_info *array = &kernel->array[i]; 
+//    array->n_group = array->n_pe_group;
+//    array->groups = array->pe_groups;
+//  }
 
   isl_union_map_free(data.host_sched);
 //  isl_union_map_free(data.local_sched);

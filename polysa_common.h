@@ -530,6 +530,7 @@ struct polysa_local_array_info {
   struct polysa_array_ref_group **groups;
 
   enum polysa_array_type array_type;
+  int n_lane;
 
 	int force_private;
 	int global;
@@ -645,11 +646,15 @@ struct polysa_hw_module {
 
   isl_space *inter_space;
   isl_space *intra_space;
+  isl_space *space;
 
   isl_ast_node *inter_tree;
   isl_ast_node *intra_tree;
 
   int double_buffer;
+
+  /* Generate credit control */
+  int credit;
 
   /* Data pack factor */
   int data_pack_inter;
@@ -797,6 +802,11 @@ struct polysa_node_band_prop {
   isl_multi_union_pw_aff *mupa;
 };
 
+struct polysa_ast_node_userinfo {
+  int is_pipeline;
+  int is_unroll;
+};
+
 /* Band node related functions */
 __isl_give isl_multi_val *construct_band_tile_sizes(
   __isl_keep isl_schedule_node *node, int *tile_size);
@@ -823,8 +833,10 @@ __isl_give isl_schedule_node *restore_node_band_prop(__isl_take isl_schedule_nod
   __isl_take struct polysa_node_band_prop *prop);
 __isl_give isl_schedule_node *polysa_node_interchange(__isl_take isl_schedule_node *node);
 isl_bool no_permutable_node(isl_schedule_node *node, void *user);
+isl_bool all_parallel_node(__isl_keep isl_schedule_node *node, void *user);
 isl_bool isl_schedule_node_is_io_mark(__isl_keep isl_schedule_node *node, int io_level);
 int is_node_under_simd(__isl_keep isl_schedule_node *node);
+int is_node_under_latency(__isl_keep isl_schedule_node *node);
 
 /* PolySA kernel related functions */
 void *polysa_kernel_free(struct polysa_kernel *sa);
@@ -866,6 +878,9 @@ struct polysa_hw_module *polysa_hw_module_alloc();
 void *polysa_hw_module_free(struct polysa_hw_module *module);
 struct polysa_hw_top_module *polysa_hw_top_module_alloc();
 void *polysa_hw_top_module_free(struct polysa_hw_top_module *module);
+
+/* PolySA ast node related functions */
+struct polysa_ast_node_userinfo *alloc_ast_node_userinfo();
 
 /* PolySA MISC */
 int *read_hbm_tile_sizes(struct polysa_kernel *sa, int *tile_len);

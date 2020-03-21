@@ -14,6 +14,15 @@ struct polysa_at_domain_data {
   struct polysa_hw_module *module;
   struct polysa_hw_top_module *top;
   int filter_buffer;
+
+  /* Under a "pipeline" mark */
+  int under_pipeline;
+  /* Under a "unroll" mark */
+  int under_unroll;
+  /* Inside a "pipeline" for loop */
+  int in_pipeline_for;
+  /* Inside a "unroll" for loop */
+  int in_unroll_for;
 };
 
 /* Internal data structure for the index and AST expression transformation
@@ -168,6 +177,26 @@ static struct polysa_array_ref_group *find_ref_group(
 
 	for (i = 0; i < local->n_group; ++i) {
 		struct polysa_array_ref_group *group = local->groups[i];
+
+		for (j = 0; j < group->n_ref; ++j)
+			if (group->refs[j] == access)
+				return group;
+	}
+
+	return NULL;
+}
+
+/* Return a pointer to the polysa_array_ref_group in "local"
+ * that contains the reference "access".
+ * Return NULL if no such group can be found.
+ */
+static struct polysa_array_ref_group *find_ref_group_module(
+	struct polysa_local_array_info *local, struct polysa_stmt_access *access)
+{
+	int i, j;
+
+	for (i = 0; i < local->n_pe_group; ++i) {
+		struct polysa_array_ref_group *group = local->pe_groups[i];
 
 		for (j = 0; j < group->n_ref; ++j)
 			if (group->refs[j] == access)
@@ -385,6 +414,115 @@ static __isl_give isl_multi_pw_aff *transform_index(
 //  // debug
 
 	group = find_ref_group(data->local_array, access);
+  data->group = group;
+	if (!group) {
+		data->global = 1;
+    data->reg = 1;
+		return index;
+	}
+
+	tile = polysa_array_ref_group_tile(group);
+	data->global = !tile;
+  data->reg = !tile;
+	if (!tile)
+		return index;
+
+  /* recompute the sched2copy for each index */
+  if (group->group_type == POLYSA_PE_GROUP) {
+//    // debug
+//    p = isl_printer_print_pw_multi_aff(p, data->sched2copy);
+//    printf("\n");
+//    // debug
+//    isl_pw_multi_aff_free(data->sched2copy);
+    sched2copy = compute_sched_to_copy_group(isl_pw_multi_aff_copy(data->iterator_map), group); 
+//    // debug
+//    p = isl_printer_print_pw_multi_aff(p, data->sched2copy);
+//    printf("\n");
+//    // debug
+  }
+
+	space = isl_space_domain(isl_multi_aff_get_space(tile->tiling));
+	space = isl_space_range(isl_space_unwrap(space));
+	space = isl_space_map_from_set(space);
+	pma = isl_pw_multi_aff_identity(space);
+  if (group->group_type == POLYSA_PE_GROUP) {
+    sched2depth = sched2copy;
+  } else {
+	  sched2depth = isl_pw_multi_aff_copy(data->sched2copy);
+  }
+	dim = isl_pw_multi_aff_dim(sched2depth, isl_dim_out);
+	sched2depth = isl_pw_multi_aff_drop_dims(sched2depth, isl_dim_out,
+					    tile->depth, dim - tile->depth);
+	pma = isl_pw_multi_aff_product(sched2depth, pma);
+	tiling = isl_multi_pw_aff_from_multi_aff(
+				    isl_multi_aff_copy(tile->tiling));
+	tiling = isl_multi_pw_aff_pullback_pw_multi_aff(tiling, pma);
+
+	index = tile_outer(index, tiling);
+
+//  // debug
+//  p = isl_printer_print_multi_pw_aff(p, index);
+//  printf("\n");
+//  // debug
+
+	return index;
+}
+
+static __isl_give isl_multi_pw_aff *transform_index_module(
+	__isl_take isl_multi_pw_aff *index, __isl_keep isl_id *ref_id,
+	void *user)
+{
+	struct polysa_transform_data *data = user;
+	struct polysa_stmt_access *access;
+	struct polysa_array_ref_group *group;
+	struct polysa_array_tile *tile;
+	isl_pw_multi_aff *iterator_map;
+	int i;
+	int dim;
+	const char *name;
+	isl_space *space;
+	isl_multi_pw_aff *tiling;
+	isl_pw_multi_aff *pma;
+	isl_pw_multi_aff *sched2depth;
+  isl_pw_multi_aff *sched2copy;
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(isl_id_get_ctx(ref_id), stdout);
+//  // debug
+
+	data->array = NULL;
+
+	iterator_map = isl_pw_multi_aff_copy(data->iterator_map);
+	index = isl_multi_pw_aff_pullback_pw_multi_aff(index, iterator_map);
+
+	if (!data->kernel)
+		return index;
+
+	access = find_access(data->accesses, ref_id);
+	if (!access)
+		return index;
+	if (!isl_map_has_tuple_name(access->access, isl_dim_out)) 
+		return index;
+
+	name = get_outer_array_name(access->access);
+	if (!name)
+		return isl_multi_pw_aff_free(index);
+	i = find_array_index(data->kernel, name);
+	if (i < 0)
+		isl_die(isl_multi_pw_aff_get_ctx(index), isl_error_internal,
+			"cannot find array",
+			return isl_multi_pw_aff_free(index));
+	data->local_array = &data->kernel->array[i];
+	data->array = data->local_array->array;
+
+//  // debug
+//  p = isl_printer_print_map(p, access->access);
+//  printf("\n");
+//  p = isl_printer_print_multi_pw_aff(p, index);
+//  printf("\n");
+//  // debug
+
+	group = find_ref_group_module(data->local_array, access);
   data->group = group;
 	if (!group) {
 		data->global = 1;
@@ -791,7 +929,7 @@ static __isl_give isl_ast_node *create_domain_leaf_module(
 	data.iterator_map = iterator_map;
 	data.sched2copy = sched2copy;
 	stmt->u.d.ref2expr = pet_stmt_build_ast_exprs(stmt->u.d.stmt->stmt,
-					    build, &transform_index, &data,
+					    build, &transform_index_module, &data,
 					    &transform_expr_module, &data);
 
 	isl_pw_multi_aff_free(iterator_map);
@@ -1215,6 +1353,9 @@ static __isl_give isl_ast_node *create_module_call_leaf(struct polysa_kernel *ke
   if (stmt->u.m.lower) {
     if ((module->type == IO_MODULE || module->type == DRAIN_MODULE) && !group->io_pe_expr) {
       if (module->to_pe) {
+//        // debug
+//        isl_printer *p = isl_printer_to_file(isl_ast_node_get_ctx(node), stdout);
+//        // debug
         isl_union_map *umap = isl_ast_build_get_schedule(build);
         isl_union_set *uset = isl_union_map_range(umap);
         isl_set *set = isl_set_from_union_set(uset);
@@ -1223,6 +1364,12 @@ static __isl_give isl_ast_node *create_module_call_leaf(struct polysa_kernel *ke
         trans = isl_multi_aff_copy(group->io_trans);
         isl_map *map2 = isl_map_from_multi_aff(trans);
         map2 = isl_map_reverse(map2);
+//        // debug
+//        p = isl_printer_print_map(p, map);
+//        printf("\n");
+//        p = isl_printer_print_map(p, map2);
+//        printf("\n");
+//        // debug
         map = isl_map_apply_range(map, map2);
         isl_pw_multi_aff *pma = isl_pw_multi_aff_from_map(map);
         expr = isl_ast_build_access_from_pw_multi_aff(build, pma);
@@ -1916,6 +2063,12 @@ static isl_stat before_mark_module(__isl_keep isl_id *mark,
       !strcmp(isl_id_get_name(mark), "io_module.intra_trans")) {
     data->filter_buffer = 1;
   }
+  if (!strcmp(isl_id_get_name(mark), "hls_pipeline")) {
+    data->under_pipeline = 1;
+  }
+  if (!strcmp(isl_id_get_name(mark), "hls_unroll")) {
+    data->under_unroll = 1;
+  }
 
 	return isl_stat_ok;
 }
@@ -1966,6 +2119,8 @@ static __isl_give isl_ast_node *after_mark_module(__isl_take isl_ast_node *node,
     expr = isl_ast_expr_call(expr, list);
     node = isl_ast_node_alloc_user(expr);
     node = isl_ast_node_set_annotation(node, id);
+    
+//    data->filter_buffer = 0;
 
     return node;
   }
@@ -1983,6 +2138,20 @@ static __isl_give isl_ast_node *after_mark_module(__isl_take isl_ast_node *node,
     node = isl_ast_node_alloc_user(expr);
     node = isl_ast_node_set_annotation(node, id);
 
+//    data->filter_buffer = 0;
+
+    return node;
+  }
+  if (!strcmp(isl_id_get_name(id), "hls_pipeline")) {
+    isl_id_free(id);
+    data->under_pipeline = 0;
+
+    return node;
+  }
+  if (!strcmp(isl_id_get_name(id), "hls_unroll")) {
+    isl_id_free(id);
+    data->under_unroll = 0;
+
     return node;
   }
 
@@ -1996,6 +2165,8 @@ static __isl_give isl_ast_node *after_mark_module(__isl_take isl_ast_node *node,
     data->module = NULL;
     module->device_tree = isl_ast_node_mark_get_node(node);
 	  isl_ast_node_free(node);
+    if (!module->space)
+      module->space = isl_ast_build_get_schedule_space(build);
 
 	  expr = isl_ast_expr_from_id(isl_id_copy(id));
 	  list = isl_ast_expr_list_alloc(ctx, 0);
@@ -2100,6 +2271,61 @@ static __isl_give isl_ast_node *after_mark_fifo_decl(__isl_take isl_ast_node *no
 	return node;
 }
 
+static void free_ast_node_userinfo(void *ptr)
+{
+  struct polysa_ast_node_userinfo *info = ptr;
+  free(info);
+}
+
+static __isl_give isl_id *before_for_module(
+  __isl_keep isl_ast_build *build, void *user)
+{
+  isl_id *id;
+  struct polysa_at_domain_data *data = user;
+  struct polysa_ast_node_userinfo *node_info;
+
+  node_info = alloc_ast_node_userinfo();
+  id = isl_id_alloc(isl_ast_build_get_ctx(build), "", node_info);
+  id = isl_id_set_free_user(id, free_ast_node_userinfo);
+
+  if (data->under_pipeline) {
+    if (!data->in_pipeline_for) {
+      data->in_pipeline_for = 1;
+      node_info->is_pipeline = 1;
+    }
+  } 
+  if (data->under_unroll) {
+    if (!data->in_unroll_for) {
+      data->in_unroll_for = 1;
+      node_info->is_unroll = 1;
+    }
+  }
+
+  return id;
+}
+
+static __isl_give isl_ast_node *after_for_module(
+  __isl_take isl_ast_node *node, __isl_keep isl_ast_build *build,
+  void *user)
+{
+  isl_id *id;
+  struct polysa_ast_node_userinfo *node_info;
+  struct polysa_at_domain_data *data = user;
+
+  id = isl_ast_node_get_annotation(node);
+  node_info = isl_id_get_user(id);
+  if (node_info->is_pipeline) {
+    data->in_pipeline_for = 0;
+  }
+  if (node_info->is_unroll) {
+    data->in_unroll_for = 0;
+  }
+
+  isl_id_free(id);
+
+  return node;
+}
+
 /* Use isl to generate code for both the host and the device
  * from "schedule".
  * The device code is marked by "kernel" mark nodes in the schedule tree,
@@ -2178,6 +2404,10 @@ isl_stat sa_filter_buffer_io_module_generate_code(struct polysa_gen *gen,
   data.kernel = NULL;
   data.module = NULL;
   data.filter_buffer = 0;
+  data.under_unroll = 0;
+  data.under_pipeline = 0;
+  data.in_unroll_for = 0;
+  data.in_pipeline_for = 0;
 
 //  // debug
 //  isl_printer *p = isl_printer_to_file(ctx, stdout);
@@ -2196,6 +2426,9 @@ isl_stat sa_filter_buffer_io_module_generate_code(struct polysa_gen *gen,
   build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
   build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
   build = isl_ast_build_set_after_each_mark(build, &after_mark_module, &data);
+//  build = isl_ast_build_set_before_each_for(build, &before_for_module, &data);
+//  build = isl_ast_build_set_after_each_for(build, &after_for_module, &data);
+
   if (gen->prog->scop->options->debug->dump_final_schedule)
     isl_schedule_dump(schedule);
   tree = isl_ast_build_node_from_schedule(build, schedule);
@@ -2215,6 +2448,10 @@ isl_stat sa_filter_buffer_io_module_generate_code(struct polysa_gen *gen,
   data.kernel = NULL;
   data.module = NULL;
   data.filter_buffer = 0;
+  data.under_unroll = 0;
+  data.under_pipeline = 0;
+  data.in_unroll_for = 0;
+  data.in_pipeline_for = 0;
 
 //  // debug
 //  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
@@ -2232,6 +2469,9 @@ isl_stat sa_filter_buffer_io_module_generate_code(struct polysa_gen *gen,
   build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
   build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
   build = isl_ast_build_set_after_each_mark(build, &after_mark_module, &data);
+//  build = isl_ast_build_set_before_each_for(build, &before_for_module, &data);
+//  build = isl_ast_build_set_after_each_for(build, &after_for_module, &data);
+
   if (gen->prog->scop->options->debug->dump_final_schedule)
     isl_schedule_dump(schedule);
   tree = isl_ast_build_node_from_schedule(build, schedule);
@@ -2246,6 +2486,10 @@ isl_stat sa_filter_buffer_io_module_generate_code(struct polysa_gen *gen,
   data.kernel = NULL;
   data.module = NULL;
   data.filter_buffer = 0;
+  data.under_unroll = 0;
+  data.under_pipeline = 0;
+  data.in_unroll_for = 0;
+  data.in_pipeline_for = 0;
 
 //  // debug
 //  p = isl_printer_print_schedule(p, schedule);
@@ -2262,6 +2506,9 @@ isl_stat sa_filter_buffer_io_module_generate_code(struct polysa_gen *gen,
   build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
   build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
   build = isl_ast_build_set_after_each_mark(build, &after_mark_module, &data);
+//  build = isl_ast_build_set_before_each_for(build, &before_for_module, &data);
+//  build = isl_ast_build_set_after_each_for(build, &after_for_module, &data);
+
   if (gen->prog->scop->options->debug->dump_final_schedule)
     isl_schedule_dump(schedule);
   tree = isl_ast_build_node_from_schedule(build, schedule);
@@ -2299,6 +2546,10 @@ __isl_give isl_ast_node *sa_module_generate_code(struct polysa_gen *gen,
   data.kernel = NULL;
   data.module = NULL;
   data.filter_buffer = 0;
+  data.under_unroll = 0;
+  data.under_pipeline = 0;
+  data.in_unroll_for = 0;
+  data.in_pipeline_for = 0;
 
 //  // debug
 //  isl_printer *p = isl_printer_to_file(isl_schedule_get_ctx(schedule), stdout);
@@ -2318,6 +2569,9 @@ __isl_give isl_ast_node *sa_module_generate_code(struct polysa_gen *gen,
   build = isl_ast_build_set_at_each_domain(build, &at_domain_module, &data);
   build = isl_ast_build_set_before_each_mark(build, &before_mark_module, &data);
   build = isl_ast_build_set_after_each_mark(build, &after_mark_module, &data);
+//  build = isl_ast_build_set_before_each_for(build, &before_for_module, &data);
+//  build = isl_ast_build_set_after_each_for(build, &after_for_module, &data);
+
   if (gen->prog->scop->options->debug->dump_final_schedule)
     isl_schedule_dump(schedule);
   tree = isl_ast_build_node_from_schedule(build, schedule);
