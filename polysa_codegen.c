@@ -1605,13 +1605,15 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
 //    p = isl_printer_print_ast_expr(p, expr);
 //    printf("\n");
 //    // debug
-    if (stmt->u.i.data_pack > 1) {
-      n_arg = isl_ast_expr_get_op_n_arg(expr);
-      arg = isl_ast_expr_get_op_arg(expr, n_arg - 1);
-      div = isl_ast_expr_from_val(isl_val_int_from_si(kernel->ctx, stmt->u.i.data_pack));
-      arg = isl_ast_expr_div(arg, div);
-      expr = isl_ast_expr_set_op_arg(expr, n_arg - 1, arg);
-    }
+
+//    if (stmt->u.i.data_pack > 1) {
+//      n_arg = isl_ast_expr_get_op_n_arg(expr);
+//      arg = isl_ast_expr_get_op_arg(expr, n_arg - 1);
+//      div = isl_ast_expr_from_val(isl_val_int_from_si(kernel->ctx, stmt->u.i.data_pack));
+//      arg = isl_ast_expr_div(arg, div);
+//      expr = isl_ast_expr_set_op_arg(expr, n_arg - 1, arg);
+//    }
+
 //    // debug
 //    p = isl_printer_print_ast_expr(p, expr);
 //    printf("\n");

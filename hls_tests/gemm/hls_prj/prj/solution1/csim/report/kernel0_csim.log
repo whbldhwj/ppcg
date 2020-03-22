@@ -1,0 +1,12 @@
+INFO: [SIM 2] *************** CSIM start ***************
+INFO: [SIM 4] CSIM will launch GCC as the compiler.
+   Compiling ../../../../src/kernel.cpp in debug mode
+   Compiling ../../../../src/kernel_xilinx.cpp in debug mode
+   Generating csim.exe
+WARNING: Hls::stream 'hls::stream<ap_uint<64> >.12' contains leftover data, which may result in RTL simulation hanging.
+WARNING: Hls::stream 'hls::stream<ap_uint<64> >.9' contains leftover data, which may result in RTL simulation hanging.
+WARNING: Hls::stream 'hls::stream<ap_uint<64> >.6' contains leftover data, which may result in RTL simulation hanging.
+WARNING: Hls::stream 'hls::stream<ap_uint<64> >.3' contains leftover data, which may result in RTL simulation hanging.
+passed!
+INFO: [SIM 1] CSim done with 0 errors.
+INFO: [SIM 3] *************** CSIM finish ***************

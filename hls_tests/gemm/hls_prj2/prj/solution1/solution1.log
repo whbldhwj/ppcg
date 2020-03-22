@@ -1,0 +1,224 @@
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+INFO: [SYN 201-201] Setting up clock 'default' with a period of 5ns.
+INFO: [HLS 200-10] Setting target device to 'xcu200-fsgd2104-2-e'
+INFO: [SYN 201-201] Setting up clock 'default' with a period of 5ns.
+INFO: [SCHED 204-61] Option 'relax_ii_for_timing' is enabled, will increase II to preserve clock frequency constraints.
+INFO: [HLS 200-10] Analyzing design file 'src/kernel_xilinx.c' ... 
+ERROR: [HLS 200-70] Compilation errors found: In file included from src/kernel_xilinx.c:1:
+In file included from src/kernel_xilinx.c:1:
+src/kernel_kernel.h:1:8: error: expected identifier or '('
+extern "C" {
+       ^
+src/kernel_kernel.h:4:9: error: unknown type name 'ap_uint'
+typedef ap_uint<128> A_t4;
+        ^
+src/kernel_kernel.h:4:16: error: expected identifier or '('
+typedef ap_uint<128> A_t4;
+               ^
+src/kernel_kernel.h:5:9: error: unknown type name 'ap_uint'
+typedef ap_uint<128> B_t4;
+        ^
+src/kernel_kernel.h:5:16: error: expected identifier or '('
+typedef ap_uint<128> B_t4;
+               ^
+src/kernel_kernel.h:6:9: error: unknown type name 'ap_uint'
+typedef ap_uint<64> C_t2;
+        ^
+src/kernel_kernel.h:6:16: error: expected identifier or '('
+typedef ap_uint<64> C_t2;
+               ^
+src/kernel_kernel.h:7:17: error: unknown type name 'A_t4'
+void A_IO_L3_in(A_t4 *A, hls::stream<A_t4> &fifo_A_local_out);
+                ^
+src/kernel_kernel.h:7:26: warning: declaration specifier missing, defaulting to 'int'
+void A_IO_L3_in(A_t4 *A, hls::stream<A_t4> &fifo_A_local_out);
+                         ^~~
+                         int
+src/kernel_kernel.h:7:29: error: expected ')'
+void A_IO_L3_in(A_t4 *A, hls::stream<A_t4> &fifo_A_local_out);
+                            ^
+src/kernel_kernel.h:7:16: note: to match this '('
+void A_IO_L3_in(A_t4 *A, hls::stream<A_t4> &fifo_A_local_out);
+               ^
+src/kernel_kernel.h:8:77: error: unknown type name 'A_t4'
+void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out);
+                                                                            ^
+src/kernel_kernel.h:8:97: warning: declaration specifier missing, defaulting to 'int'
+void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out);
+                                                                                                ^~~
+                                                                                                int
+src/kernel_kernel.h:8:100: error: expected ')'
+void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out);
+                                                                                                   ^
+src/kernel_kernel.h:8:28: note: to match this '('
+void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out);
+                           ^
+src/kernel_kernel.h:9:62: error: unknown type name 'A_t4'
+void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out);
+                                                             ^
+src/kernel_kernel.h:9:82: warning: declaration specifier missing, defaulting to 'int'
+void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out);
+                                                                                 ^~~
+                                                                                 int
+src/kernel_kernel.h:9:85: error: expected ')'
+void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out);
+                                                                                    ^
+src/kernel_kernel.h:9:28: note: to match this '('
+void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out);
+                           ^
+src/kernel_kernel.h:10:26: warning: declaration specifier missing, defaulting to 'int'
+void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<A_t2> &fifo_A_local_out);
+                         ^~~
+                         int
+src/kernel_kernel.h:10:29: error: expected ')'
+void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<A_t2> &fifo_A_local_out);
+                            ^
+src/kernel_kernel.h:10:16: note: to match this '('
+void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<A_t2> &fifo_A_local_out);
+               ^
+src/kernel_kernel.h:11:17: error: unknown type name 'B_t4'
+void B_IO_L3_in(B_t4 *B, hls::stream<B_t4> &fifo_B_local_out);
+                ^
+src/kernel_kernel.h:11:26: warning: declaration specifier missing, defaulting to 'int'
+void B_IO_L3_in(B_t4 *B, hls::stream<B_t4> &fifo_B_local_out);
+                         ^~~
+                         int
+src/kernel_kernel.h:11:29: error: expected ')'
+void B_IO_L3_in(B_t4 *B, hls::stream<B_t4> &fifo_B_local_out);
+                            ^
+src/kernel_kernel.h:11:16: note: to match this '('
+void B_IO_L3_in(B_t4 *B, hls::stream<B_t4> &fifo_B_local_out);
+               ^
+src/kernel_kernel.h:12:77: error: unknown type name 'B_t4'
+void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out);
+                                                                            ^
+src/kernel_kernel.h:12:97: warning: declaration specifier missing, defaulting to 'int'
+void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out);
+                                                                                                ^~~
+                                                                                                int
+src/kernel_kernel.h:12:100: error: expected ')'
+void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out);
+                                                                                                   ^
+src/kernel_kernel.h:12:28: note: to match this '('
+void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out);
+                           ^
+src/kernel_kernel.h:13:62: error: unknown type name 'B_t4'
+void B_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out);
+                                                             ^
+src/kernel_kernel.h:13:82: warning: declaration specifier missing, defaulting to 'int'
+void B_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out);
+                                                                                 ^~~
+                                                                                 int
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+7 warnings and 20 errors generated.
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================
+==============================================================
+Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC v2019.2 (64-bit)
+Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+==============================================================

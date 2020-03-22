@@ -49,7 +49,7 @@ static void hls_open_files(struct hls_info *info, const char *input)
   strcpy(name + len, "_host.cpp");
   info->host_c = fopen(name, "w");
 
-  strcpy(name + len, "_kernel.c");
+  strcpy(name + len, "_kernel.cpp");
   info->kernel_c = fopen(name, "w");
 
   strcpy(name + len, "_kernel.h");
@@ -64,7 +64,7 @@ static void hls_open_files(struct hls_info *info, const char *input)
 
   fprintf(info->kernel_c, "#include \"%s\"\n", name);  
 
-  strcpy(name + len, "_top_gen.c");
+  strcpy(name + len, "_top_gen.cpp");
   info->top_gen_c = fopen(name, "w");
 
   strcpy(name + len, "_top_gen.h");
@@ -73,6 +73,16 @@ static void hls_open_files(struct hls_info *info, const char *input)
   fprintf(info->host_c, "#include \"%s\"\n", name);  
   fprintf(info->top_gen_c, "#include <isl/printer.h>\n");
   fprintf(info->top_gen_c, "#include \"%s\"\n", name);  
+
+  fprintf(info->kernel_h, "#include <ap_int.h>\n");
+  fprintf(info->kernel_h, "#include <hls_stream.h>\n");
+  fprintf(info->kernel_h, "\n");
+
+  fprintf(info->kernel_h, "template<typename To, typename From>\n");
+  fprintf(info->kernel_h, "inline To Reinterpret(const From &val) {\n");
+  fprintf(info->kernel_h, "  return reinterpret_cast<const To &>(val);\n");
+  fprintf(info->kernel_h, "}\n");
+  fprintf(info->kernel_h, "\n");
 }
 
 static void opencl_open_files(struct hls_info *info, const char *input)
@@ -2417,12 +2427,12 @@ static char *build_io_module_lower_name(struct polysa_hw_module *module)
     p = isl_printer_print_str(p, "_");
     p = isl_printer_print_str(p, "drain");
   }
-  p = isl_printer_print_str(p, "_L");
+  p = isl_printer_print_str(p, "_IO_L");
   p = isl_printer_print_int(p, module->level - 1);
   if (module->in)
-    p = isl_printer_print_str(p, "_in_IO");
+    p = isl_printer_print_str(p, "_in");
   else
-    p = isl_printer_print_str(p, "_out_IO");
+    p = isl_printer_print_str(p, "_out");
 
   char *name = isl_printer_get_str(p);
   isl_printer_free(p);
@@ -2933,14 +2943,25 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
   isl_ctx *ctx = isl_printer_get_ctx(p);
   int data_pack = stmt->u.i.data_pack;
   int nxt_data_pack = stmt->u.i.nxt_data_pack;
-  isl_ast_expr *local_index = stmt->u.i.local_index; 
+  isl_ast_expr *local_index_packed;
+  isl_ast_expr *arg, *div;
+  int n_arg;
+  local_index_packed = isl_ast_expr_copy(stmt->u.i.local_index);
+  /* Modify the local index */
+  if (data_pack > 1) {
+    n_arg = isl_ast_expr_get_op_n_arg(local_index_packed);
+    arg = isl_ast_expr_get_op_arg(local_index_packed, n_arg - 1);
+    div = isl_ast_expr_from_val(isl_val_int_from_si(ctx, data_pack));
+    arg = isl_ast_expr_div(arg, div);
+    local_index_packed = isl_ast_expr_set_op_arg(local_index_packed, n_arg - 1, arg);
+  }
 
   fifo_name = concat(ctx, stmt->u.i.fifo_name, stmt->u.i.in == 1? "in" : "out");
 
   if (data_pack == nxt_data_pack) {
     p = isl_printer_start_line(p);
     if (stmt->u.i.in) {
-      p = io_stmt_print_local_index(p, stmt);    
+      p = isl_printer_print_ast_expr(p, local_index_packed); 
       p = isl_printer_print_str(p, " = ");
       if (hls->target == XILINX_HW)
         p = print_fifo_rw_xilinx(p, fifo_name, 1);
@@ -2951,7 +2972,7 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
         p = print_fifo_rw_xilinx(p, fifo_name, 0);
       else if (hls->target == INTEL_HW)
         p = print_fifo_rw_intel(p, fifo_name, 0);
-      p = io_stmt_print_local_index(p, stmt);    
+      p = isl_printer_print_ast_expr(p, local_index_packed);
       p = isl_printer_print_str(p, ")");
     }
     p = isl_printer_print_str(p, ";");
@@ -3005,16 +3026,12 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
         p = isl_printer_print_ast_expr(p, op); // array_name
         isl_ast_expr_free(op);
         for (int i = 0; i < n_arg - 1; i++) {
-          p = isl_printer_print_str(p, "[");
           op = isl_ast_expr_op_get_arg(expr, 1 + i);
+          p = isl_printer_print_str(p, "[");
           if (i == n_arg - 2) {
-            p = isl_printer_print_str(p, "(");
-          }
-          p = isl_printer_print_ast_expr(p, op);
-          if (i == n_arg - 2) {
-            p = isl_printer_print_str(p, ") * ");
-            p = isl_printer_print_int(p, data_pack);
-            p = isl_printer_print_str(p, " + n");
+            p = isl_printer_print_str(p, "n");
+          } else {
+            p = isl_printer_print_ast_expr(p, op);
           }
           p = isl_printer_print_str(p, "]");
           isl_ast_expr_free(op);
@@ -3025,6 +3042,9 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
           p = isl_printer_print_str(p, "Reinterpret<");
           p = isl_printer_print_str(p, group->array->type);
           p = isl_printer_print_str(p, ">(");
+          p = isl_printer_print_str(p, "(ap_uint<");
+          p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
+          p = isl_printer_print_str(p, ">)");
         }
         p = isl_printer_print_str(p, "fifo_data(");
         p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack - 1);
@@ -3053,7 +3073,7 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
         int first = 1;
         p = isl_printer_start_line(p);
         p = isl_printer_print_str(p, "fifo_data = (");
-        for (int i = 0; i < data_pack / nxt_data_pack; i++) {
+        for (int i = data_pack / nxt_data_pack - 1; i >= 0; i--) {
           isl_ast_expr *expr = stmt->u.i.local_index;
           isl_ast_expr *op;
           int n_arg = isl_ast_expr_op_get_n_arg(expr);
@@ -3061,6 +3081,13 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
           if (!first) 
             p = isl_printer_print_str(p, ", ");
           // print localA[][ * data_pack + i]
+          
+          if (nxt_data_pack == 1) {
+            p = isl_printer_print_str(p, "Reinterpret<ap_uint<");
+            p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
+            p = isl_printer_print_str(p, "> >(");
+          }          
+
           op = isl_ast_expr_op_get_arg(expr, 0);
           p = isl_printer_print_ast_expr(p, op);
           isl_ast_expr_free(op);
@@ -3068,17 +3095,16 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
             op = isl_ast_expr_op_get_arg(expr, 1 + j);
             p = isl_printer_print_str(p, "[");
             if (j == n_arg - 2) {
-              p = isl_printer_print_str(p, "(");
-            }
-            p = isl_printer_print_ast_expr(p, op);
-            if (j == n_arg - 2) {
-              p = isl_printer_print_str(p, ") * ");
-              p = isl_printer_print_int(p, data_pack);
-              p = isl_printer_print_str(p, " + ");
               p = isl_printer_print_int(p, i);
+            } else {
+              p = isl_printer_print_ast_expr(p, op);
             }
             p = isl_printer_print_str(p, "]");
             isl_ast_expr_free(op);
+          }
+
+          if (nxt_data_pack == 1) {
+            p = isl_printer_print_str(p, ")");
           }
 
           first = 0;
@@ -3095,156 +3121,10 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
       }
     }
 
-//    /* [type] local_data; */
-//    p = isl_printer_start_line(p);    
-//    p = isl_printer_print_str(p, group->array->name);
-//    p = isl_printer_print_str(p, "_t");
-//    p = isl_printer_print_int(p, data_pack);
-//    p = isl_printer_print_str(p, " local_data;");
-//    p = isl_printer_end_line(p);
-//    
-//    /* local_data = local[] */
-//    p = isl_printer_start_line(p);
-//    p = isl_printer_print_str(p, "local_data = ");
-//    p = io_stmt_print_local_index(p, stmt);
-//    p = isl_printer_print_str(p, ";");
-//    p = isl_printer_end_line(p);
-//
-//    /* [type] local_data_split[]; */
-//    p = isl_printer_start_line(p);
-//    if (hls->target == XILINX_HW) {
-//      p = isl_printer_print_str(p, "ap_uint<");
-//      p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
-//      p = isl_printer_print_str(p, ">"); 
-//    } else if (hls->target == INTEL_HW) {
-//      // TODO
-//    }
-//    p = isl_printer_print_str(p, " local_data_split[");
-//    p = isl_printer_print_int(p, data_pack / nxt_data_pack);
-//    p = isl_printer_print_str(p, "];");
-//    p = isl_printer_end_line(p);    
-//    if (hls->target == XILINX_HW) {
-//      p = isl_printer_start_line(p);
-//      p = isl_printer_print_str(p, "#pragma HLS ARRAY_PARTITION variable=local_data_split complete");
-//      p = isl_printer_end_line(p);
-//    }
-//  
-//    /* Update local_data_split */
-//    p = isl_printer_start_line(p);
-//    p = isl_printer_print_str(p, "for (int n = 0; n < ");
-//    p = isl_printer_print_int(p, data_pack / nxt_data_pack);
-//    p = isl_printer_print_str(p, "; n++) {");
-//    p = isl_printer_end_line(p);
-//    if (hls->target == XILINX_HW) {
-//      p = isl_printer_start_line(p);
-//      p = isl_printer_print_str(p, "#pragma HLS UNROLL");
-//      p = isl_printer_end_line(p);
-//    }
-//        
-//    p = isl_printer_indent(p, 4);
-//    if (hls->target == XILINX_HW) {
-//      p = isl_printer_start_line(p);
-//      p = isl_printer_print_str(p, "local_data_split[n] = ");
-//      p = isl_printer_print_str(p, "local_data(");
-//      p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack - 1);
-//      p = isl_printer_print_str(p, ", 0);");
-//      p = isl_printer_end_line(p);
-//
-//      p = isl_printer_start_line(p);
-//      p = isl_printer_print_str(p, "local_data = local_data >> ");
-//      p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
-//      p = isl_printer_print_str(p, ";");
-//      p = isl_printer_end_line(p);
-//    } else if (hls->target == INTEL_HW) {
-//      // TODO
-//    }
-//    p = isl_printer_indent(p, -4);
-//    p = isl_printer_start_line(p);
-//    p = isl_printer_print_str(p, "}");
-//    p = isl_printer_end_line(p);
-//
-//    /* Generate the index */
-//    int n_arg = isl_ast_expr_op_get_n_arg(local_index);
-//    int r = data_pack / nxt_data_pack;
-//    isl_val *val = isl_val_int_from_si(ctx, r);
-//    isl_ast_expr *expr = isl_ast_expr_op_get_arg(local_index, n_arg - 1);
-//    expr = isl_ast_expr_mul(expr, isl_ast_expr_from_val(val));
-//    p = isl_printer_start_line(p);
-//    p = isl_printer_print_str(p, "int split_i = (");
-//    p = isl_printer_print_ast_expr(p, expr);
-//    p = isl_printer_print_str(p, ") % ");
-//    p = isl_printer_print_int(p, r);
-//    p = isl_printer_print_str(p, ";");
-//    p = isl_printer_end_line(p);
-//    isl_ast_expr_free(expr); 
-//
-//    if (stmt->u.i.in) {
-//      p = isl_printer_start_line(p);
-//      p = isl_printer_print_str(p, "local_data_split[split_i] = ");
-//      if (hls->target == XILINX_HW) {
-//        if (nxt_data_pack == 1) {
-//          p = isl_printer_print_str(p, "Reinterpret<ap_uint<");
-//          p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
-//          p = isl_printer_print_str(p, "> >(");
-//        }
-//        p = print_fifo_rw_xilinx(p, fifo_name, 1);
-//        p = isl_printer_print_str(p, ")");
-//      }
-//      else if (hls->target == INTEL_HW)
-//        p = print_fifo_rw_intel(p, fifo_name, 1);
-//      p = isl_printer_print_str(p, ";");
-//
-//      /* Repack the data */
-//      if (hls->target == XILINX_HW) {
-//        p = isl_printer_start_line(p);
-//        p = isl_printer_print_str(p, "local_data = (");
-//        for (int i = data_pack / nxt_data_pack - 1; i >= 0; i--) {
-//          if (i < data_pack / nxt_data_pack - 1)
-//            p = isl_printer_print_str(p, ", ");
-//          p = isl_printer_print_str(p, "local_data_split[");
-//          p = isl_printer_print_int(p, i);
-//          p = isl_printer_print_str(p, "]");
-//        }
-//        p = isl_printer_print_str(p, ");");
-//        p = isl_printer_end_line(p);
-//      } else if (hls->target == INTEL_HW) {
-//        // TODO
-//      }
-//
-//      /* Store it back */
-//      p = isl_printer_start_line(p);
-//      p = io_stmt_print_local_index(p, stmt);
-//      p = isl_printer_print_str(p, " = local_data;");
-//      p = isl_printer_end_line(p);
-//    } else {
-//      p = isl_printer_start_line(p);
-//      if (hls->target == XILINX_HW)
-//        p = print_fifo_rw_xilinx(p, fifo_name, 0);
-//      else if (hls->target == INTEL_HW)
-//        p = print_fifo_rw_intel(p, fifo_name, 0);
-//      
-//      if (hls->target == XILINX_HW) {
-//        if (nxt_data_pack == 1) {
-//          p = isl_printer_print_str(p, "Reinterpret<");
-//          p = isl_printer_print_str(p, group->array->type);
-//          p = isl_printer_print_str(p, ">(");
-//        }
-//        p = isl_printer_print_str(p, "local_data_split[split_i])");
-//        if (nxt_data_pack == 1) {
-//          p = isl_printer_print_str(p, ")");
-//        }
-//      } else if (hls->target == INTEL_HW) {
-//        // TODO
-//        p = isl_printer_print_str(p, ")");
-//      }
-//      p = isl_printer_print_str(p, ";");
-//      p = isl_printer_end_line(p);
-//    }
-
     p = ppcg_end_block(p);
   }
   free(fifo_name); 
-
+  isl_ast_expr_free(local_index_packed);
   return p;
 }
 
@@ -3283,8 +3163,19 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_default(
 {
   isl_ctx *ctx;
   char *fifo_name;
-
   ctx = isl_printer_get_ctx(p);
+  isl_ast_expr *local_index_packed;
+  isl_ast_expr *arg, *div;
+  local_index_packed = isl_ast_expr_copy(stmt->u.i.local_index);
+  int n_arg;
+  /* Modify the local index */
+  if (n_lane > 1) {
+    n_arg = isl_ast_expr_get_op_n_arg(local_index_packed);
+    arg = isl_ast_expr_get_op_arg(local_index_packed, n_arg - 1);
+    div = isl_ast_expr_from_val(isl_val_int_from_si(ctx, n_lane));
+    arg = isl_ast_expr_div(arg, div);
+    local_index_packed = isl_ast_expr_set_op_arg(local_index_packed, n_arg - 1, arg);
+  }
 
   /* Declare the fifo data variable */
   p = isl_printer_start_line(p);
@@ -3327,7 +3218,8 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_default(
     if (stmt->u.i.buf) {
       /* local[][] = fifo_data */
       p = isl_printer_start_line(p);
-      p = io_stmt_print_local_index(p, stmt);
+//      p = io_stmt_print_local_index(p, stmt);
+      p = isl_printer_print_ast_expr(p, local_index_packed);
       p = isl_printer_print_str(p, " = fifo_data;");
       p = isl_printer_end_line(p);
     } else {
@@ -3383,7 +3275,8 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_default(
       /* fifo_data = local[][] */
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "fifo_data = ");
-      p = io_stmt_print_local_index(p, stmt);
+      p = isl_printer_print_ast_expr(p, local_index_packed);
+//      p = io_stmt_print_local_index(p, stmt);
       p = isl_printer_print_str(p, ";");
       p = isl_printer_end_line(p);
     } else {
@@ -3437,6 +3330,8 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_default(
     free(fifo_name);
   }
 
+  isl_ast_expr_free(local_index_packed);
+
   return p;
 }
 
@@ -3482,6 +3377,17 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_data_pack(
   int n_arg;
   int r;
   isl_val *val;
+  isl_ast_expr *local_index_packed;
+  isl_ast_expr *arg, *div;
+  local_index_packed = isl_ast_expr_copy(stmt->u.i.local_index);
+  /* Modify the local index */
+  if (n_lane > 1) {
+    n_arg = isl_ast_expr_get_op_n_arg(local_index_packed);
+    arg = isl_ast_expr_get_op_arg(local_index_packed, n_arg - 1);
+    div = isl_ast_expr_from_val(isl_val_int_from_si(ctx, n_lane));
+    arg = isl_ast_expr_div(arg, div);
+    local_index_packed = isl_ast_expr_set_op_arg(local_index_packed, n_arg - 1, arg);
+  }
 
   /* [type] fifo_data; */
   p = isl_printer_start_line(p);
@@ -3529,7 +3435,7 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_data_pack(
   /* buf_data = local[] */
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "buf_data = ");
-  p = isl_printer_print_ast_expr(p, stmt->u.i.local_index);
+  p = isl_printer_print_ast_expr(p, local_index_packed);
   p = isl_printer_print_str(p, ";");
   p = isl_printer_end_line(p);
 
@@ -3566,12 +3472,12 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_data_pack(
   p = isl_printer_end_line(p);
 
   /* split_i = ... */
-  expr = stmt->u.i.local_index;
+  expr = isl_ast_expr_copy(stmt->u.i.local_index);
   n_arg = isl_ast_expr_op_get_n_arg(expr);
   op = isl_ast_expr_op_get_arg(expr, n_arg - 1);
-  r = n_lane / nxt_n_lane;
+  r = nxt_n_lane;
   val = isl_val_int_from_si(ctx, r);
-  op = isl_ast_expr_mul(op, isl_ast_expr_from_val(val));
+  op = isl_ast_expr_div(op, isl_ast_expr_from_val(val));
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "int split_i = (");
   p = isl_printer_print_ast_expr(p, op);
@@ -3580,6 +3486,7 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_data_pack(
   p = isl_printer_print_str(p, ";");
   p = isl_printer_end_line(p);
   isl_ast_expr_free(op);
+  isl_ast_expr_free(expr);
 
   if (stmt->u.i.in) {
     fifo_name = concat(ctx, stmt->u.i.fifo_name, "in");
@@ -3635,7 +3542,7 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_data_pack(
 
     /* local_buf[...] = buf_data; */
     p = isl_printer_start_line(p);
-    p = isl_printer_print_ast_expr(p, stmt->u.i.local_index);
+    p = isl_printer_print_ast_expr(p, local_index_packed);
     p = isl_printer_print_str(p, " = buf_data;");
     p = isl_printer_end_line(p);
 
@@ -3675,6 +3582,8 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_data_pack(
 
     free(fifo_name);
   }
+
+  isl_ast_expr_free(local_index_packed);
 
   return p;
 }
@@ -3895,23 +3804,33 @@ static int *extract_data_pack_factors(int *data_pack_factors,
 {
   for (int i = 0; i < group->n_io_buffer; i++) {
     struct polysa_io_buffer *buf = group->io_buffers[i];
-    if (!buf->tile)
-      continue;
+    bool insert = true;
     int pos = 0;
-    for (pos = 0; pos < *n_factor - 1; pos++) {
-      if (buf->n_lane >= data_pack_factors[pos] &&
-          buf->n_lane < data_pack_factors[pos + 1])
-        break;      
-    }
-    if (*n_factor == 0 || buf->n_lane != data_pack_factors[pos]) {
-      *n_factor = *n_factor + 1;
-      data_pack_factors = (int *)realloc(data_pack_factors, 
-          sizeof(int) * (*n_factor));
-      for (int j = *n_factor - 1; j > pos; j--) {
-        data_pack_factors[j] = data_pack_factors[j - 1];
+    for (pos = 0; pos < *n_factor; pos++) {
+      if (buf->n_lane > data_pack_factors[pos]) {
+        if (pos < *n_factor - 1) {
+          if (buf->n_lane < data_pack_factors[pos + 1]) {
+            // insert @pos+1
+            pos++;
+            break;
+          }
+        }
+      } else if (buf->n_lane == data_pack_factors[pos]) {
+        insert = false;
+        break;
       }
-      data_pack_factors[pos] = buf->n_lane;
     }
+
+    if (!insert) 
+      continue;
+
+    *n_factor = *n_factor + 1;
+    data_pack_factors = (int *)realloc(data_pack_factors, 
+          sizeof(int) * (*n_factor));
+    for (int j = *n_factor - 1; j > pos; j--) {
+      data_pack_factors[j] = data_pack_factors[j - 1];
+    }
+    data_pack_factors[pos] = buf->n_lane;
   }
 
   return data_pack_factors;
@@ -4730,6 +4649,12 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
   struct print_hw_module_data hw_data = { hls, prog, NULL };
   isl_printer *p_module;
 
+  /* Print the data pack types in the program. */
+  if (hls->target == XILINX_HW)
+    print_data_types_xilinx(top, hls);
+  else
+    print_data_types_intel(top, hls);
+
   /* Print the default AST. */
   print_options = isl_ast_print_options_alloc(ctx);
   if (hls->target == XILINX_HW) {
@@ -4743,12 +4668,6 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
   /* Print the macros definitions in the program. */
   p = polysa_print_macros(p, tree); 
   p = isl_ast_node_print(tree, p, print_options);
-
-  /* Print the data pack types in the program. */
-  if (hls->target == XILINX_HW)
-    print_data_types_xilinx(top, hls);
-  else
-    print_data_types_intel(top, hls);
 
   /* Print the hw module ASTs. */
   p_module = isl_printer_to_file(ctx, hls->kernel_c);
@@ -4859,7 +4778,7 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
     if (modules[i]->credit && !modules[i]->in) {
       if (hls->target == XILINX_HW) {
         p_module = isl_printer_start_line(p_module);
-        p_module = isl_printer_print_str(p, "credit.write(1);");
+        p_module = isl_printer_print_str(p_module, "credit.write(1);");
         p_module = isl_printer_end_line(p_module);
       } else if (hls->target == INTEL_HW) {
         // TODO
@@ -4879,7 +4798,7 @@ static __isl_give isl_printer *polysa_print_host_code(__isl_take isl_printer *p,
     if (modules[i]->credit && modules[i]->in) {
       if (hls->target == XILINX_HW) {
         p_module = isl_printer_start_line(p_module);
-        p_module = isl_printer_print_str(p, "int token = credit.read();");
+        p_module = isl_printer_print_str(p_module, "int token = credit.read();");
         p_module = isl_printer_end_line(p_module);
       } else if (hls->target == INTEL_HW) {
         // TODO
@@ -4946,8 +4865,8 @@ int generate_polysa_intel_opencl(isl_ctx *ctx, struct ppcg_options *options,
   struct hls_info hls;
   int r;
 
-  opencl_open_files(&hls, input);
   hls.target = INTEL_HW;
+  opencl_open_files(&hls, input);
 
   r = generate_sa(ctx, input, hls.host_c, options, &print_hw, &hls);
 
@@ -4960,8 +4879,8 @@ int generate_polysa_xilinx_hls(isl_ctx *ctx, struct ppcg_options *options,
   struct hls_info hls;
   int r;
 
-  hls_open_files(&hls, input);
   hls.target = XILINX_HW;
+  hls_open_files(&hls, input);
 
   r = generate_sa(ctx, input, hls.host_c, options, &print_hw, &hls);
 

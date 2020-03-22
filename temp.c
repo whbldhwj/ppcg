@@ -28,6 +28,8 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     #pragma HLS STREAM variable=fifo_A_PE_0_0 depth=1
     /* PE fifo */ hls::stream<A_t2> fifo_A_PE_0_1;
     #pragma HLS STREAM variable=fifo_A_PE_0_1 depth=1
+    /* PE fifo */ hls::stream<A_t2> fifo_A_PE_0_2;
+    #pragma HLS STREAM variable=fifo_A_PE_0_2 depth=1
     /* PE fifo */ hls::stream<A_t2> fifo_A_PE_1_0;
     #pragma HLS STREAM variable=fifo_A_PE_1_0 depth=1
     /* PE fifo */ hls::stream<A_t2> fifo_A_PE_1_1;
@@ -38,6 +40,8 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     #pragma HLS STREAM variable=fifo_B_PE_0_0 depth=1
     /* PE fifo */ hls::stream<B_t2> fifo_B_PE_1_0;
     #pragma HLS STREAM variable=fifo_B_PE_1_0 depth=1
+    /* PE fifo */ hls::stream<B_t2> fifo_B_PE_2_0;
+    #pragma HLS STREAM variable=fifo_B_PE_2_0 depth=1
     /* PE fifo */ hls::stream<B_t2> fifo_B_PE_0_1;
     #pragma HLS STREAM variable=fifo_B_PE_0_1 depth=1
     /* PE fifo */ hls::stream<B_t2> fifo_B_PE_1_1;
@@ -75,7 +79,7 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     /* Module Call */
     A_IO_L3_in(
         /* array */ A,
-        /* fifo */ fifo_A_A_L2_in_IO_0
+        /* fifo */ fifo_A_A_IO_L2_in_0
     );
     /* Module Call */
 
@@ -100,7 +104,7 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     /* Module Call */
     B_IO_L3_in(
         /* array */ B,
-        /* fifo */ fifo_B_B_L2_in_IO_0
+        /* fifo */ fifo_B_B_IO_L2_in_0
     );
     /* Module Call */
 
@@ -215,7 +219,7 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
         /* module id */ 0,
         /* fifo */ fifo_C_drain_C_drain_IO_L2_out_0,
         /* fifo */ fifo_C_drain_C_drain_IO_L2_out_1,
-        /* fifo */ fifo_C_drain_C_drain_L1_out_IO_0_2
+        /* fifo */ fifo_C_drain_C_drain_IO_L1_out_0_2
     );
     /* Module Call */
 
@@ -224,14 +228,14 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
         /* module id */ 1,
         /* fifo */ fifo_C_drain_C_drain_IO_L2_out_1,
         /* fifo */ fifo_C_drain_C_drain_IO_L2_out_2,
-        /* fifo */ fifo_C_drain_C_drain_L1_out_IO_1_2
+        /* fifo */ fifo_C_drain_C_drain_IO_L1_out_1_2
     );
     /* Module Call */
 
     /* Module Call */
     C_drain_IO_L3_out(
         /* array */ C,
-        /* fifo */ fifo_C_drain_C_drain_L2_out_IO_2
+        /* fifo */ fifo_C_drain_C_drain_IO_L2_out_2
     );
     /* Module Call */
 

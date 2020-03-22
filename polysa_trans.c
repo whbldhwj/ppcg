@@ -116,18 +116,18 @@ isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en)
   node = isl_schedule_node_parent(node);
 
   /* Examine if there is any flow dep carried in the array_part band */
-  if (sa->options->task_pipeline) {
+  if (!sa->options->credit_control) {
     for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
       if (!isl_schedule_node_band_member_get_coincident(node, i)) {
         printf("[PolySA] WARNING: Flow deps carried in the array partition band.\n");
-        printf("[PolySA] WARNING: Using task pipelining could lead to potential data hazards.\n");
-        printf("[PolySA] WARNING: The program will proceed as usual. You could consider disabling task pipelining.\n");
+        printf("[PolySA] WARNING: Using simple task pipelining could lead to potential data hazards.\n");
+        printf("[PolySA] WARNING: The program will proceed as usual. You could consider enabling credit control.\n");
         break;
       }
     }
   }
-  if (!sa->options->task_pipeline) {
-    printf("[PolySA] ERROR: Disabling task pipelining not supported yet!\n");
+  if (sa->options->credit_control) {
+    printf("[PolySA] ERROR: Credit control is not supported yet!\n");
     exit(1);
     // TODO: modify the schedule to add credit rd/wr for I/O modules
     // TODO: modify the module decls and fifo decls for credit fifos
@@ -3371,6 +3371,7 @@ static __isl_give isl_schedule_node *mark_kernels(
   kernel = polysa_kernel_create_local_arrays(kernel, gen->prog);
 
   /* Apply PE optimization. */
+  pe_opt_en[0] = 1;
   pe_opt_en[1] = 1;
   pe_opt_en[2] = 1;
   sa_pe_optimize(kernel, pe_opt_en);
@@ -7388,66 +7389,68 @@ __isl_give struct polysa_hw_module **sa_io_module_gen(
    * so that we could enable credit control between read and write I/O modules to 
    * prevent the data hazards. 
    */
-  if (group->local_array->array_type == POLYSA_INT_ARRAY) {
-    isl_bool carried = isl_bool_false;
-    isl_union_map *umap;
-
-    node = polysa_tree_move_down_to_array(node, kernel->core);
-    node = isl_schedule_node_parent(node);
-    umap = isl_schedule_node_band_get_partial_schedule_union_map(node);
-    for (int i = 0; i < group->n_ref; i++) {
-      struct polysa_stmt_access *ref = group->refs[i];
-      for (int j = 0; j < ref->n_io_info; j++) {
-        struct polysa_io_info *io_info = ref->io_info[j];
-        if (io_info->io_type == group->io_type && !isl_vec_cmp(io_info->dir, group->dir)) {
-          isl_map *test;
-          isl_map *schedule_dep;
-          int dim;
-          int is_parallel;
-          isl_union_map *dep = isl_union_map_from_map(
-              isl_map_factor_domain(
-              isl_map_from_basic_map(isl_basic_map_copy(io_info->dep->isl_dep))));
-//          // debug
-//          isl_printer *p = isl_printer_to_file(gen->ctx, stdout);
-//          p = isl_printer_print_union_map(p, dep);
-//          printf("\n");
-//          p = isl_printer_print_union_map(p, umap);
-//          printf("\n");
-//          // debug
-
-          dep = isl_union_map_apply_range(dep, isl_union_map_copy(umap));
-          dep = isl_union_map_apply_domain(dep, isl_union_map_copy(umap));
-//          // debug
-//          p = isl_printer_print_union_map(p, dep);
-//          printf("\n");
-//          // debug
-
-          if (isl_union_map_is_empty(dep)) {
-            isl_union_map_free(dep);
-            break;
-          }
-          schedule_dep = isl_map_from_union_map(dep);
-          test = isl_map_universe(isl_map_get_space(schedule_dep));
-          dim = isl_schedule_node_band_n_member(node);
-          for (int n = 0; n < dim; n++) {
-            test = isl_map_equate(test, isl_dim_in, n, isl_dim_out, n);
-          }
-          is_parallel = isl_map_is_subset(schedule_dep, test);
-          isl_map_free(schedule_dep);
-          isl_map_free(test);
-
-          if (!is_parallel) { 
-            carried = isl_bool_true;
-            break;
+  if (gen->options->credit_control) {
+    if (group->local_array->array_type == POLYSA_INT_ARRAY) {
+      isl_bool carried = isl_bool_false;
+      isl_union_map *umap;
+  
+      node = polysa_tree_move_down_to_array(node, kernel->core);
+      node = isl_schedule_node_parent(node);
+      umap = isl_schedule_node_band_get_partial_schedule_union_map(node);
+      for (int i = 0; i < group->n_ref; i++) {
+        struct polysa_stmt_access *ref = group->refs[i];
+        for (int j = 0; j < ref->n_io_info; j++) {
+          struct polysa_io_info *io_info = ref->io_info[j];
+          if (io_info->io_type == group->io_type && !isl_vec_cmp(io_info->dir, group->dir)) {
+            isl_map *test;
+            isl_map *schedule_dep;
+            int dim;
+            int is_parallel;
+            isl_union_map *dep = isl_union_map_from_map(
+                isl_map_factor_domain(
+                isl_map_from_basic_map(isl_basic_map_copy(io_info->dep->isl_dep))));
+  //          // debug
+  //          isl_printer *p = isl_printer_to_file(gen->ctx, stdout);
+  //          p = isl_printer_print_union_map(p, dep);
+  //          printf("\n");
+  //          p = isl_printer_print_union_map(p, umap);
+  //          printf("\n");
+  //          // debug
+  
+            dep = isl_union_map_apply_range(dep, isl_union_map_copy(umap));
+            dep = isl_union_map_apply_domain(dep, isl_union_map_copy(umap));
+  //          // debug
+  //          p = isl_printer_print_union_map(p, dep);
+  //          printf("\n");
+  //          // debug
+  
+            if (isl_union_map_is_empty(dep)) {
+              isl_union_map_free(dep);
+              break;
+            }
+            schedule_dep = isl_map_from_union_map(dep);
+            test = isl_map_universe(isl_map_get_space(schedule_dep));
+            dim = isl_schedule_node_band_n_member(node);
+            for (int n = 0; n < dim; n++) {
+              test = isl_map_equate(test, isl_dim_in, n, isl_dim_out, n);
+            }
+            is_parallel = isl_map_is_subset(schedule_dep, test);
+            isl_map_free(schedule_dep);
+            isl_map_free(test);
+  
+            if (!is_parallel) { 
+              carried = isl_bool_true;
+              break;
+            }
           }
         }
       }
+      isl_union_map_free(umap); 
+      if (carried) {
+        credit = 1;
+      }
+      node = polysa_tree_move_up_to_kernel(node);
     }
-    isl_union_map_free(umap); 
-    if (carried) {
-      credit = 1;
-    }
-    node = polysa_tree_move_up_to_kernel(node);
   }
 
   /* For each I/O level, generate one I/O module */
@@ -7675,7 +7678,12 @@ static isl_stat top_module_pe_gen_fifo_decl(struct polysa_gen *gen,
   isl_union_set *empty_filter;
   isl_printer *p_str;
   char *stmt_name;
-  
+ 
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  // debug
+
   for (int i = 0; i < module->n_io_group; i++) {
     struct polysa_array_ref_group *group = module->io_groups[i];
     isl_multi_aff *io_trans;
@@ -7688,6 +7696,11 @@ static isl_stat top_module_pe_gen_fifo_decl(struct polysa_gen *gen,
     node = isl_schedule_get_root(schedule);
     isl_schedule_free(schedule);
 
+//    // debug
+//    p = isl_printer_print_schedule_node(p, node);
+//    printf("\n");
+//    // debug
+
     /* Delete the node above the array mark */
     node = polysa_tree_move_down_to_array(node, kernel->core);
     node = isl_schedule_node_parent(node);
@@ -7697,8 +7710,16 @@ static isl_stat top_module_pe_gen_fifo_decl(struct polysa_gen *gen,
     }
 
     if (group->pe_io_dir == IO_INOUT) {
+      int n_member;
       node = polysa_tree_move_down_to_mark(node, kernel->core, "io_L1");
       node = isl_schedule_node_parent(node);
+      n_member = isl_schedule_node_band_n_member(node);
+      node = isl_schedule_node_band_split(node, n_member - 1);
+      node = isl_schedule_node_child(node, 0);
+//      // debug
+//      p = isl_printer_print_schedule_node(p, node);
+//      printf("\n");
+//      // debug
       if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
         L1_filter = schedule_eq_ub(node);
         insert_L1 = isl_bool_true;

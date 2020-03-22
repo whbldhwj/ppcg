@@ -92,8 +92,8 @@ struct ppcg_options {
   /* Enable data pack for transferring data */
   int data_pack;
 
-  /* Enable task pipelining between different array partitions */
-  int task_pipeline;
+  /* Enable credit control between different array partitions */
+  int credit_control;
 
   /* PolySA Extended */
 

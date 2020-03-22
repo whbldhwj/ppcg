@@ -1,0 +1,73 @@
+INFO: [HLS 200-10] Running '/opt/tools/xilinx/Vivado/2019.2/bin/unwrapped/lnx64.o/apcc'
+INFO: [HLS 200-10] For user 'jaywang' on host 'u14-jaywang' (Linux_x86_64 version 4.4.0-169-generic) on Sat Mar 21 13:17:07 PDT 2020
+INFO: [HLS 200-10] On os Ubuntu 16.04.6 LTS
+INFO: [HLS 200-10] In directory '/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/csim/build'
+WARNING: [HLS 200-40] Environment variable 'C_INCLUDE_PATH' is set to /opt/novell/mono/include:/home/jie_local/llvm-3.8/include:/curr/jaywang/research/rose-dev/rose-install/include.
+WARNING: [HLS 200-40] Environment variable 'CPLUS_INCLUDE_PATH' is set to :/home/jie_local/llvm-3.8/include:/home/jie_local/llvm-3.8/include.
+In file included from ../../../../src/kernel.c:2:
+In file included from ../../../../src/kernel_kernel.h:1:
+In file included from /opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_int.h:54:
+In file included from /opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_common.h:57:
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:93:2: error: "AP data type can only be used in C++"
+#error "AP data type can only be used in C++"
+ ^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:179:1: error: unknown type name 'template'
+template <int _AP_W, bool _AP_S>
+^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:179:10: error: expected identifier or '('
+template <int _AP_W, bool _AP_S>
+         ^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:182:1: error: unknown type name 'template'
+template <int _AP_W>
+^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:182:10: error: expected identifier or '('
+template <int _AP_W>
+         ^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:185:1: error: unknown type name 'template'
+template <int _AP_W>
+^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:185:10: error: expected identifier or '('
+template <int _AP_W>
+         ^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:188:1: error: unknown type name 'template'
+template <int _AP_W, bool _AP_S>
+^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:188:10: error: expected identifier or '('
+template <int _AP_W, bool _AP_S>
+         ^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:191:1: error: unknown type name 'template'
+template <int _AP_W, bool _AP_S>
+^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:191:10: error: expected identifier or '('
+template <int _AP_W, bool _AP_S>
+         ^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:194:1: error: unknown type name 'template'
+template <int _AP_W1, typename _AP_T1, int _AP_W2, typename _AP_T2>
+^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:194:10: error: expected identifier or '('
+template <int _AP_W1, typename _AP_T1, int _AP_W2, typename _AP_T2>
+         ^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:197:1: error: unknown type name 'template'
+template <int _AP_W, int _AP_I, bool _AP_S = true, ap_q_mode _AP_Q = AP_TRN,
+^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:197:10: error: expected identifier or '('
+template <int _AP_W, int _AP_I, bool _AP_S = true, ap_q_mode _AP_Q = AP_TRN,
+         ^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:201:1: error: unknown type name 'template'
+template <int _AP_W, int _AP_I, ap_q_mode _AP_Q = AP_TRN,
+^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:201:10: error: expected identifier or '('
+template <int _AP_W, int _AP_I, ap_q_mode _AP_Q = AP_TRN,
+         ^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:205:1: error: unknown type name 'template'
+template <int _AP_W, int _AP_I, ap_q_mode _AP_Q = AP_TRN,
+^
+/opt/tools/xilinx/Vivado/2019.2/common/technology/autopilot/ap_decl.h:205:10: error: expected identifier or '('
+template <int _AP_W, int _AP_I, ap_q_mode _AP_Q = AP_TRN,
+         ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+ERROR: [APCC 202-10] clang compile failed: child process exited abnormally
+ERROR: [APCC 202-1] ProcessSources failed
+INFO: [APCC 202-3] Tmp directory is /tmp/apcc_db_jaywang/14741651584821828135465
+ERROR: [APCC 202-1] APCC failed.

@@ -134,8 +134,8 @@ ISL_ARG_INT(struct ppcg_options, n_hbm_port, 0, "hbm-port-num", "num", 2,
   "Default HBM port number")
 ISL_ARG_BOOL(struct ppcg_options, double_buffer, 0, "double-buffer", 1,
   "Enable double-buffering for data transfer")
-ISL_ARG_BOOL(struct ppcg_options, task_pipeline, 0, "task-pipeline", 1,
-  "Enable task pipelining between different array partitions")
+ISL_ARG_BOOL(struct ppcg_options, credit_control, 0, "credit-control", 0,
+  "Enable credit control between different array partitions")
 ISL_ARG_INT(struct ppcg_options, max_sa_dim, 0,
   "max-sa-dim", "dim", 2, "maximal systolic array dimension")
 ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, sa_type, 0, "sa-type", sa_type,
