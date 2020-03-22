@@ -4,7 +4,7 @@
     <stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="Release/a.out"/>
     <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="prj"/>
     <booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="false"/>
-    <stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="cdt.managedbuild.config.gnu.exe.release.810843697"/>
+    <stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="cdt.managedbuild.config.gnu.exe.release.2059951592"/>
     <stringAttribute key="org.eclipse.cdt.launch.WORKING_DIRECTORY" value="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj"/>
     <booleanAttribute key="org.eclipse.cdt.launch.use_terminal" value="true"/>
     <stringAttribute key="org.eclipse.debug.core.source_locator_id" value="org.eclipse.cdt.debug.core.sourceLocator"/>

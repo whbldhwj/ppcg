@@ -1,0 +1,1610 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cdfg:DBCdfg xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cdfg="http://www.autoesl.com/DBCdfg" timeStamp="1584911423000">
+  <ports id="1" name="gmem_A" type="PortType" bitwidth="128" iftype="IfTypeFifo">
+    <dataOutputObjs>call</dataOutputObjs>
+  </ports>
+  <ports id="2" name="gmem_B" type="PortType" bitwidth="128" iftype="IfTypeFifo">
+    <dataOutputObjs>call</dataOutputObjs>
+  </ports>
+  <ports id="3" name="gmem_C" type="PortType" bitwidth="64" direction="DirOut" iftype="IfTypeFifo">
+    <dataInputObjs>call</dataInputObjs>
+  </ports>
+  <ports id="4" name="A_V" type="PortType" originalName="A.V" bitwidth="32">
+    <dataOutputObjs>read</dataOutputObjs>
+  </ports>
+  <ports id="5" name="B_V" type="PortType" originalName="B.V" bitwidth="32">
+    <dataOutputObjs>read</dataOutputObjs>
+  </ports>
+  <ports id="6" name="C_V" type="PortType" originalName="C.V" bitwidth="32">
+    <dataOutputObjs>read</dataOutputObjs>
+  </ports>
+  <edges id="135" source_obj="//@ports.5" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.0"/>
+  <edges id="137" source_obj="//@ports.4" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.1"/>
+  <edges id="139" source_obj="//@ports.3" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.2"/>
+  <edges id="172" source_obj="//@regions.0/@basic_blocks.0/@node_objs.2" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.32"/>
+  <edges id="173" source_obj="//@regions.0/@basic_blocks.0/@node_objs.1" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.32"/>
+  <edges id="174" source_obj="//@regions.0/@basic_blocks.0/@node_objs.0" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.32"/>
+  <edges id="175" source_obj="//@regions.0/@basic_blocks.0/@node_objs.5" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.32"/>
+  <edges id="176" source_obj="//@regions.0/@basic_blocks.0/@node_objs.4" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.32"/>
+  <edges id="177" source_obj="//@regions.0/@basic_blocks.0/@node_objs.3" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.32"/>
+  <edges id="180" source_obj="//@ports.0" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.33"/>
+  <edges id="181" source_obj="//@regions.0/@basic_blocks.0/@node_objs.5" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.33"/>
+  <edges id="182" source_obj="//@regions.0/@basic_blocks.0/@node_objs.6" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.33"/>
+  <edges id="185" source_obj="//@regions.0/@basic_blocks.0/@node_objs.6" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.34"/>
+  <edges id="186" source_obj="//@regions.0/@basic_blocks.0/@node_objs.7" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.34"/>
+  <edges id="187" source_obj="//@regions.0/@basic_blocks.0/@node_objs.10" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.34"/>
+  <edges id="190" source_obj="//@regions.0/@basic_blocks.0/@node_objs.7" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.35"/>
+  <edges id="191" source_obj="//@regions.0/@basic_blocks.0/@node_objs.13" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.35"/>
+  <edges id="194" source_obj="//@ports.1" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.36"/>
+  <edges id="195" source_obj="//@regions.0/@basic_blocks.0/@node_objs.4" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.36"/>
+  <edges id="196" source_obj="//@regions.0/@basic_blocks.0/@node_objs.8" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.36"/>
+  <edges id="199" source_obj="//@regions.0/@basic_blocks.0/@node_objs.8" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.37"/>
+  <edges id="200" source_obj="//@regions.0/@basic_blocks.0/@node_objs.9" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.37"/>
+  <edges id="201" source_obj="//@regions.0/@basic_blocks.0/@node_objs.16" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.37"/>
+  <edges id="204" source_obj="//@regions.0/@basic_blocks.0/@node_objs.9" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.38"/>
+  <edges id="205" source_obj="//@regions.0/@basic_blocks.0/@node_objs.19" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.38"/>
+  <edges id="208" source_obj="//@regions.0/@basic_blocks.0/@node_objs.10" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.39"/>
+  <edges id="209" source_obj="//@regions.0/@basic_blocks.0/@node_objs.11" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.39"/>
+  <edges id="210" source_obj="//@regions.0/@basic_blocks.0/@node_objs.16" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.39"/>
+  <edges id="211" source_obj="//@regions.0/@basic_blocks.0/@node_objs.17" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.39"/>
+  <edges id="212" source_obj="//@regions.0/@basic_blocks.0/@node_objs.22" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.39"/>
+  <edges id="215" source_obj="//@regions.0/@basic_blocks.0/@node_objs.11" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.40"/>
+  <edges id="216" source_obj="//@regions.0/@basic_blocks.0/@node_objs.12" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.40"/>
+  <edges id="217" source_obj="//@regions.0/@basic_blocks.0/@node_objs.19" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.40"/>
+  <edges id="218" source_obj="//@regions.0/@basic_blocks.0/@node_objs.20" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.40"/>
+  <edges id="219" source_obj="//@regions.0/@basic_blocks.0/@node_objs.24" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.40"/>
+  <edges id="222" source_obj="//@regions.0/@basic_blocks.0/@node_objs.12" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.41"/>
+  <edges id="225" source_obj="//@regions.0/@basic_blocks.0/@node_objs.13" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.42"/>
+  <edges id="226" source_obj="//@regions.0/@basic_blocks.0/@node_objs.14" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.42"/>
+  <edges id="227" source_obj="//@regions.0/@basic_blocks.0/@node_objs.17" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.42"/>
+  <edges id="228" source_obj="//@regions.0/@basic_blocks.0/@node_objs.18" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.42"/>
+  <edges id="229" source_obj="//@regions.0/@basic_blocks.0/@node_objs.23" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.42"/>
+  <edges id="232" source_obj="//@regions.0/@basic_blocks.0/@node_objs.18" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.43"/>
+  <edges id="235" source_obj="//@regions.0/@basic_blocks.0/@node_objs.14" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.44"/>
+  <edges id="236" source_obj="//@regions.0/@basic_blocks.0/@node_objs.15" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.44"/>
+  <edges id="237" source_obj="//@regions.0/@basic_blocks.0/@node_objs.20" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.44"/>
+  <edges id="238" source_obj="//@regions.0/@basic_blocks.0/@node_objs.21" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.44"/>
+  <edges id="239" source_obj="//@regions.0/@basic_blocks.0/@node_objs.25" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.44"/>
+  <edges id="242" source_obj="//@regions.0/@basic_blocks.0/@node_objs.15" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.45"/>
+  <edges id="245" source_obj="//@regions.0/@basic_blocks.0/@node_objs.21" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.46"/>
+  <edges id="248" source_obj="//@regions.0/@basic_blocks.0/@node_objs.26" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.47"/>
+  <edges id="249" source_obj="//@regions.0/@basic_blocks.0/@node_objs.22" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.47"/>
+  <edges id="252" source_obj="//@regions.0/@basic_blocks.0/@node_objs.26" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.48"/>
+  <edges id="253" source_obj="//@regions.0/@basic_blocks.0/@node_objs.27" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.48"/>
+  <edges id="254" source_obj="//@regions.0/@basic_blocks.0/@node_objs.23" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.48"/>
+  <edges id="257" source_obj="//@regions.0/@basic_blocks.0/@node_objs.28" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.49"/>
+  <edges id="258" source_obj="//@regions.0/@basic_blocks.0/@node_objs.24" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.49"/>
+  <edges id="261" source_obj="//@regions.0/@basic_blocks.0/@node_objs.28" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.50"/>
+  <edges id="262" source_obj="//@regions.0/@basic_blocks.0/@node_objs.29" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.50"/>
+  <edges id="263" source_obj="//@regions.0/@basic_blocks.0/@node_objs.25" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.50"/>
+  <edges id="266" source_obj="//@regions.0/@basic_blocks.0/@node_objs.30" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.51"/>
+  <edges id="267" source_obj="//@regions.0/@basic_blocks.0/@node_objs.27" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.51"/>
+  <edges id="270" source_obj="//@regions.0/@basic_blocks.0/@node_objs.30" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.52"/>
+  <edges id="271" source_obj="//@regions.0/@basic_blocks.0/@node_objs.31" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.52"/>
+  <edges id="272" source_obj="//@regions.0/@basic_blocks.0/@node_objs.29" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.52"/>
+  <edges id="275" source_obj="//@regions.0/@basic_blocks.0/@node_objs.53" sink_obj="//@ports.2"/>
+  <edges id="276" source_obj="//@regions.0/@basic_blocks.0/@node_objs.3" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.53"/>
+  <edges id="277" source_obj="//@regions.0/@basic_blocks.0/@node_objs.31" sink_obj="//@regions.0/@basic_blocks.0/@node_objs.53"/>
+  <regions anchor_node="-1" region_type="16" typeName="Dataflow" id="737" RegionName="kernel0">
+    <basic_blocks id="132" name="kernel0" type="BlockType">
+      <node_objs xsi:type="cdfg:CdfgNode" id="7" name="C_V_read" lineNumber="818" originalName="C.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." contextFuncName="kernel0" bitwidth="32" opcode="read" m_display="0" m_delay="1.0" m_topoIndex="1" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="818" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>C_V</dataInputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="8" name="B_V_read" lineNumber="818" originalName="B.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." contextFuncName="kernel0" bitwidth="32" opcode="read" m_display="0" m_delay="1.0" m_topoIndex="2" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="818" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>B_V</dataInputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="9" name="A_V_read" lineNumber="818" originalName="A.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." contextFuncName="kernel0" bitwidth="32" opcode="read" m_display="0" m_delay="1.0" m_topoIndex="3" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="818" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>A_V</dataInputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="10" name="C_V_c" lineNumber="818" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="C_V_c_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="32" opcode="alloca" m_display="0" m_topoIndex="4" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="818" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="11" name="B_V_c" lineNumber="818" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="B_V_c_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="32" opcode="alloca" m_display="0" m_topoIndex="5" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="818" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="12" name="A_V_c" lineNumber="818" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="A_V_c_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="32" opcode="alloca" m_display="0" m_topoIndex="6" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="818" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="18" name="fifo_A_A_IO_L2_in_0_s" lineNumber="831" originalName="fifo_A_A_IO_L2_in_0.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_A_A_IO_L2_in_0_s_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="128" opcode="alloca" m_display="0" m_topoIndex="7" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="831" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="21" name="fifo_A_A_IO_L2_in_1_s" lineNumber="833" originalName="fifo_A_A_IO_L2_in_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_A_A_IO_L2_in_1_s_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="128" opcode="alloca" m_display="0" m_topoIndex="8" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="833" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="24" name="fifo_B_B_IO_L2_in_0_s" lineNumber="837" originalName="fifo_B_B_IO_L2_in_0.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_B_B_IO_L2_in_0_s_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="128" opcode="alloca" m_display="0" m_topoIndex="9" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="837" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="27" name="fifo_B_B_IO_L2_in_1_s" lineNumber="839" originalName="fifo_B_B_IO_L2_in_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_B_B_IO_L2_in_1_s_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="128" opcode="alloca" m_display="0" m_topoIndex="10" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="839" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="30" name="fifo_A_PE_0_0_V_V" lineNumber="843" originalName="fifo_A_PE_0_0.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_A_PE_0_0_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="11" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="843" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="33" name="fifo_A_PE_0_1_V_V" lineNumber="845" originalName="fifo_A_PE_0_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_A_PE_0_1_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="12" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="845" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="36" name="fifo_A_PE_0_2_V_V" lineNumber="847" originalName="fifo_A_PE_0_2.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_A_PE_0_2_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="13" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="847" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="39" name="fifo_A_PE_1_0_V_V" lineNumber="849" originalName="fifo_A_PE_1_0.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_A_PE_1_0_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="14" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="849" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="42" name="fifo_A_PE_1_1_V_V" lineNumber="851" originalName="fifo_A_PE_1_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_A_PE_1_1_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="15" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="851" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="45" name="fifo_A_PE_1_2_V_V" lineNumber="853" originalName="fifo_A_PE_1_2.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_A_PE_1_2_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="16" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="853" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="48" name="fifo_B_PE_0_0_V_V" lineNumber="855" originalName="fifo_B_PE_0_0.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_B_PE_0_0_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="17" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="855" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="51" name="fifo_B_PE_1_0_V_V" lineNumber="857" originalName="fifo_B_PE_1_0.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_B_PE_1_0_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="18" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="857" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="54" name="fifo_B_PE_2_0_V_V" lineNumber="859" originalName="fifo_B_PE_2_0.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_B_PE_2_0_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="19" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="859" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="57" name="fifo_B_PE_0_1_V_V" lineNumber="861" originalName="fifo_B_PE_0_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_B_PE_0_1_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="20" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="861" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="60" name="fifo_B_PE_1_1_V_V" lineNumber="863" originalName="fifo_B_PE_1_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_B_PE_1_1_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="21" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="863" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="63" name="fifo_B_PE_2_1_V_V" lineNumber="865" originalName="fifo_B_PE_2_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_B_PE_2_1_V_V_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="22" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="865" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="66" name="fifo_C_drain_PE_0_0_s" lineNumber="867" originalName="fifo_C_drain_PE_0_0.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_PE_0_0_s_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="32" opcode="alloca" m_display="0" m_topoIndex="23" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="867" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="69" name="fifo_C_drain_PE_1_0_s" lineNumber="869" originalName="fifo_C_drain_PE_1_0.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_PE_1_0_s_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="32" opcode="alloca" m_display="0" m_topoIndex="24" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="869" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="72" name="fifo_C_drain_PE_0_1_s" lineNumber="871" originalName="fifo_C_drain_PE_0_1.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_PE_0_1_s_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="32" opcode="alloca" m_display="0" m_topoIndex="25" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="871" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="75" name="fifo_C_drain_PE_1_1_s" lineNumber="873" originalName="fifo_C_drain_PE_1_1.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_PE_1_1_s_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="32" opcode="alloca" m_display="0" m_topoIndex="26" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="873" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="78" name="fifo_C_drain_C_drain_6" lineNumber="877" originalName="fifo_C_drain_C_drain_IO_L1_out_0_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_C_drain_6_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="27" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="877" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="81" name="fifo_C_drain_C_drain_7" lineNumber="879" originalName="fifo_C_drain_C_drain_IO_L1_out_0_2.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_C_drain_7_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="28" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="879" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="84" name="fifo_C_drain_C_drain_8" lineNumber="883" originalName="fifo_C_drain_C_drain_IO_L1_out_1_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_C_drain_8_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="29" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="883" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="87" name="fifo_C_drain_C_drain_9" lineNumber="885" originalName="fifo_C_drain_C_drain_IO_L1_out_1_2.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_C_drain_9_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="30" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="885" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="90" name="fifo_C_drain_C_drain_10" lineNumber="889" originalName="fifo_C_drain_C_drain_IO_L2_out_1.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_C_drain_10_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="31" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="889" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="93" name="fifo_C_drain_C_drain_11" lineNumber="891" originalName="fifo_C_drain_C_drain_IO_L2_out_2.V.V" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="fifo_C_drain_C_drain_11_U" coreName="FIFO" contextFuncName="kernel0" bitwidth="64" opcode="alloca" m_display="0" m_topoIndex="32" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="891" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataOutputObjs>call</dataOutputObjs>
+        <dataOutputObjs>call</dataOutputObjs>
+        <constName>empty</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="109" name="_ln818" lineNumber="818" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="kernel0_entry6_U0" contextFuncName="kernel0" opcode="call" m_display="0" m_delay="1.45" m_topoIndex="33" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="818" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>read</dataInputObjs>
+        <dataInputObjs>read</dataInputObjs>
+        <dataInputObjs>read</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>kernel0_entry6</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="110" name="_ln896" lineNumber="896" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="A_IO_L3_in_U0" contextFuncName="kernel0" opcode="call" nodeLabel="1.0" nodeLatency="1" m_display="0" m_topoIndex="34" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="896" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>gmem_A</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>A_IO_L3_in</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="111" name="_ln903" lineNumber="903" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="A_IO_L2_in_U0" contextFuncName="kernel0" opcode="call" nodeLabel="3.0" nodeLatency="1" m_display="0" m_topoIndex="36" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="903" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>A_IO_L2_in</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="112" name="_ln912" lineNumber="912" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="A_IO_L2_in_tail_U0" contextFuncName="kernel0" opcode="call" nodeLabel="5.0" nodeLatency="1" m_display="0" m_topoIndex="38" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="912" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>A_IO_L2_in_tail</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="113" name="_ln921" lineNumber="921" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="B_IO_L3_in_U0" contextFuncName="kernel0" opcode="call" nodeLabel="1.0" nodeLatency="1" m_display="0" m_topoIndex="35" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="921" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>gmem_B</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>B_IO_L3_in</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="114" name="_ln928" lineNumber="928" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="B_IO_L2_in_U0" contextFuncName="kernel0" opcode="call" nodeLabel="3.0" nodeLatency="1" m_display="0" m_topoIndex="37" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="928" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>B_IO_L2_in</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="115" name="_ln937" lineNumber="937" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="B_IO_L2_in_tail_U0" contextFuncName="kernel0" opcode="call" nodeLabel="5.0" nodeLatency="1" m_display="0" m_topoIndex="39" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="937" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>B_IO_L2_in_tail</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="116" name="_ln946" lineNumber="946" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="PE139_U0" contextFuncName="kernel0" opcode="call" nodeLabel="5.0" nodeLatency="1" m_display="0" m_topoIndex="40" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="946" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>PE139</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="117" name="_ln958" lineNumber="958" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="PE140_U0" contextFuncName="kernel0" opcode="call" nodeLabel="7.0" nodeLatency="1" m_display="0" m_topoIndex="41" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="958" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>PE140</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="118" name="_ln969" lineNumber="969" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="PE_A_dummy141_U0" contextFuncName="kernel0" opcode="call" nodeLabel="9.0" nodeLatency="1" m_display="0" m_topoIndex="44" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="969" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>PE_A_dummy141</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="119" name="_ln972" lineNumber="972" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="PE142_U0" contextFuncName="kernel0" opcode="call" nodeLabel="7.0" nodeLatency="1" m_display="0" m_topoIndex="42" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="972" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>PE142</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="120" name="_ln983" lineNumber="983" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="PE_B_dummy143_U0" contextFuncName="kernel0" opcode="call" nodeLabel="9.0" nodeLatency="1" m_display="0" m_topoIndex="45" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="983" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>PE_B_dummy143</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="121" name="_ln986" lineNumber="986" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="PE_U0" contextFuncName="kernel0" opcode="call" nodeLabel="9.0" nodeLatency="1" m_display="0" m_topoIndex="46" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="986" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>PE</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="122" name="_ln997" lineNumber="997" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="PE_A_dummy_U0" contextFuncName="kernel0" opcode="call" nodeLabel="11.0" nodeLatency="1" m_display="0" m_topoIndex="49" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="997" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>PE_A_dummy</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="123" name="_ln998" lineNumber="998" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="PE_B_dummy_U0" contextFuncName="kernel0" opcode="call" nodeLabel="11.0" nodeLatency="1" m_display="0" m_topoIndex="50" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="998" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>PE_B_dummy</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="124" name="_ln1001" lineNumber="1001" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="C_drain_IO_L1_out_he_U0" contextFuncName="kernel0" opcode="call" nodeLabel="7.0" nodeLatency="1" m_display="0" m_topoIndex="43" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="1001" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>C_drain_IO_L1_out_he</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="125" name="_ln1011" lineNumber="1011" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="C_drain_IO_L1_out145_U0" contextFuncName="kernel0" opcode="call" nodeLabel="9.0" nodeLatency="1" m_display="0" m_topoIndex="47" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="1011" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>C_drain_IO_L1_out145</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="126" name="_ln1021" lineNumber="1021" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="C_drain_IO_L1_out_he_1_U0" contextFuncName="kernel0" opcode="call" nodeLabel="9.0" nodeLatency="1" m_display="0" m_topoIndex="48" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="1021" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>C_drain_IO_L1_out_he_1</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="127" name="_ln1031" lineNumber="1031" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="C_drain_IO_L1_out_U0" contextFuncName="kernel0" opcode="call" nodeLabel="11.0" nodeLatency="1" m_display="0" m_topoIndex="51" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="1031" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>C_drain_IO_L1_out</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="128" name="_ln1041" lineNumber="1041" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="C_drain_IO_L2_out_he_U0" contextFuncName="kernel0" opcode="call" nodeLabel="11.0" nodeLatency="1" m_display="0" m_topoIndex="52" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="1041" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>C_drain_IO_L2_out_he</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="129" name="_ln1050" lineNumber="1050" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="C_drain_IO_L2_out_U0" contextFuncName="kernel0" opcode="call" nodeLabel="13.0" nodeLatency="1" m_display="0" m_topoIndex="53" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="1050" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <constName>C_drain_IO_L2_out</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="130" name="_ln1059" lineNumber="1059" fileName="src/kernel_xilinx.cpp" fileDirectory=".." rtlName="C_drain_IO_L3_out_U0" contextFuncName="kernel0" opcode="call" nodeLabel="15.0" nodeLatency="1" m_display="0" m_topoIndex="54" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="1059" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataInputObjs>alloca</dataInputObjs>
+        <dataOutputObjs>gmem_C</dataOutputObjs>
+        <constName>C_drain_IO_L3_out</constName>
+      </node_objs>
+      <node_objs xsi:type="cdfg:CdfgNode" id="131" name="_ln1065" lineNumber="1065" fileName="src/kernel_xilinx.cpp" fileDirectory=".." contextFuncName="kernel0" opcode="ret" nodeLabel="16.0" m_display="0" m_topoIndex="55" m_clusterGroupNumber="-1">
+        <inlineStackInfo fileName="src/kernel_xilinx.cpp" linenumber="1065" fileDirectory="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj" functionName="kernel0"/>
+      </node_objs>
+      <fileValidLineNumbers fileName="src/kernel_xilinx.cpp">
+        <validLinenumbers>818</validLinenumbers>
+        <validLinenumbers>831</validLinenumbers>
+        <validLinenumbers>833</validLinenumbers>
+        <validLinenumbers>837</validLinenumbers>
+        <validLinenumbers>839</validLinenumbers>
+        <validLinenumbers>843</validLinenumbers>
+        <validLinenumbers>845</validLinenumbers>
+        <validLinenumbers>847</validLinenumbers>
+        <validLinenumbers>849</validLinenumbers>
+        <validLinenumbers>851</validLinenumbers>
+        <validLinenumbers>853</validLinenumbers>
+        <validLinenumbers>855</validLinenumbers>
+        <validLinenumbers>857</validLinenumbers>
+        <validLinenumbers>859</validLinenumbers>
+        <validLinenumbers>861</validLinenumbers>
+        <validLinenumbers>863</validLinenumbers>
+        <validLinenumbers>865</validLinenumbers>
+        <validLinenumbers>867</validLinenumbers>
+        <validLinenumbers>869</validLinenumbers>
+        <validLinenumbers>871</validLinenumbers>
+        <validLinenumbers>873</validLinenumbers>
+        <validLinenumbers>877</validLinenumbers>
+        <validLinenumbers>879</validLinenumbers>
+        <validLinenumbers>883</validLinenumbers>
+        <validLinenumbers>885</validLinenumbers>
+        <validLinenumbers>889</validLinenumbers>
+        <validLinenumbers>891</validLinenumbers>
+        <validLinenumbers>896</validLinenumbers>
+        <validLinenumbers>903</validLinenumbers>
+        <validLinenumbers>912</validLinenumbers>
+        <validLinenumbers>921</validLinenumbers>
+        <validLinenumbers>928</validLinenumbers>
+        <validLinenumbers>937</validLinenumbers>
+        <validLinenumbers>946</validLinenumbers>
+        <validLinenumbers>958</validLinenumbers>
+        <validLinenumbers>969</validLinenumbers>
+        <validLinenumbers>972</validLinenumbers>
+        <validLinenumbers>983</validLinenumbers>
+        <validLinenumbers>986</validLinenumbers>
+        <validLinenumbers>997</validLinenumbers>
+        <validLinenumbers>998</validLinenumbers>
+        <validLinenumbers>1001</validLinenumbers>
+        <validLinenumbers>1011</validLinenumbers>
+        <validLinenumbers>1021</validLinenumbers>
+        <validLinenumbers>1031</validLinenumbers>
+        <validLinenumbers>1041</validLinenumbers>
+        <validLinenumbers>1050</validLinenumbers>
+        <validLinenumbers>1059</validLinenumbers>
+        <validLinenumbers>1065</validLinenumbers>
+      </fileValidLineNumbers>
+    </basic_blocks>
+  </regions>
+  <ScheduleInfo time="0"/>
+  <ScheduleInfo time="1"/>
+  <ScheduleInfo time="2"/>
+  <ScheduleInfo time="3"/>
+  <ScheduleInfo time="4"/>
+  <ScheduleInfo time="5"/>
+  <ScheduleInfo time="6"/>
+  <ScheduleInfo time="7"/>
+  <ScheduleInfo time="8"/>
+  <ScheduleInfo time="9"/>
+  <ScheduleInfo time="10"/>
+  <ScheduleInfo time="11"/>
+  <ScheduleInfo time="12"/>
+  <ScheduleInfo time="13"/>
+  <ScheduleInfo time="14"/>
+  <ScheduleInfo time="15"/>
+  <ScheduleInfo time="16"/>
+  <regnodes realName="fifo_B_PE_0_1_V_V_reg_954">
+    <nodeIds>57</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_C_drain_10_reg_1020">
+    <nodeIds>90</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_C_drain_7_reg_1002">
+    <nodeIds>81</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_B_PE_0_0_V_V_reg_936">
+    <nodeIds>48</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_A_PE_0_2_V_V_reg_912">
+    <nodeIds>36</nodeIds>
+  </regnodes>
+  <regnodes realName="B_V_c_reg_864">
+    <nodeIds>11</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_B_PE_2_0_V_V_reg_948">
+    <nodeIds>54</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_A_PE_1_0_V_V_reg_918">
+    <nodeIds>39</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_PE_1_1_s_reg_990">
+    <nodeIds>75</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_A_PE_0_0_V_V_reg_900">
+    <nodeIds>30</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_B_B_IO_L2_in_0_s_reg_888">
+    <nodeIds>24</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_B_PE_2_1_V_V_reg_966">
+    <nodeIds>63</nodeIds>
+  </regnodes>
+  <regnodes realName="A_V_c_reg_870">
+    <nodeIds>12</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_C_drain_8_reg_1008">
+    <nodeIds>84</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_PE_0_1_s_reg_984">
+    <nodeIds>72</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_C_drain_6_reg_996">
+    <nodeIds>78</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_B_B_IO_L2_in_1_s_reg_894">
+    <nodeIds>27</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_C_drain_11_reg_1026">
+    <nodeIds>93</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_PE_0_0_s_reg_972">
+    <nodeIds>66</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_A_PE_1_2_V_V_reg_930">
+    <nodeIds>45</nodeIds>
+  </regnodes>
+  <regnodes realName="C_V_c_reg_858">
+    <nodeIds>10</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_A_PE_0_1_V_V_reg_906">
+    <nodeIds>33</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_C_drain_9_reg_1014">
+    <nodeIds>87</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_A_A_IO_L2_in_0_s_reg_876">
+    <nodeIds>18</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_A_PE_1_1_V_V_reg_924">
+    <nodeIds>42</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_A_A_IO_L2_in_1_s_reg_882">
+    <nodeIds>21</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_C_drain_PE_1_0_s_reg_978">
+    <nodeIds>69</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_B_PE_1_0_V_V_reg_942">
+    <nodeIds>51</nodeIds>
+  </regnodes>
+  <regnodes realName="fifo_B_PE_1_1_V_V_reg_960">
+    <nodeIds>60</nodeIds>
+  </regnodes>
+  <expressionNodes realName="fifo_B_PE_0_0_V_V_fu_618">
+    <nodeIds>48</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_A_PE_1_2_V_V_fu_614">
+    <nodeIds>45</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_PE_1_1_s_fu_654">
+    <nodeIds>75</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="B_V_c_fu_570">
+    <nodeIds>11</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_B_B_IO_L2_in_1_s_fu_590">
+    <nodeIds>27</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_B_B_IO_L2_in_0_s_fu_586">
+    <nodeIds>24</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_PE_0_1_s_fu_650">
+    <nodeIds>72</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_A_A_IO_L2_in_0_s_fu_578">
+    <nodeIds>18</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_C_drain_8_fu_666">
+    <nodeIds>84</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_C_drain_7_fu_662">
+    <nodeIds>81</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_A_PE_1_0_V_V_fu_606">
+    <nodeIds>39</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_A_PE_0_2_V_V_fu_602">
+    <nodeIds>36</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_B_PE_2_0_V_V_fu_626">
+    <nodeIds>54</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_B_PE_0_1_V_V_fu_630">
+    <nodeIds>57</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_A_PE_0_0_V_V_fu_594">
+    <nodeIds>30</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_PE_0_0_s_fu_642">
+    <nodeIds>66</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_A_A_IO_L2_in_1_s_fu_582">
+    <nodeIds>21</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_B_PE_1_1_V_V_fu_634">
+    <nodeIds>60</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_A_PE_0_1_V_V_fu_598">
+    <nodeIds>33</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_B_PE_2_1_V_V_fu_638">
+    <nodeIds>63</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_C_drain_11_fu_678">
+    <nodeIds>93</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_C_drain_10_fu_674">
+    <nodeIds>90</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_C_drain_6_fu_658">
+    <nodeIds>78</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_A_PE_1_1_V_V_fu_610">
+    <nodeIds>42</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="C_V_c_fu_566">
+    <nodeIds>10</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_B_PE_1_0_V_V_fu_622">
+    <nodeIds>51</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="A_V_c_fu_574">
+    <nodeIds>12</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_PE_1_0_s_fu_646">
+    <nodeIds>69</nodeIds>
+  </expressionNodes>
+  <expressionNodes realName="fifo_C_drain_C_drain_9_fu_670">
+    <nodeIds>87</nodeIds>
+  </expressionNodes>
+  <moduleNodes realName="grp_A_IO_L3_in_fu_744">
+    <nodeIds>110</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_C_drain_IO_L3_out_fu_752">
+    <nodeIds>130</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_C_drain_IO_L1_out145_fu_793">
+    <nodeIds>125</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_PE_B_dummy_fu_834">
+    <nodeIds>123</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_A_IO_L2_in_tail_fu_780">
+    <nodeIds>112</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_C_drain_IO_L2_out_he_fu_839">
+    <nodeIds>128</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_B_IO_L2_in_fu_760">
+    <nodeIds>114</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_PE140_fu_709">
+    <nodeIds>117</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_C_drain_IO_L1_out_he_1_fu_813">
+    <nodeIds>126</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_PE142_fu_718">
+    <nodeIds>119</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_PE_fu_727">
+    <nodeIds>121</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_C_drain_IO_L1_out_he_fu_807">
+    <nodeIds>124</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_A_IO_L2_in_fu_767">
+    <nodeIds>111</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_C_drain_IO_L2_out_fu_786">
+    <nodeIds>129</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="call_ln818_kernel0_entry6_fu_845">
+    <nodeIds>109</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_C_drain_IO_L1_out_fu_800">
+    <nodeIds>127</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_PE_A_dummy141_fu_819">
+    <nodeIds>118</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_PE_B_dummy143_fu_824">
+    <nodeIds>120</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_B_IO_L2_in_tail_fu_774">
+    <nodeIds>115</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_PE_A_dummy_fu_829">
+    <nodeIds>122</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_B_IO_L3_in_fu_736">
+    <nodeIds>113</nodeIds>
+  </moduleNodes>
+  <moduleNodes realName="grp_PE139_fu_700">
+    <nodeIds>116</nodeIds>
+  </moduleNodes>
+  <ioNodes realName="B_V_read_read_fu_688">
+    <nodeIds>8</nodeIds>
+  </ioNodes>
+  <ioNodes realName="A_V_read_read_fu_694">
+    <nodeIds>9</nodeIds>
+  </ioNodes>
+  <ioNodes realName="C_V_read_read_fu_682">
+    <nodeIds>7</nodeIds>
+  </ioNodes>
+  <ioPorts name="A_V">
+    <contents name="read">
+      <nodeIds>9</nodeIds>
+    </contents>
+  </ioPorts>
+  <ioPorts name="B_V">
+    <contents name="read">
+      <nodeIds>8</nodeIds>
+    </contents>
+  </ioPorts>
+  <ioPorts name="C_V">
+    <contents name="read">
+      <nodeIds>7</nodeIds>
+    </contents>
+  </ioPorts>
+  <ioPorts name="gmem_A">
+    <contents name="call">
+      <nodeIds>110</nodeIds>
+    </contents>
+  </ioPorts>
+  <ioPorts name="gmem_B">
+    <contents name="call">
+      <nodeIds>113</nodeIds>
+    </contents>
+  </ioPorts>
+  <ioPorts name="gmem_C">
+    <contents name="call">
+      <nodeIds>130</nodeIds>
+    </contents>
+  </ioPorts>
+  <fsm>
+    <states id="1">
+      <operations id="7" stage="1" latency="1"/>
+      <operations id="8" stage="1" latency="1"/>
+      <operations id="9" stage="1" latency="1"/>
+      <operations id="10" stage="1" latency="1"/>
+      <operations id="11" stage="1" latency="1"/>
+      <operations id="12" stage="1" latency="1"/>
+      <operations id="18" stage="1" latency="1"/>
+      <operations id="21" stage="1" latency="1"/>
+      <operations id="24" stage="1" latency="1"/>
+      <operations id="27" stage="1" latency="1"/>
+      <operations id="30" stage="1" latency="1"/>
+      <operations id="33" stage="1" latency="1"/>
+      <operations id="36" stage="1" latency="1"/>
+      <operations id="39" stage="1" latency="1"/>
+      <operations id="42" stage="1" latency="1"/>
+      <operations id="45" stage="1" latency="1"/>
+      <operations id="48" stage="1" latency="1"/>
+      <operations id="51" stage="1" latency="1"/>
+      <operations id="54" stage="1" latency="1"/>
+      <operations id="57" stage="1" latency="1"/>
+      <operations id="60" stage="1" latency="1"/>
+      <operations id="63" stage="1" latency="1"/>
+      <operations id="66" stage="1" latency="1"/>
+      <operations id="69" stage="1" latency="1"/>
+      <operations id="72" stage="1" latency="1"/>
+      <operations id="75" stage="1" latency="1"/>
+      <operations id="78" stage="1" latency="1"/>
+      <operations id="81" stage="1" latency="1"/>
+      <operations id="84" stage="1" latency="1"/>
+      <operations id="87" stage="1" latency="1"/>
+      <operations id="90" stage="1" latency="1"/>
+      <operations id="93" stage="1" latency="1"/>
+      <operations id="109" stage="1" latency="1"/>
+    </states>
+    <states id="2">
+      <operations id="110" stage="2" latency="2"/>
+      <operations id="113" stage="2" latency="2"/>
+    </states>
+    <states id="3">
+      <operations id="110" stage="1" latency="2"/>
+      <operations id="113" stage="1" latency="2"/>
+    </states>
+    <states id="4">
+      <operations id="111" stage="2" latency="2"/>
+      <operations id="114" stage="2" latency="2"/>
+    </states>
+    <states id="5">
+      <operations id="111" stage="1" latency="2"/>
+      <operations id="114" stage="1" latency="2"/>
+    </states>
+    <states id="6">
+      <operations id="112" stage="2" latency="2"/>
+      <operations id="115" stage="2" latency="2"/>
+      <operations id="116" stage="2" latency="2"/>
+    </states>
+    <states id="7">
+      <operations id="112" stage="1" latency="2"/>
+      <operations id="115" stage="1" latency="2"/>
+      <operations id="116" stage="1" latency="2"/>
+    </states>
+    <states id="8">
+      <operations id="117" stage="2" latency="2"/>
+      <operations id="119" stage="2" latency="2"/>
+      <operations id="124" stage="2" latency="2"/>
+    </states>
+    <states id="9">
+      <operations id="117" stage="1" latency="2"/>
+      <operations id="119" stage="1" latency="2"/>
+      <operations id="124" stage="1" latency="2"/>
+    </states>
+    <states id="10">
+      <operations id="118" stage="2" latency="2"/>
+      <operations id="120" stage="2" latency="2"/>
+      <operations id="121" stage="2" latency="2"/>
+      <operations id="125" stage="2" latency="2"/>
+      <operations id="126" stage="2" latency="2"/>
+    </states>
+    <states id="11">
+      <operations id="118" stage="1" latency="2"/>
+      <operations id="120" stage="1" latency="2"/>
+      <operations id="121" stage="1" latency="2"/>
+      <operations id="125" stage="1" latency="2"/>
+      <operations id="126" stage="1" latency="2"/>
+    </states>
+    <states id="12">
+      <operations id="122" stage="2" latency="2"/>
+      <operations id="123" stage="2" latency="2"/>
+      <operations id="127" stage="2" latency="2"/>
+      <operations id="128" stage="2" latency="2"/>
+    </states>
+    <states id="13">
+      <operations id="122" stage="1" latency="2"/>
+      <operations id="123" stage="1" latency="2"/>
+      <operations id="127" stage="1" latency="2"/>
+      <operations id="128" stage="1" latency="2"/>
+    </states>
+    <states id="14">
+      <operations id="129" stage="2" latency="2"/>
+    </states>
+    <states id="15">
+      <operations id="129" stage="1" latency="2"/>
+    </states>
+    <states id="16">
+      <operations id="130" stage="2" latency="2"/>
+    </states>
+    <states id="17">
+      <operations id="13" stage="1" latency="1"/>
+      <operations id="14" stage="1" latency="1"/>
+      <operations id="15" stage="1" latency="1"/>
+      <operations id="16" stage="1" latency="1"/>
+      <operations id="17" stage="1" latency="1"/>
+      <operations id="19" stage="1" latency="1"/>
+      <operations id="20" stage="1" latency="1"/>
+      <operations id="22" stage="1" latency="1"/>
+      <operations id="23" stage="1" latency="1"/>
+      <operations id="25" stage="1" latency="1"/>
+      <operations id="26" stage="1" latency="1"/>
+      <operations id="28" stage="1" latency="1"/>
+      <operations id="29" stage="1" latency="1"/>
+      <operations id="31" stage="1" latency="1"/>
+      <operations id="32" stage="1" latency="1"/>
+      <operations id="34" stage="1" latency="1"/>
+      <operations id="35" stage="1" latency="1"/>
+      <operations id="37" stage="1" latency="1"/>
+      <operations id="38" stage="1" latency="1"/>
+      <operations id="40" stage="1" latency="1"/>
+      <operations id="41" stage="1" latency="1"/>
+      <operations id="43" stage="1" latency="1"/>
+      <operations id="44" stage="1" latency="1"/>
+      <operations id="46" stage="1" latency="1"/>
+      <operations id="47" stage="1" latency="1"/>
+      <operations id="49" stage="1" latency="1"/>
+      <operations id="50" stage="1" latency="1"/>
+      <operations id="52" stage="1" latency="1"/>
+      <operations id="53" stage="1" latency="1"/>
+      <operations id="55" stage="1" latency="1"/>
+      <operations id="56" stage="1" latency="1"/>
+      <operations id="58" stage="1" latency="1"/>
+      <operations id="59" stage="1" latency="1"/>
+      <operations id="61" stage="1" latency="1"/>
+      <operations id="62" stage="1" latency="1"/>
+      <operations id="64" stage="1" latency="1"/>
+      <operations id="65" stage="1" latency="1"/>
+      <operations id="67" stage="1" latency="1"/>
+      <operations id="68" stage="1" latency="1"/>
+      <operations id="70" stage="1" latency="1"/>
+      <operations id="71" stage="1" latency="1"/>
+      <operations id="73" stage="1" latency="1"/>
+      <operations id="74" stage="1" latency="1"/>
+      <operations id="76" stage="1" latency="1"/>
+      <operations id="77" stage="1" latency="1"/>
+      <operations id="79" stage="1" latency="1"/>
+      <operations id="80" stage="1" latency="1"/>
+      <operations id="82" stage="1" latency="1"/>
+      <operations id="83" stage="1" latency="1"/>
+      <operations id="85" stage="1" latency="1"/>
+      <operations id="86" stage="1" latency="1"/>
+      <operations id="88" stage="1" latency="1"/>
+      <operations id="89" stage="1" latency="1"/>
+      <operations id="91" stage="1" latency="1"/>
+      <operations id="92" stage="1" latency="1"/>
+      <operations id="94" stage="1" latency="1"/>
+      <operations id="95" stage="1" latency="1"/>
+      <operations id="96" stage="1" latency="1"/>
+      <operations id="97" stage="1" latency="1"/>
+      <operations id="98" stage="1" latency="1"/>
+      <operations id="99" stage="1" latency="1"/>
+      <operations id="100" stage="1" latency="1"/>
+      <operations id="101" stage="1" latency="1"/>
+      <operations id="102" stage="1" latency="1"/>
+      <operations id="103" stage="1" latency="1"/>
+      <operations id="104" stage="1" latency="1"/>
+      <operations id="105" stage="1" latency="1"/>
+      <operations id="106" stage="1" latency="1"/>
+      <operations id="107" stage="1" latency="1"/>
+      <operations id="108" stage="1" latency="1"/>
+      <operations id="130" stage="1" latency="2"/>
+      <operations id="131" stage="1" latency="1"/>
+    </states>
+    <transitions inState="1" outState="2">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="2" outState="3">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="3" outState="4">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="4" outState="5">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="5" outState="6">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="6" outState="7">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="7" outState="8">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="8" outState="9">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="9" outState="10">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="10" outState="11">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="11" outState="12">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="12" outState="13">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="13" outState="14">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="14" outState="15">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="15" outState="16">
+      <condition id="-1"/>
+    </transitions>
+    <transitions inState="16" outState="17">
+      <condition id="-1"/>
+    </transitions>
+  </fsm>
+  <CFGRegionsRoot>
+    <cfgRegions mId="1" mTag="kernel0" mII="-1" mDepth="-1" mMinTripCount="-1" mMaxTripCount="-1" mMinLatency="135" mMaxLatency="147" mIsDfPipe="true">
+      <basicBlocks>132</basicBlocks>
+      <mDfPipe allPipePinInst="//@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.0/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.1/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.2/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.3/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.4/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.5/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.6/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.7/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.8/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.9/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.10/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.11/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.12/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.13/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.14/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.15/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.16/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.17/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.18/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.19/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.20/@pins.0/@inst //@CFGRegionsRoot/@cfgRegions.0/@mDfPipe/@processe_list.21/@pins.0/@inst">
+        <processe_list name="kernel0_entry6_U0" ssdmobj_id="109">
+          <pins>
+            <port name="A_V" dir="DirEnd"/>
+            <inst name="kernel0_entry6_U0" ssdmobj_id="109" object_id="_242"/>
+          </pins>
+          <pins>
+            <port name="B_V" dir="DirEnd"/>
+            <inst name="kernel0_entry6_U0" ssdmobj_id="109" object_id="_242"/>
+          </pins>
+          <pins>
+            <port name="C_V" dir="DirEnd"/>
+            <inst name="kernel0_entry6_U0" ssdmobj_id="109" object_id="_242"/>
+          </pins>
+          <pins>
+            <port name="A_V_out" type="BUSType"/>
+            <inst name="kernel0_entry6_U0" ssdmobj_id="109" object_id="_242"/>
+          </pins>
+          <pins>
+            <port name="B_V_out" type="BUSType"/>
+            <inst name="kernel0_entry6_U0" ssdmobj_id="109" object_id="_242"/>
+          </pins>
+          <pins>
+            <port name="C_V_out" type="BUSType"/>
+            <inst name="kernel0_entry6_U0" ssdmobj_id="109" object_id="_242"/>
+          </pins>
+        </processe_list>
+        <processe_list name="A_IO_L3_in_U0" ssdmobj_id="110">
+          <pins>
+            <port name="A_V" dir="DirOut"/>
+            <inst name="A_IO_L3_in_U0" ssdmobj_id="110" object_id="_256"/>
+          </pins>
+          <pins>
+            <port name="A_V_offset"/>
+            <inst name="A_IO_L3_in_U0" ssdmobj_id="110" object_id="_256"/>
+          </pins>
+          <pins>
+            <port name="fifo_A_local_out_V_V" type="BUSType"/>
+            <inst name="A_IO_L3_in_U0" ssdmobj_id="110" object_id="_256"/>
+          </pins>
+        </processe_list>
+        <processe_list name="A_IO_L2_in_U0" ssdmobj_id="111">
+          <pins>
+            <port name="fifo_A_in_V_V"/>
+            <inst name="A_IO_L2_in_U0" ssdmobj_id="111" object_id="_264"/>
+          </pins>
+          <pins>
+            <port name="fifo_A_out_V_V" type="BUSType"/>
+            <inst name="A_IO_L2_in_U0" ssdmobj_id="111" object_id="_264"/>
+          </pins>
+          <pins>
+            <port name="fifo_A_local_out_V_V" type="BUSType"/>
+            <inst name="A_IO_L2_in_U0" ssdmobj_id="111" object_id="_264"/>
+          </pins>
+        </processe_list>
+        <processe_list name="A_IO_L2_in_tail_U0" ssdmobj_id="112">
+          <pins>
+            <port name="fifo_A_in_V_V"/>
+            <inst name="A_IO_L2_in_tail_U0" ssdmobj_id="112" object_id="_272"/>
+          </pins>
+          <pins>
+            <port name="fifo_A_local_out_V_V" type="BUSType"/>
+            <inst name="A_IO_L2_in_tail_U0" ssdmobj_id="112" object_id="_272"/>
+          </pins>
+        </processe_list>
+        <processe_list name="B_IO_L3_in_U0" ssdmobj_id="113">
+          <pins>
+            <port name="B_V" dir="DirOut"/>
+            <inst name="B_IO_L3_in_U0" ssdmobj_id="113" object_id="_278"/>
+          </pins>
+          <pins>
+            <port name="B_V_offset"/>
+            <inst name="B_IO_L3_in_U0" ssdmobj_id="113" object_id="_278"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_local_out_V_V" type="BUSType"/>
+            <inst name="B_IO_L3_in_U0" ssdmobj_id="113" object_id="_278"/>
+          </pins>
+        </processe_list>
+        <processe_list name="B_IO_L2_in_U0" ssdmobj_id="114">
+          <pins>
+            <port name="fifo_B_in_V_V"/>
+            <inst name="B_IO_L2_in_U0" ssdmobj_id="114" object_id="_286"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_out_V_V" type="BUSType"/>
+            <inst name="B_IO_L2_in_U0" ssdmobj_id="114" object_id="_286"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_local_out_V_V" type="BUSType"/>
+            <inst name="B_IO_L2_in_U0" ssdmobj_id="114" object_id="_286"/>
+          </pins>
+        </processe_list>
+        <processe_list name="B_IO_L2_in_tail_U0" ssdmobj_id="115">
+          <pins>
+            <port name="fifo_B_in_V_V"/>
+            <inst name="B_IO_L2_in_tail_U0" ssdmobj_id="115" object_id="_294"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_local_out_V_V" type="BUSType"/>
+            <inst name="B_IO_L2_in_tail_U0" ssdmobj_id="115" object_id="_294"/>
+          </pins>
+        </processe_list>
+        <processe_list name="PE139_U0" ssdmobj_id="116">
+          <pins>
+            <port name="fifo_A_in_V_V"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </pins>
+          <pins>
+            <port name="fifo_A_out_V_V" type="BUSType"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_in_V_V"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_out_V_V" type="BUSType"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_out_V" type="BUSType"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </pins>
+        </processe_list>
+        <processe_list name="PE140_U0" ssdmobj_id="117">
+          <pins>
+            <port name="fifo_A_in_V_V"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </pins>
+          <pins>
+            <port name="fifo_A_out_V_V" type="BUSType"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_in_V_V"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_out_V_V" type="BUSType"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_out_V" type="BUSType"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </pins>
+        </processe_list>
+        <processe_list name="PE_A_dummy141_U0" ssdmobj_id="118">
+          <pins>
+            <port name="fifo_A_in_V_V"/>
+            <inst name="PE_A_dummy141_U0" ssdmobj_id="118" object_id="_324"/>
+          </pins>
+        </processe_list>
+        <processe_list name="PE142_U0" ssdmobj_id="119">
+          <pins>
+            <port name="fifo_A_in_V_V"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </pins>
+          <pins>
+            <port name="fifo_A_out_V_V" type="BUSType"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_in_V_V"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_out_V_V" type="BUSType"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_out_V" type="BUSType"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </pins>
+        </processe_list>
+        <processe_list name="PE_B_dummy143_U0" ssdmobj_id="120">
+          <pins>
+            <port name="fifo_B_in_V_V"/>
+            <inst name="PE_B_dummy143_U0" ssdmobj_id="120" object_id="_340"/>
+          </pins>
+        </processe_list>
+        <processe_list name="PE_U0" ssdmobj_id="121">
+          <pins>
+            <port name="fifo_A_in_V_V"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </pins>
+          <pins>
+            <port name="fifo_A_out_V_V" type="BUSType"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_in_V_V"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </pins>
+          <pins>
+            <port name="fifo_B_out_V_V" type="BUSType"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_out_V" type="BUSType"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </pins>
+        </processe_list>
+        <processe_list name="PE_A_dummy_U0" ssdmobj_id="122">
+          <pins>
+            <port name="fifo_A_in_V_V"/>
+            <inst name="PE_A_dummy_U0" ssdmobj_id="122" object_id="_356"/>
+          </pins>
+        </processe_list>
+        <processe_list name="PE_B_dummy_U0" ssdmobj_id="123">
+          <pins>
+            <port name="fifo_B_in_V_V"/>
+            <inst name="PE_B_dummy_U0" ssdmobj_id="123" object_id="_360"/>
+          </pins>
+        </processe_list>
+        <processe_list name="C_drain_IO_L1_out_he_U0" ssdmobj_id="124">
+          <pins>
+            <port name="fifo_C_drain_out_V_V" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out_he_U0" ssdmobj_id="124" object_id="_364"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_local_in_V"/>
+            <inst name="C_drain_IO_L1_out_he_U0" ssdmobj_id="124" object_id="_364"/>
+          </pins>
+        </processe_list>
+        <processe_list name="C_drain_IO_L1_out145_U0" ssdmobj_id="125">
+          <pins>
+            <port name="fifo_C_drain_in_V_V"/>
+            <inst name="C_drain_IO_L1_out145_U0" ssdmobj_id="125" object_id="_370"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_out_V_V" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out145_U0" ssdmobj_id="125" object_id="_370"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_local_in_V"/>
+            <inst name="C_drain_IO_L1_out145_U0" ssdmobj_id="125" object_id="_370"/>
+          </pins>
+        </processe_list>
+        <processe_list name="C_drain_IO_L1_out_he_1_U0" ssdmobj_id="126">
+          <pins>
+            <port name="fifo_C_drain_out_V_V" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out_he_1_U0" ssdmobj_id="126" object_id="_378"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_local_in_V"/>
+            <inst name="C_drain_IO_L1_out_he_1_U0" ssdmobj_id="126" object_id="_378"/>
+          </pins>
+        </processe_list>
+        <processe_list name="C_drain_IO_L1_out_U0" ssdmobj_id="127">
+          <pins>
+            <port name="fifo_C_drain_in_V_V"/>
+            <inst name="C_drain_IO_L1_out_U0" ssdmobj_id="127" object_id="_384"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_out_V_V" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out_U0" ssdmobj_id="127" object_id="_384"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_local_in_V"/>
+            <inst name="C_drain_IO_L1_out_U0" ssdmobj_id="127" object_id="_384"/>
+          </pins>
+        </processe_list>
+        <processe_list name="C_drain_IO_L2_out_he_U0" ssdmobj_id="128">
+          <pins>
+            <port name="fifo_C_drain_out_V_V" type="BUSType"/>
+            <inst name="C_drain_IO_L2_out_he_U0" ssdmobj_id="128" object_id="_392"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_local_in_V_V"/>
+            <inst name="C_drain_IO_L2_out_he_U0" ssdmobj_id="128" object_id="_392"/>
+          </pins>
+        </processe_list>
+        <processe_list name="C_drain_IO_L2_out_U0" ssdmobj_id="129">
+          <pins>
+            <port name="fifo_C_drain_in_V_V"/>
+            <inst name="C_drain_IO_L2_out_U0" ssdmobj_id="129" object_id="_398"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_out_V_V" type="BUSType"/>
+            <inst name="C_drain_IO_L2_out_U0" ssdmobj_id="129" object_id="_398"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_local_in_V_V"/>
+            <inst name="C_drain_IO_L2_out_U0" ssdmobj_id="129" object_id="_398"/>
+          </pins>
+        </processe_list>
+        <processe_list name="C_drain_IO_L3_out_U0" ssdmobj_id="130">
+          <pins>
+            <port name="C_V" dir="DirOut" type="BUSType"/>
+            <inst name="C_drain_IO_L3_out_U0" ssdmobj_id="130" object_id="_406"/>
+          </pins>
+          <pins>
+            <port name="C_V_offset"/>
+            <inst name="C_drain_IO_L3_out_U0" ssdmobj_id="130" object_id="_406"/>
+          </pins>
+          <pins>
+            <port name="fifo_C_drain_local_in_V_V"/>
+            <inst name="C_drain_IO_L3_out_U0" ssdmobj_id="130" object_id="_406"/>
+          </pins>
+        </processe_list>
+        <channel_list depth="2" bitwidth="32" name="A_V_c" ssdmobj_id="12">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="kernel0_entry6_U0" ssdmobj_id="109" object_id="_242"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="A_IO_L3_in_U0" ssdmobj_id="110" object_id="_256"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="2" bitwidth="32" name="B_V_c" ssdmobj_id="11">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="kernel0_entry6_U0" ssdmobj_id="109" object_id="_242"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="B_IO_L3_in_U0" ssdmobj_id="113" object_id="_278"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="9" bitwidth="32" name="C_V_c" ssdmobj_id="10">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="kernel0_entry6_U0" ssdmobj_id="109" object_id="_242"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L3_out_U0" ssdmobj_id="130" object_id="_406"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="128" name="fifo_A_A_IO_L2_in_0_s" ssdmobj_id="18">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="A_IO_L3_in_U0" ssdmobj_id="110" object_id="_256"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="A_IO_L2_in_U0" ssdmobj_id="111" object_id="_264"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="128" name="fifo_A_A_IO_L2_in_1_s" ssdmobj_id="21">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="A_IO_L2_in_U0" ssdmobj_id="111" object_id="_264"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="A_IO_L2_in_tail_U0" ssdmobj_id="112" object_id="_272"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_A_PE_0_0_V_V" ssdmobj_id="30">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="A_IO_L2_in_U0" ssdmobj_id="111" object_id="_264"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_A_PE_1_0_V_V" ssdmobj_id="39">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="A_IO_L2_in_tail_U0" ssdmobj_id="112" object_id="_272"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="128" name="fifo_B_B_IO_L2_in_0_s" ssdmobj_id="24">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="B_IO_L3_in_U0" ssdmobj_id="113" object_id="_278"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="B_IO_L2_in_U0" ssdmobj_id="114" object_id="_286"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="128" name="fifo_B_B_IO_L2_in_1_s" ssdmobj_id="27">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="B_IO_L2_in_U0" ssdmobj_id="114" object_id="_286"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="B_IO_L2_in_tail_U0" ssdmobj_id="115" object_id="_294"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_B_PE_0_0_V_V" ssdmobj_id="48">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="B_IO_L2_in_U0" ssdmobj_id="114" object_id="_286"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_B_PE_0_1_V_V" ssdmobj_id="57">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="B_IO_L2_in_tail_U0" ssdmobj_id="115" object_id="_294"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_A_PE_0_1_V_V" ssdmobj_id="33">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_B_PE_1_0_V_V" ssdmobj_id="51">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="32" name="fifo_C_drain_PE_0_0_s" ssdmobj_id="66">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE139_U0" ssdmobj_id="116" object_id="_300"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out_he_U0" ssdmobj_id="124" object_id="_364"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_A_PE_0_2_V_V" ssdmobj_id="36">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE_A_dummy141_U0" ssdmobj_id="118" object_id="_324"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_B_PE_1_1_V_V" ssdmobj_id="60">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="32" name="fifo_C_drain_PE_0_1_s" ssdmobj_id="72">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE140_U0" ssdmobj_id="117" object_id="_312"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out_he_1_U0" ssdmobj_id="126" object_id="_378"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_A_PE_1_1_V_V" ssdmobj_id="42">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_B_PE_2_0_V_V" ssdmobj_id="54">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE_B_dummy143_U0" ssdmobj_id="120" object_id="_340"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="32" name="fifo_C_drain_PE_1_0_s" ssdmobj_id="69">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE142_U0" ssdmobj_id="119" object_id="_328"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out145_U0" ssdmobj_id="125" object_id="_370"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_A_PE_1_2_V_V" ssdmobj_id="45">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE_A_dummy_U0" ssdmobj_id="122" object_id="_356"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_B_PE_2_1_V_V" ssdmobj_id="63">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="PE_B_dummy_U0" ssdmobj_id="123" object_id="_360"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="32" name="fifo_C_drain_PE_1_1_s" ssdmobj_id="75">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="PE_U0" ssdmobj_id="121" object_id="_344"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out_U0" ssdmobj_id="127" object_id="_384"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_C_drain_C_drain_6" ssdmobj_id="78">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="C_drain_IO_L1_out_he_U0" ssdmobj_id="124" object_id="_364"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out145_U0" ssdmobj_id="125" object_id="_370"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_C_drain_C_drain_7" ssdmobj_id="81">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="C_drain_IO_L1_out145_U0" ssdmobj_id="125" object_id="_370"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L2_out_he_U0" ssdmobj_id="128" object_id="_392"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_C_drain_C_drain_8" ssdmobj_id="84">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="C_drain_IO_L1_out_he_1_U0" ssdmobj_id="126" object_id="_378"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L1_out_U0" ssdmobj_id="127" object_id="_384"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_C_drain_C_drain_9" ssdmobj_id="87">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="C_drain_IO_L1_out_U0" ssdmobj_id="127" object_id="_384"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L2_out_U0" ssdmobj_id="129" object_id="_398"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_C_drain_C_drain_10" ssdmobj_id="90">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="C_drain_IO_L2_out_he_U0" ssdmobj_id="128" object_id="_392"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L2_out_U0" ssdmobj_id="129" object_id="_398"/>
+          </sink>
+        </channel_list>
+        <channel_list depth="1" bitwidth="64" name="fifo_C_drain_C_drain_11" ssdmobj_id="93">
+          <source>
+            <port name="in" dir="DirEnd"/>
+            <inst name="C_drain_IO_L2_out_U0" ssdmobj_id="129" object_id="_398"/>
+          </source>
+          <sink>
+            <port name="out" dir="DirEnd" type="BUSType"/>
+            <inst name="C_drain_IO_L3_out_U0" ssdmobj_id="130" object_id="_406"/>
+          </sink>
+        </channel_list>
+      </mDfPipe>
+    </cfgRegions>
+  </CFGRegionsRoot>
+</cdfg:DBCdfg>

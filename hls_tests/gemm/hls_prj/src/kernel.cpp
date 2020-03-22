@@ -21,6 +21,13 @@ int main(int argc, char **argv) {
       C_golden[i][j] = 0;
     }
 
+  A_t4 *A_hw = (A_t4 *)malloc(I * K * sizeof(data_t));
+  B_t4 *B_hw = (B_t4 *)malloc(J * K * sizeof(data_t));
+  C_t2 *C_hw = (C_t2 *)malloc(I * J * sizeof(data_t));
+
+  memcpy(A_hw, A, I * K * sizeof(data_t));
+  memcpy(B_hw, B, J * K * sizeof(data_t));
+
 //#pragma scop
 //  for (int i = 0; i < I; i++)
 //    for (int j = 0; j < J; j++) {
@@ -30,9 +37,15 @@ int main(int argc, char **argv) {
 //      }
 //    }
 //#pragma endscop
-  kernel0((A_t4 *)A, (B_t4 *)B, (C_t2 *)C);
+  kernel0(A_hw, B_hw, C_hw);
 //  kernel0((data_t *)A, (data_t *)B, (data_t *)C);
 //  kernel0((A_t2 *)A, (B_t2 *)B, (data_t *)C);
+
+  memcpy(C, C_hw, I * J * sizeof(data_t));
+
+  free(A_hw);
+  free(B_hw);
+  free(C_hw);
 
   for (int i = 0; i < I; i++)
     for (int j = 0; j < J; j++) {

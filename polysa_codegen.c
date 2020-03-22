@@ -1450,6 +1450,10 @@ static __isl_give isl_ast_node *create_io_module_call_leaf(struct polysa_kernel 
     stmt->type = POLYSA_KERNEL_STMT_IO_MODULE_CALL_INTER_TRANS;
   else if (!strcmp(name, "io_module.intra_trans"))
     stmt->type = POLYSA_KERNEL_STMT_IO_MODULE_CALL_INTRA_TRANS;
+  else if (!strcmp(name, "io_module.inter_intra"))
+    stmt->type = POLYSA_KERNEL_STMT_IO_MODULE_CALL_INTER_INTRA;
+  else if (!strcmp(name, "io_module.intra_inter"))
+    stmt->type = POLYSA_KERNEL_STMT_IO_MODULE_CALL_INTRA_INTER;
   else if (!strcmp(name, "io_module.state_handle"))
     stmt->type = POLYSA_KERNEL_STMT_IO_MODULE_CALL_STATE_HANDLE;
   id = isl_id_alloc(ctx, name, stmt);

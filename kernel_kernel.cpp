@@ -24,10 +24,12 @@ void A_IO_L3_in(A_t4 *A, hls::stream<A_t4> &fifo_A_local_out)
 /* Module Definition */
 
 /* Module Definition */
-void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out)
+void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out, bool intra_trans_en)
 {
 #pragma HLS INLINE OFF
     int p0 = idx; // module id
+
+    if (!intra_trans_en) return;
 
     // io_L2
     // io_L1
@@ -61,10 +63,12 @@ void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4
 /* Module Definition */
 
 /* Module Definition */
-void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out)
+void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, bool inter_trans_en)
 {
 #pragma HLS INLINE OFF
     int p0 = idx; // module id
+
+    if (!inter_trans_en) return;
 
     for (int c3 = p0; c3 <= 1; c3 += 1) {
       // io_L2
@@ -104,10 +108,13 @@ void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A
             // array
             // io_L3
             {
-              if (inter_trans_en)
-                  A_IO_L2_in_inter_trans(idx, c0, c1, c2, arb == 0? local_A_pong : local_A_ping, fifo_A_in, fifo_A_out);
-              if (intra_trans_en)
-                  A_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, arb == 0? local_A_ping : local_A_pong, fifo_A_local_out);
+              if (arb == 0) {
+                  A_IO_L2_in_inter_trans(idx, c0, c1, c2, local_A_pong, fifo_A_in, fifo_A_out, inter_trans_en);
+                  A_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, local_A_ping, fifo_A_local_out, intra_trans_en);
+              } else {
+                  A_IO_L2_in_inter_trans(idx, c0, c1, c2, local_A_ping, fifo_A_in, fifo_A_out, inter_trans_en);
+                  A_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, local_A_pong, fifo_A_local_out, intra_trans_en);
+              }
               intra_trans_en = 1;
               arb = !arb;
               c0_prev = c0;
@@ -115,8 +122,11 @@ void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A
               c2_prev = c2;
             }
           }
-      if (intra_trans_en)
-          A_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, arb == 0? local_A_ping : local_A_pong, fifo_A_local_out);
+      if (arb == 0) {
+          A_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, local_A_ping, fifo_A_local_out, intra_trans_en);
+      } else {
+          A_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, local_A_pong, fifo_A_local_out, intra_trans_en);
+      }
     }
 }
 /* Module Definition */
@@ -146,10 +156,12 @@ void B_IO_L3_in(B_t4 *B, hls::stream<B_t4> &fifo_B_local_out)
 /* Module Definition */
 
 /* Module Definition */
-void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out)
+void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out, bool intra_trans_en)
 {
 #pragma HLS INLINE OFF
     int p0 = idx; // module id
+
+    if (!intra_trans_en) return;
 
     // io_L2
     // io_L1
@@ -183,10 +195,12 @@ void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4
 /* Module Definition */
 
 /* Module Definition */
-void B_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out)
+void B_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, bool inter_trans_en)
 {
 #pragma HLS INLINE OFF
     int p0 = idx; // module id
+
+    if (!inter_trans_en) return;
 
     for (int c3 = p0; c3 <= 1; c3 += 1) {
       // io_L2
@@ -226,10 +240,13 @@ void B_IO_L2_in(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B
             // array
             // io_L3
             {
-              if (inter_trans_en)
-                  B_IO_L2_in_inter_trans(idx, c0, c1, c2, arb == 0? local_B_pong : local_B_ping, fifo_B_in, fifo_B_out);
-              if (intra_trans_en)
-                  B_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, arb == 0? local_B_ping : local_B_pong, fifo_B_local_out);
+              if (arb == 0) {
+                  B_IO_L2_in_inter_trans(idx, c0, c1, c2, local_B_pong, fifo_B_in, fifo_B_out, inter_trans_en);
+                  B_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, local_B_ping, fifo_B_local_out, intra_trans_en);
+              } else {
+                  B_IO_L2_in_inter_trans(idx, c0, c1, c2, local_B_ping, fifo_B_in, fifo_B_out, inter_trans_en);
+                  B_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, local_B_pong, fifo_B_local_out, intra_trans_en);
+              }
               intra_trans_en = 1;
               arb = !arb;
               c0_prev = c0;
@@ -237,8 +254,11 @@ void B_IO_L2_in(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B
               c2_prev = c2;
             }
           }
-      if (intra_trans_en)
-          B_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, arb == 0? local_B_ping : local_B_pong, fifo_B_local_out);
+      if (arb == 0) {
+          B_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, local_B_ping, fifo_B_local_out, intra_trans_en);
+      } else {
+          B_IO_L2_in_intra_trans(idx, c0_prev, c1_prev, c2_prev, local_B_pong, fifo_B_local_out, intra_trans_en);
+      }
     }
 }
 /* Module Definition */
@@ -319,10 +339,12 @@ void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_
 /* Module Definition */
 
 /* Module Definition */
-void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c0, int c1, C_t2 local_C[2][1], hls::stream<int> &fifo_C_drain_local_in)
+void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c0, int c1, C_t2 local_C[2][1], hls::stream<int> &fifo_C_drain_local_in, bool intra_trans_en)
 {
 #pragma HLS INLINE OFF
     int p0 = idx, p1 = idy; // module id
+
+    if (!intra_trans_en) return;
 
     // io_L1
     // pe
@@ -355,10 +377,12 @@ void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c0, int c1, C_t2 local_
 /* Module Definition */
 
 /* Module Definition */
-void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out)
+void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)
 {
 #pragma HLS INLINE OFF
     int p0 = idx, p1 = idy; // module id
+
+    if (!inter_trans_en) return;
 
     for (int c4 = 0; c4 <= p1; c4 += 1) {
       // io_L1
@@ -397,18 +421,24 @@ void C_drain_IO_L1_out(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_in, hls
           // io_L3
           // io_L2
           {
-            if (intra_trans_en)
-                C_drain_IO_L1_out_intra_trans(idx, idy, c0, c1, arb == 0? local_C_ping : local_C_pong, fifo_C_drain_local_in);
-            if (inter_trans_en)
-                C_drain_IO_L1_out_inter_trans(idx, idy, c0_prev, c1_prev, arb == 0? local_C_pong : local_C_ping, fifo_C_drain_in, fifo_C_drain_out);
+            if (arb == 0) {
+                C_drain_IO_L1_out_intra_trans(idx, idy, c0, c1, local_C_ping, fifo_C_drain_local_in, intra_trans_en);
+                C_drain_IO_L1_out_inter_trans(idx, idy, c0_prev, c1_prev, local_C_pong, fifo_C_drain_in, fifo_C_drain_out, inter_trans_en);
+            } else {
+                C_drain_IO_L1_out_intra_trans(idx, idy, c0, c1, local_C_pong, fifo_C_drain_local_in, intra_trans_en);
+                C_drain_IO_L1_out_inter_trans(idx, idy, c0_prev, c1_prev, local_C_ping, fifo_C_drain_in, fifo_C_drain_out, inter_trans_en);
+            }
             inter_trans_en = 1;
             arb = !arb;
             c0_prev = c0;
             c1_prev = c1;
           }
         }
-      if (inter_trans_en)
-          C_drain_IO_L1_out_inter_trans(idx, idy, c0_prev, c1_prev, arb == 0? local_C_pong : local_C_ping, fifo_C_drain_in, fifo_C_drain_out);
+      if (arb == 0) {
+          C_drain_IO_L1_out_inter_trans(idx, idy, c0_prev, c1_prev, local_C_pong, fifo_C_drain_in, fifo_C_drain_out, inter_trans_en);
+      } else {
+          C_drain_IO_L1_out_inter_trans(idx, idy, c0_prev, c1_prev, local_C_ping, fifo_C_drain_in, fifo_C_drain_out, inter_trans_en);
+      }
     }
 }
 /* Module Definition */

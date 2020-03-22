@@ -6,11 +6,11 @@
 
 source /opt/tools/xilinx/Vivado/2019.2/scripts/vivado_hls/hls.tcl -notrace
 INFO: [HLS 200-10] Running '/opt/tools/xilinx/Vivado/2019.2/bin/unwrapped/lnx64.o/vivado_hls'
-INFO: [HLS 200-10] For user 'jaywang' on host 'u14-jaywang' (Linux_x86_64 version 4.4.0-169-generic) on Sat Mar 21 21:23:22 PDT 2020
-INFO: [HLS 200-10] On os Ubuntu 16.04.6 LTS
+INFO: [HLS 200-10] For user 'jaywang' on host 'localhost' (Linux_x86_64 version 4.4.0-169-generic) on Sun Mar 22 14:26:15 PDT 2020
+INFO: [HLS 200-10] On os "CentOS Linux release 7.5.1804 (Core) "
 INFO: [HLS 200-10] In directory '/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj'
-WARNING: [HLS 200-40] Environment variable 'C_INCLUDE_PATH' is set to /opt/novell/mono/include:/home/jie_local/llvm-3.8/include:/curr/jaywang/research/rose-dev/rose-install/include.
-WARNING: [HLS 200-40] Environment variable 'CPLUS_INCLUDE_PATH' is set to :/home/jie_local/llvm-3.8/include:/home/jie_local/llvm-3.8/include.
+WARNING: [HLS 200-40] Environment variable 'C_INCLUDE_PATH' is set to /opt/novell/mono/include.
+WARNING: [HLS 200-40] Environment variable 'CPLUS_INCLUDE_PATH' is set to :/home/jie_local/llvm-3.8/include.
 Sourcing Tcl script 'script.tcl'
 INFO: [HLS 200-10] Opening project '/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj'.
 INFO: [HLS 200-10] Adding design file 'src/kernel_kernel.h' to the project
@@ -21,14 +21,1339 @@ INFO: [SYN 201-201] Setting up clock 'default' with a period of 5ns.
 INFO: [HLS 200-10] Setting target device to 'xcu200-fsgd2104-2-e'
 INFO: [SIM 211-2] *************** CSIM start ***************
 INFO: [SIM 211-4] CSIM will launch GCC as the compiler.
-   Compiling ../../../../src/kernel.cpp in debug mode
-   Compiling ../../../../src/kernel_xilinx.cpp in debug mode
-   Generating csim.exe
-WARNING: Hls::stream 'hls::stream<ap_uint<64> >.12' contains leftover data, which may result in RTL simulation hanging.
-WARNING: Hls::stream 'hls::stream<ap_uint<64> >.9' contains leftover data, which may result in RTL simulation hanging.
-WARNING: Hls::stream 'hls::stream<ap_uint<64> >.6' contains leftover data, which may result in RTL simulation hanging.
-WARNING: Hls::stream 'hls::stream<ap_uint<64> >.3' contains leftover data, which may result in RTL simulation hanging.
+make: `csim.exe' is up to date.
 passed!
 INFO: [SIM 211-1] CSim done with 0 errors.
 INFO: [SIM 211-3] *************** CSIM finish ***************
-INFO: [Common 17-206] Exiting vivado_hls at Sat Mar 21 21:23:37 2020...
+INFO: [SCHED 204-61] Option 'relax_ii_for_timing' is enabled, will increase II to preserve clock frequency constraints.
+INFO: [HLS 200-10] Analyzing design file 'src/kernel_xilinx.cpp' ... 
+INFO: [HLS 200-111] Finished Linking Time (s): cpu = 00:00:25 ; elapsed = 00:00:33 . Memory (MB): peak = 1047.125 ; gain = 523.035 ; free physical = 186742 ; free virtual = 193136
+INFO: [HLS 200-111] Finished Checking Pragmas Time (s): cpu = 00:00:25 ; elapsed = 00:00:33 . Memory (MB): peak = 1047.125 ; gain = 523.035 ; free physical = 186742 ; free virtual = 193136
+INFO: [HLS 200-10] Starting code transformations ...
+INFO: [HLS 200-111] Finished Standard Transforms Time (s): cpu = 00:00:27 ; elapsed = 00:00:35 . Memory (MB): peak = 1047.125 ; gain = 523.035 ; free physical = 186738 ; free virtual = 193133
+INFO: [HLS 200-10] Checking synthesizability ...
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<int, ap_uint<32> >' into 'PE' (src/kernel_xilinx.cpp:463) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<ap_uint<32>, int>' into 'PE' (src/kernel_xilinx.cpp:484) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<ap_uint<32>, int>.1' into 'C_drain_IO_L1_out_intra_trans' (src/kernel_xilinx.cpp:592) automatically.
+INFO: [HLS 200-111] Finished Checking Synthesizability Time (s): cpu = 00:00:28 ; elapsed = 00:00:36 . Memory (MB): peak = 1047.125 ; gain = 523.035 ; free physical = 186735 ; free virtual = 193130
+INFO: [XFORM 203-502] Unrolling all sub-loops inside loop 'Loop-1.1.2.1.1.1' (src/kernel_xilinx.cpp:456) in function 'PE' for pipelining.
+INFO: [XFORM 203-502] Unrolling small iteration loop 'Loop-1.1.1' (src/kernel_xilinx.cpp:773) in function 'C_drain_IO_L2_out_head' automatically.
+INFO: [XFORM 203-502] Unrolling small iteration loop 'Loop-1' (src/kernel_xilinx.cpp:637) in function 'C_drain_IO_L1_out_inter_trans_head' automatically.
+INFO: [XFORM 203-502] Unrolling all sub-loops inside loop 'Loop-1.1' (src/kernel_xilinx.cpp:576) in function 'C_drain_IO_L1_out_intra_trans' for pipelining.
+INFO: [XFORM 203-502] Unrolling small iteration loop 'Loop-1' (src/kernel_xilinx.cpp:315) in function 'B_IO_L2_in_inter_trans_tail' automatically.
+INFO: [XFORM 203-502] Unrolling all sub-loops inside loop 'Loop-1.1.1' (src/kernel_xilinx.cpp:255) in function 'B_IO_L2_in_intra_trans' for pipelining.
+INFO: [XFORM 203-502] Unrolling small iteration loop 'Loop-1' (src/kernel_xilinx.cpp:102) in function 'A_IO_L2_in_inter_trans_tail' automatically.
+INFO: [XFORM 203-502] Unrolling all sub-loops inside loop 'Loop-1.1.1' (src/kernel_xilinx.cpp:42) in function 'A_IO_L2_in_intra_trans' for pipelining.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1.1.2.1.1.1.1' (src/kernel_xilinx.cpp:461) in function 'PE' completely with a factor of 2.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1.1.2.1.1.1.2' (src/kernel_xilinx.cpp:470) in function 'PE' completely with a factor of 2.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1.1.2.1.1.1.3' (src/kernel_xilinx.cpp:477) in function 'PE' completely with a factor of 2.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1.1.1' (src/kernel_xilinx.cpp:773) in function 'C_drain_IO_L2_out_head' completely with a factor of 1.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1' (src/kernel_xilinx.cpp:637) in function 'C_drain_IO_L1_out_inter_trans_head' completely with a factor of 1.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1.1.1' (src/kernel_xilinx.cpp:585) in function 'C_drain_IO_L1_out_intra_trans' completely with a factor of 2.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1' (src/kernel_xilinx.cpp:315) in function 'B_IO_L2_in_inter_trans_tail' completely with a factor of 1.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:264) in function 'B_IO_L2_in_intra_trans' completely with a factor of 2.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1' (src/kernel_xilinx.cpp:102) in function 'A_IO_L2_in_inter_trans_tail' completely with a factor of 1.
+INFO: [HLS 200-489] Unrolling loop 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:51) in function 'A_IO_L2_in_intra_trans' completely with a factor of 2.
+INFO: [XFORM 203-102] Partitioning array 'local_A_ping.V' (src/kernel_xilinx.cpp:120) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A_pong.V' (src/kernel_xilinx.cpp:121) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A_ping.V' (src/kernel_xilinx.cpp:171) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A_pong.V' (src/kernel_xilinx.cpp:172) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B_ping.V' (src/kernel_xilinx.cpp:333) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B_pong.V' (src/kernel_xilinx.cpp:334) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B_ping.V' (src/kernel_xilinx.cpp:381) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B_pong.V' (src/kernel_xilinx.cpp:382) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_C_ping.V' (src/kernel_xilinx.cpp:655) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_C_pong.V' (src/kernel_xilinx.cpp:656) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_C_ping.V' (src/kernel_xilinx.cpp:696) in dimension 2 automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_C_pong.V' (src/kernel_xilinx.cpp:697) in dimension 2 automatically.
+INFO: [XFORM 203-101] Partitioning array 'local_A' (src/kernel_xilinx.cpp:429) in dimension 2 completely.
+INFO: [XFORM 203-101] Partitioning array 'local_B' (src/kernel_xilinx.cpp:431) in dimension 2 completely.
+INFO: [XFORM 203-101] Partitioning array 'buf_data_split.V' (src/kernel_xilinx.cpp:582) in dimension 1 completely.
+INFO: [XFORM 203-101] Partitioning array 'buf_data_split.V' (src/kernel_xilinx.cpp:261) in dimension 1 completely.
+INFO: [XFORM 203-101] Partitioning array 'buf_data_split.V' (src/kernel_xilinx.cpp:48) in dimension 1 completely.
+INFO: [XFORM 203-101] Partitioning array 'local_A' (src/kernel_xilinx.cpp:429) in dimension 2 completely.
+INFO: [XFORM 203-101] Partitioning array 'local_B' (src/kernel_xilinx.cpp:431) in dimension 2 completely.
+INFO: [XFORM 203-101] Partitioning array 'local_A' (src/kernel_xilinx.cpp:429) in dimension 2 completely.
+INFO: [XFORM 203-101] Partitioning array 'local_B' (src/kernel_xilinx.cpp:431) in dimension 2 completely.
+INFO: [XFORM 203-101] Partitioning array 'local_A' (src/kernel_xilinx.cpp:429) in dimension 2 completely.
+INFO: [XFORM 203-101] Partitioning array 'local_B' (src/kernel_xilinx.cpp:431) in dimension 2 completely.
+INFO: [XFORM 203-102] Partitioning array 'local_A.0' (src/kernel_xilinx.cpp:429) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A.1' (src/kernel_xilinx.cpp:429) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B.0' (src/kernel_xilinx.cpp:431) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B.1' (src/kernel_xilinx.cpp:431) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A.0' (src/kernel_xilinx.cpp:429) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A.1' (src/kernel_xilinx.cpp:429) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B.0' (src/kernel_xilinx.cpp:431) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B.1' (src/kernel_xilinx.cpp:431) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A.0' (src/kernel_xilinx.cpp:429) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A.1' (src/kernel_xilinx.cpp:429) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B.0' (src/kernel_xilinx.cpp:431) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B.1' (src/kernel_xilinx.cpp:431) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A.0' (src/kernel_xilinx.cpp:429) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_A.1' (src/kernel_xilinx.cpp:429) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B.0' (src/kernel_xilinx.cpp:431) automatically.
+INFO: [XFORM 203-102] Partitioning array 'local_B.1' (src/kernel_xilinx.cpp:431) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<int, ap_uint<32> >' into 'PE139' (src/kernel_xilinx.cpp:463) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<ap_uint<32>, int>' into 'PE139' (src/kernel_xilinx.cpp:484) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<int, ap_uint<32> >' into 'PE140' (src/kernel_xilinx.cpp:463) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<ap_uint<32>, int>' into 'PE140' (src/kernel_xilinx.cpp:484) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<int, ap_uint<32> >' into 'PE142' (src/kernel_xilinx.cpp:463) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<ap_uint<32>, int>' into 'PE142' (src/kernel_xilinx.cpp:484) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<int, ap_uint<32> >' into 'PE' (src/kernel_xilinx.cpp:463) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<ap_uint<32>, int>' into 'PE' (src/kernel_xilinx.cpp:484) automatically.
+INFO: [XFORM 203-602] Inlining function 'Reinterpret<ap_uint<32>, int>' into 'C_drain_IO_L1_out_intra_trans' (src/kernel_xilinx.cpp:592) automatically.
+INFO: [XFORM 203-712] Applying dataflow to function 'kernel0', detected/extracted 21 process function(s): 
+	 'A_IO_L3_in'
+	 'A_IO_L2_in'
+	 'A_IO_L2_in_tail'
+	 'B_IO_L3_in'
+	 'B_IO_L2_in'
+	 'B_IO_L2_in_tail'
+	 'PE139'
+	 'PE140'
+	 'PE_A_dummy141'
+	 'PE142'
+	 'PE_B_dummy143'
+	 'PE'
+	 'PE_A_dummy'
+	 'PE_B_dummy'
+	 'C_drain_IO_L1_out_head144'
+	 'C_drain_IO_L1_out145'
+	 'C_drain_IO_L1_out_head'
+	 'C_drain_IO_L1_out'
+	 'C_drain_IO_L2_out_head'
+	 'C_drain_IO_L2_out'
+	 'C_drain_IO_L3_out'.
+INFO: [HLS 200-111] Finished Pre-synthesis Time (s): cpu = 00:00:32 ; elapsed = 00:00:40 . Memory (MB): peak = 1047.125 ; gain = 523.035 ; free physical = 186713 ; free virtual = 193108
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1.1' (src/kernel_xilinx.cpp:546:28) in function 'PE_B_dummy143'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:544:26) in function 'PE_B_dummy143'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:541:24) in function 'PE_B_dummy143'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:537:22) in function 'PE_B_dummy143'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:536:20) in function 'PE_B_dummy143'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1.1' (src/kernel_xilinx.cpp:546:28) in function 'PE_B_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:544:26) in function 'PE_B_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:541:24) in function 'PE_B_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:537:22) in function 'PE_B_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:536:20) in function 'PE_B_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1.1' (src/kernel_xilinx.cpp:515:28) in function 'PE_A_dummy141'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:513:26) in function 'PE_A_dummy141'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:510:24) in function 'PE_A_dummy141'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:506:22) in function 'PE_A_dummy141'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:505:20) in function 'PE_A_dummy141'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1.1' (src/kernel_xilinx.cpp:515:28) in function 'PE_A_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:513:26) in function 'PE_A_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:510:24) in function 'PE_A_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:506:22) in function 'PE_A_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:505:20) in function 'PE_A_dummy'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:440:24) in function 'PE142'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2.1.1' (src/kernel_xilinx.cpp:454:28) in function 'PE142'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2.1' (src/kernel_xilinx.cpp:452:26) in function 'PE142'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2' (src/kernel_xilinx.cpp:449:24) in function 'PE142'.
+WARNING: [XFORM 203-542] Cannot flatten a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:436:22) in function 'PE142' : 
+
+more than one sub loop.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:435:20) in function 'PE142'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:440:24) in function 'PE140'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2.1.1' (src/kernel_xilinx.cpp:454:28) in function 'PE140'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2.1' (src/kernel_xilinx.cpp:452:26) in function 'PE140'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2' (src/kernel_xilinx.cpp:449:24) in function 'PE140'.
+WARNING: [XFORM 203-542] Cannot flatten a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:436:22) in function 'PE140' : 
+
+more than one sub loop.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:435:20) in function 'PE140'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:440:24) in function 'PE139'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2.1.1' (src/kernel_xilinx.cpp:454:28) in function 'PE139'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2.1' (src/kernel_xilinx.cpp:452:26) in function 'PE139'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2' (src/kernel_xilinx.cpp:449:24) in function 'PE139'.
+WARNING: [XFORM 203-542] Cannot flatten a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:436:22) in function 'PE139' : 
+
+more than one sub loop.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:435:20) in function 'PE139'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:440:24) in function 'PE'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2.1.1' (src/kernel_xilinx.cpp:454:28) in function 'PE'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2.1' (src/kernel_xilinx.cpp:452:26) in function 'PE'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.2' (src/kernel_xilinx.cpp:449:24) in function 'PE'.
+WARNING: [XFORM 203-542] Cannot flatten a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:436:22) in function 'PE' : 
+
+more than one sub loop.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:435:20) in function 'PE'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:801:26) in function 'C_drain_IO_L3_out'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:799:24) in function 'C_drain_IO_L3_out'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:796:22) in function 'C_drain_IO_L3_out'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:795:20) in function 'C_drain_IO_L3_out'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:775:26) in function 'C_drain_IO_L2_out_head'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:770:22) in function 'C_drain_IO_L2_out_head'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:769:20) in function 'C_drain_IO_L2_out_head'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:744:26) in function 'C_drain_IO_L2_out'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:742:24) in function 'C_drain_IO_L2_out'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:739:22) in function 'C_drain_IO_L2_out'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:738:20) in function 'C_drain_IO_L2_out'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:574:20) in function 'C_drain_IO_L1_out_intra_trans'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:610:20) in function 'C_drain_IO_L1_out_inter_trans'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:224:26) in function 'B_IO_L3_in'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:221:24) in function 'B_IO_L3_in'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:220:22) in function 'B_IO_L3_in'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:219:20) in function 'B_IO_L3_in'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:253:22) in function 'B_IO_L2_in_intra_trans'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:251:20) in function 'B_IO_L2_in_intra_trans'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:288:21) in function 'B_IO_L2_in_inter_trans'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1.1' (src/kernel_xilinx.cpp:11:26) in function 'A_IO_L3_in'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1.1' (src/kernel_xilinx.cpp:8:24) in function 'A_IO_L3_in'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:7:22) in function 'A_IO_L3_in'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:6:20) in function 'A_IO_L3_in'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1.1' (src/kernel_xilinx.cpp:40:22) in function 'A_IO_L2_in_intra_trans'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:38:20) in function 'A_IO_L2_in_intra_trans'.
+INFO: [XFORM 203-541] Flattening a loop nest 'Loop-1' (src/kernel_xilinx.cpp:75:21) in function 'A_IO_L2_in_inter_trans'.
+WARNING: [XFORM 203-631] Renaming function 'C_drain_IO_L2_out_head' to 'C_drain_IO_L2_out_he' (src/kernel_xilinx.cpp:769:39)
+WARNING: [XFORM 203-631] Renaming function 'C_drain_IO_L1_out_intra_trans' to 'C_drain_IO_L1_out_in' (src/kernel_xilinx.cpp:568:33)
+WARNING: [XFORM 203-631] Renaming function 'C_drain_IO_L1_out_inter_trans_head' to 'C_drain_IO_L1_out_in.1' (src/kernel_xilinx.cpp:634:33)
+WARNING: [XFORM 203-631] Renaming function 'C_drain_IO_L1_out_inter_trans' to 'C_drain_IO_L1_out_in.2' (src/kernel_xilinx.cpp:607:33)
+WARNING: [XFORM 203-631] Renaming function 'C_drain_IO_L1_out_head144' to 'C_drain_IO_L1_out_he' (src/kernel_xilinx.cpp:655:35)
+WARNING: [XFORM 203-631] Renaming function 'C_drain_IO_L1_out_head' to 'C_drain_IO_L1_out_he.1' (src/kernel_xilinx.cpp:655:35)
+WARNING: [XFORM 203-631] Renaming function 'B_IO_L2_in_intra_trans' to 'B_IO_L2_in_intra_tra' (src/kernel_xilinx.cpp:245:35)
+WARNING: [XFORM 203-631] Renaming function 'B_IO_L2_in_inter_trans_tail' to 'B_IO_L2_in_inter_tra' (src/kernel_xilinx.cpp:317:33)
+WARNING: [XFORM 203-631] Renaming function 'B_IO_L2_in_inter_trans' to 'B_IO_L2_in_inter_tra.1' (src/kernel_xilinx.cpp:285:33)
+WARNING: [XFORM 203-631] Renaming function 'A_IO_L2_in_intra_trans' to 'A_IO_L2_in_intra_tra' (src/kernel_xilinx.cpp:32:35)
+WARNING: [XFORM 203-631] Renaming function 'A_IO_L2_in_inter_trans_tail' to 'A_IO_L2_in_inter_tra' (src/kernel_xilinx.cpp:104:33)
+WARNING: [XFORM 203-631] Renaming function 'A_IO_L2_in_inter_trans' to 'A_IO_L2_in_inter_tra.1' (src/kernel_xilinx.cpp:72:33)
+INFO: [HLS 200-472] Inferring partial write operation for 'local_C' (src/kernel_xilinx.cpp:446:2)
+INFO: [HLS 200-472] Inferring partial write operation for 'local_C' (src/kernel_xilinx.cpp:479:2)
+INFO: [HLS 200-472] Inferring partial write operation for 'local_C[0].V' (src/kernel_xilinx.cpp:594:11)
+INFO: [HLS 200-472] Inferring partial write operation for 'local_B[0].V' (src/kernel_xilinx.cpp:296:13)
+INFO: [HLS 200-472] Inferring partial write operation for 'local_B[0].V' (src/kernel_xilinx.cpp:322:13)
+INFO: [HLS 200-472] Inferring partial write operation for 'local_A[0].V' (src/kernel_xilinx.cpp:83:13)
+INFO: [HLS 200-472] Inferring partial write operation for 'local_A[0].V' (src/kernel_xilinx.cpp:109:11)
+INFO: [HLS 200-111] Finished Architecture Synthesis Time (s): cpu = 00:00:36 ; elapsed = 00:00:45 . Memory (MB): peak = 1303.125 ; gain = 779.035 ; free physical = 186446 ; free virtual = 192841
+INFO: [HLS 200-10] Starting hardware synthesis ...
+INFO: [HLS 200-10] Synthesizing 'kernel0' ...
+WARNING: [SYN 201-103] Legalizing function name 'kernel0.entry6' to 'kernel0_entry6'.
+WARNING: [SYN 201-103] Legalizing function name 'A_IO_L2_in_inter_tra.1' to 'A_IO_L2_in_inter_tra_1'.
+WARNING: [SYN 201-103] Legalizing function name 'B_IO_L2_in_inter_tra.1' to 'B_IO_L2_in_inter_tra_1'.
+WARNING: [SYN 201-103] Legalizing function name 'C_drain_IO_L1_out_in.1' to 'C_drain_IO_L1_out_in_1'.
+WARNING: [SYN 201-103] Legalizing function name 'C_drain_IO_L1_out_in.2' to 'C_drain_IO_L1_out_in_2'.
+WARNING: [SYN 201-103] Legalizing function name 'C_drain_IO_L1_out_he.1' to 'C_drain_IO_L1_out_he_1'.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'kernel0_entry6' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 45.79 seconds; current allocated memory: 445.921 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.12 seconds; current allocated memory: 446.056 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'A_IO_L3_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 10.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.4 seconds; current allocated memory: 446.355 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.33 seconds; current allocated memory: 446.787 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'A_IO_L2_in_inter_tra_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.51 seconds; current allocated memory: 447.048 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.2 seconds; current allocated memory: 447.211 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'A_IO_L2_in_intra_tra' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.33 seconds; current allocated memory: 447.356 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.21 seconds; current allocated memory: 447.550 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'A_IO_L2_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.27 seconds; current allocated memory: 447.724 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.25 seconds; current allocated memory: 447.924 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'A_IO_L2_in_inter_tra' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.37 seconds; current allocated memory: 448.030 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.17 seconds; current allocated memory: 448.125 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'A_IO_L2_in_tail' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.22 seconds; current allocated memory: 448.259 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.24 seconds; current allocated memory: 448.445 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'B_IO_L3_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 10.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.5 seconds; current allocated memory: 448.783 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.34 seconds; current allocated memory: 449.228 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'B_IO_L2_in_inter_tra_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.46 seconds; current allocated memory: 449.389 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.2 seconds; current allocated memory: 449.550 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'B_IO_L2_in_intra_tra' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.35 seconds; current allocated memory: 449.731 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.24 seconds; current allocated memory: 449.950 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'B_IO_L2_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.3 seconds; current allocated memory: 450.086 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.26 seconds; current allocated memory: 450.323 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'B_IO_L2_in_inter_tra' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.42 seconds; current allocated memory: 450.407 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.18 seconds; current allocated memory: 450.540 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'B_IO_L2_in_tail' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.22 seconds; current allocated memory: 450.703 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.25 seconds; current allocated memory: 450.889 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'PE139' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1.1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 1.
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1.2'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 4.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.66 seconds; current allocated memory: 451.399 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.35 seconds; current allocated memory: 451.905 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'PE140' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1.1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 1.
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1.2'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 4.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.79 seconds; current allocated memory: 452.342 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.36 seconds; current allocated memory: 452.850 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'PE_A_dummy141' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.55 seconds; current allocated memory: 452.978 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.18 seconds; current allocated memory: 453.099 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'PE142' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1.1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 1.
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1.2'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 4.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.56 seconds; current allocated memory: 453.415 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.39 seconds; current allocated memory: 453.960 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'PE_B_dummy143' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.51 seconds; current allocated memory: 454.088 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.2 seconds; current allocated memory: 454.173 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'PE' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1.1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 1.
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1.2'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 4.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.57 seconds; current allocated memory: 454.488 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.38 seconds; current allocated memory: 455.034 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'PE_A_dummy' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.52 seconds; current allocated memory: 455.162 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.19 seconds; current allocated memory: 455.247 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'PE_B_dummy' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.3 seconds; current allocated memory: 455.307 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.2 seconds; current allocated memory: 455.390 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L1_out_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.32 seconds; current allocated memory: 455.464 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.21 seconds; current allocated memory: 455.594 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L1_out_in_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.34 seconds; current allocated memory: 455.674 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.21 seconds; current allocated memory: 455.827 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L1_out_he' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.24 seconds; current allocated memory: 455.930 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.25 seconds; current allocated memory: 456.098 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L1_out_in_2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.43 seconds; current allocated memory: 456.221 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.25 seconds; current allocated memory: 456.407 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L1_out145' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.3 seconds; current allocated memory: 456.527 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.26 seconds; current allocated memory: 456.746 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L1_out_he_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.33 seconds; current allocated memory: 456.863 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.25 seconds; current allocated memory: 457.031 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L1_out' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.31 seconds; current allocated memory: 457.151 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.28 seconds; current allocated memory: 457.370 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L2_out_he' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.42 seconds; current allocated memory: 457.434 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.19 seconds; current allocated memory: 457.535 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L2_out' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 2.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.4 seconds; current allocated memory: 457.700 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.26 seconds; current allocated memory: 457.999 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'C_drain_IO_L3_out' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'Loop 1'.
+INFO: [SCHED 204-61] Pipelining result : Target II = 1, Final II = 1, Depth = 8.
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.56 seconds; current allocated memory: 458.315 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 0.37 seconds; current allocated memory: 458.825 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'kernel0' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111]  Elapsed time: 0.47 seconds; current allocated memory: 459.178 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111]  Elapsed time: 3.02 seconds; current allocated memory: 461.643 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'kernel0_entry6' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'kernel0_entry6'.
+INFO: [HLS 200-111]  Elapsed time: 1.16 seconds; current allocated memory: 462.469 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'A_IO_L3_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'A_IO_L3_in'.
+INFO: [HLS 200-111]  Elapsed time: 0.32 seconds; current allocated memory: 463.567 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'A_IO_L2_in_inter_tra_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'A_IO_L2_in_inter_tra_1'.
+INFO: [HLS 200-111]  Elapsed time: 0.84 seconds; current allocated memory: 465.558 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'A_IO_L2_in_intra_tra' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'A_IO_L2_in_intra_tra'.
+INFO: [HLS 200-111]  Elapsed time: 0.48 seconds; current allocated memory: 466.424 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'A_IO_L2_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SYN 201-210] Renamed object name 'A_IO_L2_in_local_A_ping_0_V' to 'A_IO_L2_in_local_bkb' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'A_IO_L2_in_local_A_pong_0_V' to 'A_IO_L2_in_local_cud' due to the length limit 20
+INFO: [RTGEN 206-100] Finished creating RTL model for 'A_IO_L2_in'.
+INFO: [HLS 200-111]  Elapsed time: 0.54 seconds; current allocated memory: 467.583 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'A_IO_L2_in_inter_tra' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'A_IO_L2_in_inter_tra'.
+INFO: [HLS 200-111]  Elapsed time: 0.6 seconds; current allocated memory: 468.583 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'A_IO_L2_in_tail' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SYN 201-210] Renamed object name 'A_IO_L2_in_tail_local_A_ping_0_V' to 'A_IO_L2_in_tail_ldEe' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'A_IO_L2_in_tail_local_A_pong_0_V' to 'A_IO_L2_in_tail_leOg' due to the length limit 20
+INFO: [RTGEN 206-100] Finished creating RTL model for 'A_IO_L2_in_tail'.
+INFO: [HLS 200-111]  Elapsed time: 0.46 seconds; current allocated memory: 469.295 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'B_IO_L3_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'B_IO_L3_in'.
+INFO: [HLS 200-111]  Elapsed time: 0.64 seconds; current allocated memory: 470.918 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'B_IO_L2_in_inter_tra_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'B_IO_L2_in_inter_tra_1'.
+INFO: [HLS 200-111]  Elapsed time: 0.95 seconds; current allocated memory: 472.909 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'B_IO_L2_in_intra_tra' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'B_IO_L2_in_intra_tra'.
+INFO: [HLS 200-111]  Elapsed time: 0.55 seconds; current allocated memory: 473.883 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'B_IO_L2_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SYN 201-210] Renamed object name 'B_IO_L2_in_local_B_ping_0_V' to 'B_IO_L2_in_local_fYi' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'B_IO_L2_in_local_B_pong_0_V' to 'B_IO_L2_in_local_g8j' due to the length limit 20
+INFO: [RTGEN 206-100] Finished creating RTL model for 'B_IO_L2_in'.
+INFO: [HLS 200-111]  Elapsed time: 0.69 seconds; current allocated memory: 475.105 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'B_IO_L2_in_inter_tra' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'B_IO_L2_in_inter_tra'.
+INFO: [HLS 200-111]  Elapsed time: 0.69 seconds; current allocated memory: 476.122 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'B_IO_L2_in_tail' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SYN 201-210] Renamed object name 'B_IO_L2_in_tail_local_B_ping_0_V' to 'B_IO_L2_in_tail_lhbi' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'B_IO_L2_in_tail_local_B_pong_0_V' to 'B_IO_L2_in_tail_libs' due to the length limit 20
+INFO: [RTGEN 206-100] Finished creating RTL model for 'B_IO_L2_in_tail'.
+INFO: [HLS 200-111]  Elapsed time: 0.5 seconds; current allocated memory: 476.807 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'PE139' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'PE139'.
+INFO: [HLS 200-111]  Elapsed time: 0.74 seconds; current allocated memory: 478.422 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'PE140' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'PE140'.
+INFO: [HLS 200-111]  Elapsed time: 1.18 seconds; current allocated memory: 481.191 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'PE_A_dummy141' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'PE_A_dummy141'.
+INFO: [HLS 200-111]  Elapsed time: 1.06 seconds; current allocated memory: 483.327 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'PE142' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'PE142'.
+INFO: [HLS 200-111]  Elapsed time: 0.56 seconds; current allocated memory: 484.454 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'PE_B_dummy143' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'PE_B_dummy143'.
+INFO: [HLS 200-111]  Elapsed time: 1.2 seconds; current allocated memory: 486.666 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'PE' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'PE'.
+INFO: [HLS 200-111]  Elapsed time: 0.61 seconds; current allocated memory: 487.718 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'PE_A_dummy' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'PE_A_dummy'.
+INFO: [HLS 200-111]  Elapsed time: 1.21 seconds; current allocated memory: 489.884 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'PE_B_dummy' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'PE_B_dummy'.
+INFO: [HLS 200-111]  Elapsed time: 0.56 seconds; current allocated memory: 490.341 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L1_out_in' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L1_out_in'.
+INFO: [HLS 200-111]  Elapsed time: 0.59 seconds; current allocated memory: 490.830 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L1_out_in_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L1_out_in_1'.
+INFO: [HLS 200-111]  Elapsed time: 0.66 seconds; current allocated memory: 491.489 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L1_out_he' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SYN 201-210] Renamed object name 'C_drain_IO_L1_out_he_local_C_ping_0_V' to 'C_drain_IO_L1_outjbC' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'C_drain_IO_L1_out_he_local_C_pong_0_V' to 'C_drain_IO_L1_outkbM' due to the length limit 20
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L1_out_he'.
+INFO: [HLS 200-111]  Elapsed time: 0.68 seconds; current allocated memory: 492.248 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L1_out_in_2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L1_out_in_2'.
+INFO: [HLS 200-111]  Elapsed time: 0.76 seconds; current allocated memory: 493.244 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L1_out145' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SYN 201-210] Renamed object name 'C_drain_IO_L1_out145_local_C_ping_0_V' to 'C_drain_IO_L1_outlbW' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'C_drain_IO_L1_out145_local_C_pong_0_V' to 'C_drain_IO_L1_outmb6' due to the length limit 20
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L1_out145'.
+INFO: [HLS 200-111]  Elapsed time: 0.77 seconds; current allocated memory: 494.294 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L1_out_he_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SYN 201-210] Renamed object name 'C_drain_IO_L1_out_he_1_local_C_ping_0_V' to 'C_drain_IO_L1_outncg' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'C_drain_IO_L1_out_he_1_local_C_pong_0_V' to 'C_drain_IO_L1_outocq' due to the length limit 20
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L1_out_he_1'.
+INFO: [HLS 200-111]  Elapsed time: 0.87 seconds; current allocated memory: 495.419 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L1_out' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SYN 201-210] Renamed object name 'C_drain_IO_L1_out_local_C_ping_0_V' to 'C_drain_IO_L1_outpcA' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'C_drain_IO_L1_out_local_C_pong_0_V' to 'C_drain_IO_L1_outqcK' due to the length limit 20
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L1_out'.
+INFO: [HLS 200-111]  Elapsed time: 0.82 seconds; current allocated memory: 496.487 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L2_out_he' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L2_out_he'.
+INFO: [HLS 200-111]  Elapsed time: 0.69 seconds; current allocated memory: 497.416 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L2_out' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L2_out'.
+INFO: [HLS 200-111]  Elapsed time: 0.63 seconds; current allocated memory: 498.152 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'C_drain_IO_L3_out' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-100] Finished creating RTL model for 'C_drain_IO_L3_out'.
+INFO: [HLS 200-111]  Elapsed time: 0.9 seconds; current allocated memory: 499.973 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'kernel0' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-500] Setting interface mode on port 'kernel0/gmem_A' to 'm_axi'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'kernel0/gmem_B' to 'm_axi'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'kernel0/gmem_C' to 'm_axi'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'kernel0/A_V' to 's_axilite & ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'kernel0/B_V' to 's_axilite & ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'kernel0/C_V' to 's_axilite & ap_none'.
+INFO: [RTGEN 206-500] Setting interface mode on function 'kernel0' to 's_axilite & ap_ctrl_hs'.
+INFO: [RTGEN 206-100] Bundling port 'return', 'A_V', 'B_V' and 'C_V' to AXI-Lite port control.
+INFO: [SYN 201-210] Renamed object name 'start_for_C_drain_IO_L3_out_U0' to 'start_for_C_drainrcU' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_A_IO_L2_in_U0' to 'start_for_A_IO_L2sc4' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_A_IO_L2_in_tail_U0' to 'start_for_A_IO_L2tde' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_B_IO_L2_in_U0' to 'start_for_B_IO_L2udo' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_B_IO_L2_in_tail_U0' to 'start_for_B_IO_L2vdy' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_C_drain_IO_L1_out_he_U0' to 'start_for_C_drainwdI' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_PE_A_dummy141_U0' to 'start_for_PE_A_duxdS' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_C_drain_IO_L1_out_he_1_U0' to 'start_for_C_drainyd2' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_PE_B_dummy143_U0' to 'start_for_PE_B_duzec' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_C_drain_IO_L1_out145_U0' to 'start_for_C_drainAem' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_PE_A_dummy_U0' to 'start_for_PE_A_duBew' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_PE_B_dummy_U0' to 'start_for_PE_B_duCeG' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_C_drain_IO_L1_out_U0' to 'start_for_C_drainDeQ' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_C_drain_IO_L2_out_he_U0' to 'start_for_C_drainEe0' due to the length limit 20
+INFO: [SYN 201-210] Renamed object name 'start_for_C_drain_IO_L2_out_U0' to 'start_for_C_drainFfa' due to the length limit 20
+INFO: [RTGEN 206-100] Finished creating RTL model for 'kernel0'.
+INFO: [HLS 200-111]  Elapsed time: 2.08 seconds; current allocated memory: 505.509 MB.
+INFO: [HLS 200-790] **** Loop Constraint Status: All loop constraints were satisfied.
+INFO: [HLS 200-789] **** Estimated Fmax: 228.57 MHz
+INFO: [RTMG 210-278] Implementing memory 'A_IO_L2_in_local_bkb_ram (RAM)' using distributed RAMs.
+INFO: [RTMG 210-278] Implementing memory 'A_IO_L2_in_tail_ldEe_ram (RAM)' using distributed RAMs.
+INFO: [RTMG 210-278] Implementing memory 'B_IO_L2_in_local_fYi_ram (RAM)' using distributed RAMs.
+INFO: [RTMG 210-278] Implementing memory 'B_IO_L2_in_tail_lhbi_ram (RAM)' using distributed RAMs.
+INFO: [RTMG 210-278] Implementing memory 'PE139_local_C_ram (RAM)' using block RAMs.
+INFO: [RTMG 210-278] Implementing memory 'C_drain_IO_L1_outjbC_ram (RAM)' using distributed RAMs.
+INFO: [RTMG 210-278] Implementing memory 'C_drain_IO_L1_outlbW_ram (RAM)' using distributed RAMs.
+INFO: [RTMG 210-278] Implementing memory 'C_drain_IO_L1_outncg_ram (RAM)' using distributed RAMs.
+INFO: [RTMG 210-278] Implementing memory 'C_drain_IO_L1_outpcA_ram (RAM)' using distributed RAMs.
+INFO: [RTMG 210-285] Implementing FIFO 'A_V_c_U(fifo_w32_d2_A)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'B_V_c_U(fifo_w32_d2_A)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'C_V_c_U(fifo_w32_d9_A)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_C_drainrcU_U(start_for_C_drainrcU)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_A_IO_L2sc4_U(start_for_A_IO_L2sc4)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_A_IO_L2tde_U(start_for_A_IO_L2tde)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_PE139_U0_U(start_for_PE139_U0)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_PE142_U0_U(start_for_PE142_U0)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_B_IO_L2udo_U(start_for_B_IO_L2udo)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_B_IO_L2vdy_U(start_for_B_IO_L2vdy)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_PE140_U0_U(start_for_PE140_U0)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_C_drainwdI_U(start_for_C_drainwdI)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_PE_A_duxdS_U(start_for_PE_A_duxdS)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_PE_U0_U(start_for_PE_U0)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_C_drainyd2_U(start_for_C_drainyd2)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_PE_B_duzec_U(start_for_PE_B_duzec)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_C_drainAem_U(start_for_C_drainAem)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_PE_A_duBew_U(start_for_PE_A_duBew)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_PE_B_duCeG_U(start_for_PE_B_duCeG)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_C_drainDeQ_U(start_for_C_drainDeQ)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_C_drainEe0_U(start_for_C_drainEe0)' using Shift Registers.
+INFO: [RTMG 210-285] Implementing FIFO 'start_for_C_drainFfa_U(start_for_C_drainFfa)' using Shift Registers.
+INFO: [HLS 200-111] Finished generating all RTL models Time (s): cpu = 00:01:17 ; elapsed = 00:02:03 . Memory (MB): peak = 1431.125 ; gain = 907.035 ; free physical = 186336 ; free virtual = 192767
+INFO: [VHDL 208-304] Generating VHDL RTL for kernel0.
+INFO: [VLOG 209-307] Generating Verilog RTL for kernel0.
+INFO: [COSIM 212-47] Using XSIM for RTL simulation.
+INFO: [COSIM 212-14] Instrumenting C test bench ...
+WARNING: [COSIM 212-369] AXI_master port 'gmem_A' has a depth of '16'. Insufficient depth may result in simulation mismatch or freeze.
+WARNING: [COSIM 212-369] AXI_master port 'gmem_B' has a depth of '16'. Insufficient depth may result in simulation mismatch or freeze.
+WARNING: [COSIM 212-369] AXI_master port 'gmem_C' has a depth of '32'. Insufficient depth may result in simulation mismatch or freeze.
+   Build using "/opt/tools/xilinx/Vivado/2019.2/tps/lnx64/gcc-6.2.0/bin/g++"
+   Compiling kernel.cpp_pre.cpp.tb.cpp
+   Compiling apatb_kernel0.cpp
+   Compiling kernel_xilinx.cpp_pre.cpp.tb.cpp
+   Generating cosim.tv.exe
+INFO: [COSIM 212-302] Starting C TB testing ... 
+passed!
+INFO: [COSIM 212-333] Generating C post check test bench ...
+INFO: [COSIM 212-12] Generating RTL test bench ...
+INFO: [COSIM 212-1] *** C/RTL co-simulation file generation completed. ***
+INFO: [COSIM 212-323] Starting verilog simulation. 
+INFO: [COSIM 212-15] Starting XSIM ...
+INFO: [XSIM 43-3496] Using init file passed via -initfile option "/opt/tools/xilinx/Vivado/2019.2/data/xsim/ip/xsim_ip.ini".
+Vivado Simulator 2019.2
+Copyright 1986-1999, 2001-2019 Xilinx, Inc. All Rights Reserved.
+Running: /opt/tools/xilinx/Vivado/2019.2/bin/unwrapped/lnx64.o/xelab xil_defaultlib.apatb_kernel0_top glbl -prj kernel0.prj -L smartconnect_v1_0 -L axi_protocol_checker_v1_1_12 -L axi_protocol_checker_v1_1_13 -L axis_protocol_checker_v1_1_11 -L axis_protocol_checker_v1_1_12 -L xil_defaultlib -L unisims_ver -L xpm --initfile /opt/tools/xilinx/Vivado/2019.2/data/xsim/ip/xsim_ip.ini --lib ieee_proposed=./ieee_proposed -s kernel0 
+Multi-threading is on. Using 70 slave threads.
+WARNING: [XSIM 43-3431] One or more environment variables have been detected which affect the operation of the C compiler. These are typically not set in standard installations and are not tested by Xilinx, however they may be appropriate for your system, so the flow will attempt to continue.  If errors occur, try running xelab with the "-mt off -v 1" switches to see more information from the C compiler. The following environment variables have been detected:
+    C_INCLUDE_PATH
+    LIBRARY_PATH
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/glbl.v" into library work
+INFO: [VRFC 10-311] analyzing module glbl
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_outpcA.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outpcA_ram
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outpcA
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_intra_tra.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_intra_tra
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_deadlock_report_unit.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_deadlock_report_unit
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_tail_lhbi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_tail_lhbi_ram
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_tail_lhbi
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE139_local_C.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE139_local_C_ram
+INFO: [VRFC 10-311] analyzing module PE139_local_C
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainEe0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainEe0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainEe0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_outncg.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outncg_ram
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outncg
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L3_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L3_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainwdI.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainwdI_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainwdI
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L3_out.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L3_out
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_B_IO_L2vdy.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_B_IO_L2vdy_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_B_IO_L2vdy
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_B_duzec.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_B_duzec_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_B_duzec
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_outjbC.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outjbC_ram
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outjbC
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_U0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_U0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_U0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_axi_master_gmem_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_axi_master_gmem_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_he_1.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_he_1
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE142_U0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE142_U0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE142_U0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_inter_tra_1.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_inter_tra_1
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w32_d9_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w32_d9_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w32_d9_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0.autotb.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module apatb_kernel0_top
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_tail_ldEe.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_tail_ldEe_ram
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_tail_ldEe
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainDeQ.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainDeQ_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainDeQ
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_inter_tra.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_inter_tra
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L2_out.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L2_out
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_A_IO_L2tde.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_A_IO_L2tde_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_A_IO_L2tde
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE139_U0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE139_U0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE139_U0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainFfa.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainFfa_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainFfa
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_local_fYi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_local_fYi_ram
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_local_fYi
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_outlbW.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outlbW_ram
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outlbW
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_gmem_A_m_axi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_reg_slice
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_fifo
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_buffer
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_decoder
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_throttl
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_read
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_write
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_axi_master_gmem_C.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_axi_master_gmem_C
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_deadlock_detector.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_deadlock_detector
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_deadlock_detection_unit.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_deadlock_detect_unit
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_inter_tra_1.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_inter_tra_1
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L2_out_he.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L2_out_he
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE_B_dummy143.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE_B_dummy143
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w32_d1_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w32_d1_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w32_d1_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w64_d1_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w64_d1_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w64_d1_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_axi_master_gmem_B.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_axi_master_gmem_B
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE_A_dummy.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE_A_dummy
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w32_d2_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w32_d2_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w32_d2_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out145.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out145
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_A_IO_L2sc4.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_A_IO_L2sc4_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_A_IO_L2sc4
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_he.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_he
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_gmem_C_m_axi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_reg_slice
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_fifo
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_buffer
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_decoder
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_throttl
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_read
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_write
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_local_bkb.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_local_bkb_ram
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_local_bkb
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainyd2.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainyd2_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainyd2
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_A_duBew.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_A_duBew_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_A_duBew
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w128_d1_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w128_d1_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w128_d1_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_B_IO_L2udo.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_B_IO_L2udo_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_B_IO_L2udo
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainrcU.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainrcU_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainrcU
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_B_duCeG.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_B_duCeG_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_B_duCeG
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L3_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L3_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE_A_dummy141.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE_A_dummy141
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_in_2.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_in_2
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_tail.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_tail
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE142.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE142
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE140.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE140
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE139.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE139
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_tail.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_tail
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_control_s_axi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_control_s_axi
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE_B_dummy.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE_B_dummy
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_axi_slave_control.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_axi_slave_control
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_entry6.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_entry6
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_intra_tra.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_intra_tra
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_inter_tra.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_inter_tra
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE140_U0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE140_U0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE140_U0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_gmem_B_m_axi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_reg_slice
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_fifo
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_buffer
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_decoder
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_throttl
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_read
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_write
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainAem.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainAem_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainAem
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_A_duxdS.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_A_duxdS_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_A_duxdS
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_in_1.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_in_1
+Starting static elaboration
+Pass Through NonSizing Optimizer
+Completed static elaboration
+Starting simulation data flow analysis
+Completed simulation data flow analysis
+Time Resolution for simulation is 1ps
+Compiling module xil_defaultlib.kernel0_control_s_axi
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_throttl(DAT...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_fifo(DEPTH=...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_write(NUM_W...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_read(NUM_RE...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi(NUM_READ_OU...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_throttl(DAT...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_fifo(DEPTH=...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_write(NUM_W...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_read(NUM_RE...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi(NUM_READ_OU...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_throttl(DAT...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_fifo(DEPTH=...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_write(NUM_W...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_read(NUM_RE...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi(NUM_READ_OU...
+Compiling module xil_defaultlib.kernel0_entry6
+Compiling module xil_defaultlib.A_IO_L3_in
+Compiling module xil_defaultlib.A_IO_L2_in_local_bkb_ram
+Compiling module xil_defaultlib.A_IO_L2_in_local_bkb(DataWidth=1...
+Compiling module xil_defaultlib.A_IO_L2_in_intra_tra
+Compiling module xil_defaultlib.A_IO_L2_in_inter_tra_1
+Compiling module xil_defaultlib.A_IO_L2_in
+Compiling module xil_defaultlib.A_IO_L2_in_tail_ldEe_ram
+Compiling module xil_defaultlib.A_IO_L2_in_tail_ldEe(DataWidth=1...
+Compiling module xil_defaultlib.A_IO_L2_in_inter_tra
+Compiling module xil_defaultlib.A_IO_L2_in_tail
+Compiling module xil_defaultlib.B_IO_L3_in
+Compiling module xil_defaultlib.B_IO_L2_in_local_fYi_ram
+Compiling module xil_defaultlib.B_IO_L2_in_local_fYi(DataWidth=1...
+Compiling module xil_defaultlib.B_IO_L2_in_intra_tra
+Compiling module xil_defaultlib.B_IO_L2_in_inter_tra_1
+Compiling module xil_defaultlib.B_IO_L2_in
+Compiling module xil_defaultlib.B_IO_L2_in_tail_lhbi_ram
+Compiling module xil_defaultlib.B_IO_L2_in_tail_lhbi(DataWidth=1...
+Compiling module xil_defaultlib.B_IO_L2_in_inter_tra
+Compiling module xil_defaultlib.B_IO_L2_in_tail
+Compiling module xil_defaultlib.PE139_local_C_ram
+Compiling module xil_defaultlib.PE139_local_C(DataWidth=32,Addre...
+Compiling module xil_defaultlib.PE139
+Compiling module xil_defaultlib.PE140
+Compiling module xil_defaultlib.PE_A_dummy141
+Compiling module xil_defaultlib.PE142
+Compiling module xil_defaultlib.PE_B_dummy143
+Compiling module xil_defaultlib.PE
+Compiling module xil_defaultlib.PE_A_dummy
+Compiling module xil_defaultlib.PE_B_dummy
+Compiling module xil_defaultlib.C_drain_IO_L1_outjbC_ram
+Compiling module xil_defaultlib.C_drain_IO_L1_outjbC(DataWidth=6...
+Compiling module xil_defaultlib.C_drain_IO_L1_out_in
+Compiling module xil_defaultlib.C_drain_IO_L1_out_in_1
+Compiling module xil_defaultlib.C_drain_IO_L1_out_he
+Compiling module xil_defaultlib.C_drain_IO_L1_outlbW_ram
+Compiling module xil_defaultlib.C_drain_IO_L1_outlbW(DataWidth=6...
+Compiling module xil_defaultlib.C_drain_IO_L1_out_in_2
+Compiling module xil_defaultlib.C_drain_IO_L1_out145
+Compiling module xil_defaultlib.C_drain_IO_L1_outncg_ram
+Compiling module xil_defaultlib.C_drain_IO_L1_outncg(DataWidth=6...
+Compiling module xil_defaultlib.C_drain_IO_L1_out_he_1
+Compiling module xil_defaultlib.C_drain_IO_L1_outpcA_ram
+Compiling module xil_defaultlib.C_drain_IO_L1_outpcA(DataWidth=6...
+Compiling module xil_defaultlib.C_drain_IO_L1_out
+Compiling module xil_defaultlib.C_drain_IO_L2_out_he
+Compiling module xil_defaultlib.C_drain_IO_L2_out
+Compiling module xil_defaultlib.C_drain_IO_L3_out
+Compiling module xil_defaultlib.fifo_w32_d2_A_shiftReg
+Compiling module xil_defaultlib.fifo_w32_d2_A
+Compiling module xil_defaultlib.fifo_w32_d9_A_shiftReg
+Compiling module xil_defaultlib.fifo_w32_d9_A
+Compiling module xil_defaultlib.fifo_w128_d1_A_shiftReg
+Compiling module xil_defaultlib.fifo_w128_d1_A
+Compiling module xil_defaultlib.fifo_w64_d1_A_shiftReg
+Compiling module xil_defaultlib.fifo_w64_d1_A
+Compiling module xil_defaultlib.fifo_w32_d1_A_shiftReg
+Compiling module xil_defaultlib.fifo_w32_d1_A
+Compiling module xil_defaultlib.start_for_C_drainrcU_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainrcU
+Compiling module xil_defaultlib.start_for_A_IO_L2sc4_shiftReg
+Compiling module xil_defaultlib.start_for_A_IO_L2sc4
+Compiling module xil_defaultlib.start_for_A_IO_L2tde_shiftReg
+Compiling module xil_defaultlib.start_for_A_IO_L2tde
+Compiling module xil_defaultlib.start_for_PE139_U0_shiftReg
+Compiling module xil_defaultlib.start_for_PE139_U0
+Compiling module xil_defaultlib.start_for_PE142_U0_shiftReg
+Compiling module xil_defaultlib.start_for_PE142_U0
+Compiling module xil_defaultlib.start_for_B_IO_L2udo_shiftReg
+Compiling module xil_defaultlib.start_for_B_IO_L2udo
+Compiling module xil_defaultlib.start_for_B_IO_L2vdy_shiftReg
+Compiling module xil_defaultlib.start_for_B_IO_L2vdy
+Compiling module xil_defaultlib.start_for_PE140_U0_shiftReg
+Compiling module xil_defaultlib.start_for_PE140_U0
+Compiling module xil_defaultlib.start_for_C_drainwdI_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainwdI
+Compiling module xil_defaultlib.start_for_PE_A_duxdS_shiftReg
+Compiling module xil_defaultlib.start_for_PE_A_duxdS
+Compiling module xil_defaultlib.start_for_PE_U0_shiftReg
+Compiling module xil_defaultlib.start_for_PE_U0
+Compiling module xil_defaultlib.start_for_C_drainyd2_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainyd2
+Compiling module xil_defaultlib.start_for_PE_B_duzec_shiftReg
+Compiling module xil_defaultlib.start_for_PE_B_duzec
+Compiling module xil_defaultlib.start_for_C_drainAem_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainAem
+Compiling module xil_defaultlib.start_for_PE_A_duBew_shiftReg
+Compiling module xil_defaultlib.start_for_PE_A_duBew
+Compiling module xil_defaultlib.start_for_PE_B_duCeG_shiftReg
+Compiling module xil_defaultlib.start_for_PE_B_duCeG
+Compiling module xil_defaultlib.start_for_C_drainDeQ_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainDeQ
+Compiling module xil_defaultlib.start_for_C_drainEe0_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainEe0
+Compiling module xil_defaultlib.start_for_C_drainFfa_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainFfa
+Compiling module xil_defaultlib.kernel0
+Compiling module xil_defaultlib.AESL_axi_master_gmem_A
+Compiling module xil_defaultlib.AESL_axi_master_gmem_B
+Compiling module xil_defaultlib.AESL_axi_master_gmem_C
+Compiling module xil_defaultlib.AESL_axi_slave_control
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_report_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detector_1
+Compiling module xil_defaultlib.apatb_kernel0_top
+Compiling module work.glbl
+Built simulation snapshot kernel0
+
+****** Webtalk v2019.2 (64-bit)
+  **** SW Build 2700185 on Thu Oct 24 18:45:48 MDT 2019
+  **** IP Build 2699827 on Thu Oct 24 21:16:38 MDT 2019
+    ** Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+
+source /curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/xsim.dir/kernel0/webtalk/xsim_webtalk.tcl -notrace
+INFO: [Common 17-186] '/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/xsim.dir/kernel0/webtalk/usage_statistics_ext_xsim.xml' has been successfully sent to Xilinx on Sun Mar 22 14:29:37 2020. For additional details about this file, please refer to the WebTalk help file at /opt/tools/xilinx/Vivado/2019.2/doc/webtalk_introduction.html.
+INFO: [Common 17-206] Exiting Webtalk at Sun Mar 22 14:29:37 2020...
+
+****** xsim v2019.2 (64-bit)
+  **** SW Build 2700185 on Thu Oct 24 18:45:48 MDT 2019
+  **** IP Build 2699827 on Thu Oct 24 21:16:38 MDT 2019
+    ** Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+
+source xsim.dir/kernel0/xsim_script.tcl
+# xsim {kernel0} -autoloadwcfg -tclbatch {kernel0.tcl}
+Vivado Simulator 2019.2
+Time resolution is 1 ps
+source kernel0.tcl
+## run all
+////////////////////////////////////////////////////////////////////////////////////
+// Inter-Transaction Progress: Completed Transaction / Total Transaction
+// Intra-Transaction Progress: Measured Latency / Latency Estimation * 100%
+//
+// RTL Simulation : "Inter-Transaction Progress" ["Intra-Transaction Progress"] @ "Simulation Time"
+////////////////////////////////////////////////////////////////////////////////////
+// RTL Simulation : 0 / 1 [0.00%] @ "113000"
+
+//////////////////////////////////////////////////////////////////////////////
+// ERROR!!! DEADLOCK DETECTED at 665000 ns! SIMULATION WILL BE STOPPED! //
+//////////////////////////////////////////////////////////////////////////////
+/////////////////////////
+// Dependence cycle 1:
+// (1): Process: kernel0.A_IO_L2_in_tail_U0
+// RTL Simulation : 1 / 1 [100.00%] @ "1643000"
+////////////////////////////////////////////////////////////////////////////////////
+$finish called at time : 1662500 ps : File "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0.autotb.v" Line 740
+## quit
+INFO: [Common 17-206] Exiting xsim at Sun Mar 22 14:30:21 2020...
+INFO: [COSIM 212-316] Starting C post checking ...
+passed!
+ERROR: [HLS 200-742] Deadlock detected in co-simulation, please check co-simulation log or dataflow viewer for details
+INFO: [COSIM 212-1000] *** C/RTL co-simulation finished: PASS ***
+INFO: [COSIM 212-211] II is measurable only when transaction number is greater than 1 in RTL simulation. Otherwise, they will be marked as all NA. If user wants to calculate them, please make sure there are at least 2 transactions in RTL simulation.
+INFO: [HLS 200-112] Total elapsed time: 248.1 seconds; peak allocated memory: 505.509 MB.
+INFO: [Common 17-206] Exiting vivado_hls at Sun Mar 22 14:30:22 2020...

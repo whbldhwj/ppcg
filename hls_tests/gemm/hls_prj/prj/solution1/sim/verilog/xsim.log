@@ -1,0 +1,36 @@
+#-----------------------------------------------------------
+# xsim v2019.2 (64-bit)
+# SW Build 2700185 on Thu Oct 24 18:45:48 MDT 2019
+# IP Build 2699827 on Thu Oct 24 21:16:38 MDT 2019
+# Start of session at: Sun Mar 22 14:29:38 2020
+# Process ID: 1604558
+# Current directory: /curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog
+# Command line: xsim -mode tcl -source {xsim.dir/kernel0/xsim_script.tcl}
+# Log file: /curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/xsim.log
+# Journal file: /curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/xsim.jou
+#-----------------------------------------------------------
+source xsim.dir/kernel0/xsim_script.tcl
+# xsim {kernel0} -autoloadwcfg -tclbatch {kernel0.tcl}
+Vivado Simulator 2019.2
+Time resolution is 1 ps
+source kernel0.tcl
+## run all
+////////////////////////////////////////////////////////////////////////////////////
+// Inter-Transaction Progress: Completed Transaction / Total Transaction
+// Intra-Transaction Progress: Measured Latency / Latency Estimation * 100%
+//
+// RTL Simulation : "Inter-Transaction Progress" ["Intra-Transaction Progress"] @ "Simulation Time"
+////////////////////////////////////////////////////////////////////////////////////
+// RTL Simulation : 0 / 1 [0.00%] @ "113000"
+
+//////////////////////////////////////////////////////////////////////////////
+// ERROR!!! DEADLOCK DETECTED at 665000 ns! SIMULATION WILL BE STOPPED! //
+//////////////////////////////////////////////////////////////////////////////
+/////////////////////////
+// Dependence cycle 1:
+// (1): Process: kernel0.A_IO_L2_in_tail_U0
+// RTL Simulation : 1 / 1 [100.00%] @ "1643000"
+////////////////////////////////////////////////////////////////////////////////////
+$finish called at time : 1662500 ps : File "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0.autotb.v" Line 740
+## quit
+INFO: [Common 17-206] Exiting xsim at Sun Mar 22 14:30:21 2020...

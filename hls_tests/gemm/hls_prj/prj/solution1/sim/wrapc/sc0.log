@@ -1,0 +1,5 @@
+   Build using "/opt/tools/xilinx/Vivado/2019.2/tps/lnx64/gcc-6.2.0/bin/g++"
+   Compiling kernel.cpp_pre.cpp.tb.cpp
+   Compiling apatb_kernel0.cpp
+   Compiling kernel_xilinx.cpp_pre.cpp.tb.cpp
+   Generating cosim.tv.exe

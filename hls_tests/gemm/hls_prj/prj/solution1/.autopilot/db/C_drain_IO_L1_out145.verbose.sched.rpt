@@ -1,0 +1,184 @@
+
+
+================================================================
+== Vivado HLS Report for 'C_drain_IO_L1_out145'
+================================================================
+* Date:           Sun Mar 22 14:27:17 2020
+
+* Version:        2019.2 (Build 2698951 on Thu Oct 24 19:15:34 MDT 2019)
+* Project:        prj
+* Solution:       solution1
+* Product family: virtexuplus
+* Target device:  xcu200-fsgd2104-2-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  | 5.00 ns | 3.519 ns |   0.62 ns  |
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |       39|       44| 0.195 us | 0.220 us |   39|   44|   none  |
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-------------+---------+---------+----------+-----------+-----------+------+----------+
+        |             |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |  Loop Name  |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +-------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- Loop 1     |       36|       36|        18|          -|          -|     2|    no    |
+        | + Loop 1.1  |       16|       16|         8|          -|          -|     2|    no    |
+        +-------------+---------+---------+----------+-----------+-----------+------+----------+
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 2
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 0
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 5
+* Pipeline : 0
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 5 3 
+3 --> 4 2 
+4 --> 3 
+5 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 0.60>
+ST_1 : Operation 6 [1/1] (0.00ns)   --->   "%inter_trans_en_0 = alloca i1"   --->   Operation 6 'alloca' 'inter_trans_en_0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 7 [1/1] (0.00ns)   --->   "call void (...)* @_ssdm_op_SpecInterface(i64* %fifo_C_drain_out_V_V, [8 x i8]* @ap_fifo_str, i32 0, i32 0, [1 x i8]* @p_str294, i32 0, i32 0, [1 x i8]* @p_str295, [1 x i8]* @p_str296, [1 x i8]* @p_str297, i32 2, i32 2, i32 16, i32 16, [1 x i8]* @p_str298, [1 x i8]* @p_str299)"   --->   Operation 7 'specinterface' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 8 [1/1] (0.00ns)   --->   "call void (...)* @_ssdm_op_SpecInterface(i64* %fifo_C_drain_in_V_V, [8 x i8]* @ap_fifo_str, i32 0, i32 0, [1 x i8]* @p_str287, i32 0, i32 0, [1 x i8]* @p_str288, [1 x i8]* @p_str289, [1 x i8]* @p_str290, i32 2, i32 2, i32 16, i32 16, [1 x i8]* @p_str291, [1 x i8]* @p_str292)"   --->   Operation 8 'specinterface' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 9 [1/1] (0.00ns)   --->   "call void (...)* @_ssdm_op_SpecInterface(i32* %fifo_C_drain_local_in_V, [8 x i8]* @ap_fifo_str, i32 0, i32 0, [1 x i8]* @p_str266, i32 0, i32 0, [1 x i8]* @p_str267, [1 x i8]* @p_str268, [1 x i8]* @p_str269, i32 2, i32 2, i32 16, i32 16, [1 x i8]* @p_str270, [1 x i8]* @p_str271)"   --->   Operation 9 'specinterface' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 10 [1/1] (0.00ns)   --->   "%local_C_ping_0_V = alloca [2 x i64], align 8" [src/kernel_xilinx.cpp:696]   --->   Operation 10 'alloca' 'local_C_ping_0_V' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 11 [1/1] (0.00ns)   --->   "%local_C_pong_0_V = alloca [2 x i64], align 8" [src/kernel_xilinx.cpp:697]   --->   Operation 11 'alloca' 'local_C_pong_0_V' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 12 [1/1] (0.60ns)   --->   "store i1 false, i1* %inter_trans_en_0" [src/kernel_xilinx.cpp:705]   --->   Operation 12 'store' <Predicate = true> <Delay = 0.60>
+ST_1 : Operation 13 [1/1] (0.60ns)   --->   "br label %.preheader10" [src/kernel_xilinx.cpp:705]   --->   Operation 13 'br' <Predicate = true> <Delay = 0.60>
+
+State 2 <SV = 1> <Delay = 0.61>
+ST_2 : Operation 14 [1/1] (0.00ns)   --->   "%c0_prev = phi i2 [ 0, %arrayctor.loop4.preheader ], [ %c0, %.preheader10.loopexit ]"   --->   Operation 14 'phi' 'c0_prev' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 15 [1/1] (0.34ns)   --->   "%icmp_ln705 = icmp eq i2 %c0_prev, -2" [src/kernel_xilinx.cpp:705]   --->   Operation 15 'icmp' 'icmp_ln705' <Predicate = true> <Delay = 0.34> <Core = "Cmp">   --->   Core 25 'Cmp' <Latency = 0> <II = 1> <Delay = 0.34> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 16 [1/1] (0.00ns)   --->   "%empty = call i32 (...)* @_ssdm_op_SpecLoopTripCount(i64 2, i64 2, i64 2)"   --->   Operation 16 'speclooptripcount' 'empty' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 17 [1/1] (0.23ns)   --->   "%c0 = add i2 %c0_prev, 1" [src/kernel_xilinx.cpp:705]   --->   Operation 17 'add' 'c0' <Predicate = true> <Delay = 0.23> <Core = "AddSub">   --->   Core 14 'AddSub' <Latency = 0> <II = 1> <Delay = 0.23> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 18 [1/1] (0.00ns)   --->   "br i1 %icmp_ln705, label %4, label %.preheader.preheader" [src/kernel_xilinx.cpp:705]   --->   Operation 18 'br' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 19 [1/1] (0.60ns)   --->   "br label %.preheader" [src/kernel_xilinx.cpp:706]   --->   Operation 19 'br' <Predicate = (!icmp_ln705)> <Delay = 0.60>
+ST_2 : Operation 20 [1/1] (0.00ns)   --->   "%inter_trans_en_0_loa_3 = load i1* %inter_trans_en_0" [src/kernel_xilinx.cpp:725]   --->   Operation 20 'load' 'inter_trans_en_0_loa_3' <Predicate = (icmp_ln705)> <Delay = 0.00>
+ST_2 : Operation 21 [2/2] (0.61ns)   --->   "call fastcc void @C_drain_IO_L1_out_in.2([2 x i64]* %local_C_pong_0_V, i64* %fifo_C_drain_in_V_V, i64* %fifo_C_drain_out_V_V, i1 zeroext %inter_trans_en_0_loa_3)" [src/kernel_xilinx.cpp:725]   --->   Operation 21 'call' <Predicate = (icmp_ln705)> <Delay = 0.61> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 3 <SV = 2> <Delay = 0.61>
+ST_3 : Operation 22 [1/1] (0.00ns)   --->   "%arb_1 = phi i1 [ %xor_ln719, %3 ], [ false, %.preheader.preheader ]" [src/kernel_xilinx.cpp:719]   --->   Operation 22 'phi' 'arb_1' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 23 [1/1] (0.00ns)   --->   "%c1_prev = phi i2 [ %c1, %3 ], [ 0, %.preheader.preheader ]"   --->   Operation 23 'phi' 'c1_prev' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 24 [1/1] (0.34ns)   --->   "%icmp_ln706 = icmp eq i2 %c1_prev, -2" [src/kernel_xilinx.cpp:706]   --->   Operation 24 'icmp' 'icmp_ln706' <Predicate = true> <Delay = 0.34> <Core = "Cmp">   --->   Core 25 'Cmp' <Latency = 0> <II = 1> <Delay = 0.34> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 25 [1/1] (0.00ns)   --->   "%empty_98 = call i32 (...)* @_ssdm_op_SpecLoopTripCount(i64 2, i64 2, i64 2)"   --->   Operation 25 'speclooptripcount' 'empty_98' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 26 [1/1] (0.23ns)   --->   "%c1 = add i2 %c1_prev, 1" [src/kernel_xilinx.cpp:706]   --->   Operation 26 'add' 'c1' <Predicate = true> <Delay = 0.23> <Core = "AddSub">   --->   Core 14 'AddSub' <Latency = 0> <II = 1> <Delay = 0.23> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 27 [1/1] (0.00ns)   --->   "br i1 %icmp_ln706, label %.preheader10.loopexit, label %0" [src/kernel_xilinx.cpp:706]   --->   Operation 27 'br' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 28 [1/1] (0.00ns)   --->   "%inter_trans_en_0_loa = load i1* %inter_trans_en_0" [src/kernel_xilinx.cpp:716]   --->   Operation 28 'load' 'inter_trans_en_0_loa' <Predicate = (!icmp_ln706)> <Delay = 0.00>
+ST_3 : Operation 29 [1/1] (0.00ns)   --->   "br i1 %arb_1, label %2, label %1" [src/kernel_xilinx.cpp:711]   --->   Operation 29 'br' <Predicate = (!icmp_ln706)> <Delay = 0.00>
+ST_3 : Operation 30 [2/2] (0.60ns)   --->   "call fastcc void @C_drain_IO_L1_out_in([2 x i64]* %local_C_ping_0_V, i32* %fifo_C_drain_local_in_V)" [src/kernel_xilinx.cpp:712]   --->   Operation 30 'call' <Predicate = (!icmp_ln706 & !arb_1)> <Delay = 0.60> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_3 : Operation 31 [2/2] (0.61ns)   --->   "call fastcc void @C_drain_IO_L1_out_in.2([2 x i64]* %local_C_pong_0_V, i64* %fifo_C_drain_in_V_V, i64* %fifo_C_drain_out_V_V, i1 zeroext %inter_trans_en_0_loa)" [src/kernel_xilinx.cpp:713]   --->   Operation 31 'call' <Predicate = (!icmp_ln706 & !arb_1)> <Delay = 0.61> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_3 : Operation 32 [2/2] (0.60ns)   --->   "call fastcc void @C_drain_IO_L1_out_in([2 x i64]* %local_C_pong_0_V, i32* %fifo_C_drain_local_in_V)" [src/kernel_xilinx.cpp:715]   --->   Operation 32 'call' <Predicate = (!icmp_ln706 & arb_1)> <Delay = 0.60> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_3 : Operation 33 [2/2] (0.61ns)   --->   "call fastcc void @C_drain_IO_L1_out_in.2([2 x i64]* %local_C_ping_0_V, i64* %fifo_C_drain_in_V_V, i64* %fifo_C_drain_out_V_V, i1 zeroext %inter_trans_en_0_loa)" [src/kernel_xilinx.cpp:716]   --->   Operation 33 'call' <Predicate = (!icmp_ln706 & arb_1)> <Delay = 0.61> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_3 : Operation 34 [1/1] (0.00ns)   --->   "br label %.preheader10"   --->   Operation 34 'br' <Predicate = (icmp_ln706)> <Delay = 0.00>
+
+State 4 <SV = 3> <Delay = 0.60>
+ST_4 : Operation 35 [1/2] (0.00ns)   --->   "call fastcc void @C_drain_IO_L1_out_in([2 x i64]* %local_C_ping_0_V, i32* %fifo_C_drain_local_in_V)" [src/kernel_xilinx.cpp:712]   --->   Operation 35 'call' <Predicate = (!arb_1)> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_4 : Operation 36 [1/2] (0.00ns)   --->   "call fastcc void @C_drain_IO_L1_out_in.2([2 x i64]* %local_C_pong_0_V, i64* %fifo_C_drain_in_V_V, i64* %fifo_C_drain_out_V_V, i1 zeroext %inter_trans_en_0_loa)" [src/kernel_xilinx.cpp:713]   --->   Operation 36 'call' <Predicate = (!arb_1)> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_4 : Operation 37 [1/1] (0.00ns)   --->   "br label %3" [src/kernel_xilinx.cpp:714]   --->   Operation 37 'br' <Predicate = (!arb_1)> <Delay = 0.00>
+ST_4 : Operation 38 [1/2] (0.00ns)   --->   "call fastcc void @C_drain_IO_L1_out_in([2 x i64]* %local_C_pong_0_V, i32* %fifo_C_drain_local_in_V)" [src/kernel_xilinx.cpp:715]   --->   Operation 38 'call' <Predicate = (arb_1)> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_4 : Operation 39 [1/2] (0.00ns)   --->   "call fastcc void @C_drain_IO_L1_out_in.2([2 x i64]* %local_C_ping_0_V, i64* %fifo_C_drain_in_V_V, i64* %fifo_C_drain_out_V_V, i1 zeroext %inter_trans_en_0_loa)" [src/kernel_xilinx.cpp:716]   --->   Operation 39 'call' <Predicate = (arb_1)> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_4 : Operation 40 [1/1] (0.00ns)   --->   "br label %3"   --->   Operation 40 'br' <Predicate = (arb_1)> <Delay = 0.00>
+ST_4 : Operation 41 [1/1] (0.12ns)   --->   "%xor_ln719 = xor i1 %arb_1, true" [src/kernel_xilinx.cpp:719]   --->   Operation 41 'xor' 'xor_ln719' <Predicate = true> <Delay = 0.12> <Core = "LogicGate">   --->   Core 27 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 42 [1/1] (0.60ns)   --->   "store i1 true, i1* %inter_trans_en_0" [src/kernel_xilinx.cpp:706]   --->   Operation 42 'store' <Predicate = true> <Delay = 0.60>
+ST_4 : Operation 43 [1/1] (0.00ns)   --->   "br label %.preheader" [src/kernel_xilinx.cpp:706]   --->   Operation 43 'br' <Predicate = true> <Delay = 0.00>
+
+State 5 <SV = 2> <Delay = 0.00>
+ST_5 : Operation 44 [1/2] (0.00ns)   --->   "call fastcc void @C_drain_IO_L1_out_in.2([2 x i64]* %local_C_pong_0_V, i64* %fifo_C_drain_in_V_V, i64* %fifo_C_drain_out_V_V, i1 zeroext %inter_trans_en_0_loa_3)" [src/kernel_xilinx.cpp:725]   --->   Operation 44 'call' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_5 : Operation 45 [1/1] (0.00ns)   --->   "ret void" [src/kernel_xilinx.cpp:730]   --->   Operation 45 'ret' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 5ns, clock uncertainty: 0.625ns.
+
+ <State 1>: 0.603ns
+The critical path consists of the following:
+	'alloca' operation ('inter_trans_en_0') [4]  (0 ns)
+	'store' operation ('store_ln705', src/kernel_xilinx.cpp:705) of constant 0 on local variable 'inter_trans_en_0' [10]  (0.603 ns)
+
+ <State 2>: 0.617ns
+The critical path consists of the following:
+	'load' operation ('inter_trans_en_0_loa_3', src/kernel_xilinx.cpp:725) on local variable 'inter_trans_en_0' [45]  (0 ns)
+	'call' operation ('call_ln725', src/kernel_xilinx.cpp:725) to 'C_drain_IO_L1_out_in.2' [46]  (0.617 ns)
+
+ <State 3>: 0.617ns
+The critical path consists of the following:
+	'load' operation ('inter_trans_en_0_loa', src/kernel_xilinx.cpp:716) on local variable 'inter_trans_en_0' [28]  (0 ns)
+	'call' operation ('call_ln716', src/kernel_xilinx.cpp:716) to 'C_drain_IO_L1_out_in.2' [36]  (0.617 ns)
+
+ <State 4>: 0.603ns
+The critical path consists of the following:
+	'store' operation ('store_ln706', src/kernel_xilinx.cpp:706) of constant 1 on local variable 'inter_trans_en_0' [40]  (0.603 ns)
+
+ <State 5>: 0ns
+The critical path consists of the following:
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+	State 4
+	State 5
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

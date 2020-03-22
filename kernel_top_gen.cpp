@@ -14,13 +14,13 @@ void top_generate(FILE *f)
     p = isl_printer_print_str(p, "{");
     p = isl_printer_end_line(p);
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "#pragma HLS INTERFACE m_axi port=A offset=slave bundle=gmem");
+    p = isl_printer_print_str(p, "#pragma HLS INTERFACE m_axi port=A offset=slave bundle=gmem_A");
     p = isl_printer_end_line(p);
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "#pragma HLS INTERFACE m_axi port=B offset=slave bundle=gmem");
+    p = isl_printer_print_str(p, "#pragma HLS INTERFACE m_axi port=B offset=slave bundle=gmem_B");
     p = isl_printer_end_line(p);
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "#pragma HLS INTERFACE m_axi port=C offset=slave bundle=gmem");
+    p = isl_printer_print_str(p, "#pragma HLS INTERFACE m_axi port=C offset=slave bundle=gmem_C");
     p = isl_printer_end_line(p);
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "#pragma HLS INTERFACE s_axilite port=A bundle=control");

@@ -5,9 +5,9 @@
 ############################################################
 open_project prj
 set_top kernel0
+add_files src/kernel_xilinx.cpp
 add_files src/kernel_kernel.h
-add_files src/kernel_xilinx.c
-add_files -tb src/kernel.c
+add_files -tb src/kernel.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 open_solution "solution1"
 set_part {xcu200-fsgd2104-2-e}
 create_clock -period 5 -name default

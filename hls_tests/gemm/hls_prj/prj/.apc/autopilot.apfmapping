@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <autopilotfilemapping:AutoPilotFileMapping xmlns:autopilotfilemapping="www.autoesl.com/autopilotfilemapping">
   <source>
+    <originFiles name="kernel_xilinx.cpp" path="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp"/>
     <originFiles name="kernel_kernel.h" path="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/src/kernel_kernel.h"/>
-    <originFiles name="kernel_xilinx.c" path="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/src/kernel_xilinx.c"/>
   </source>
   <testbench>
-    <originFiles name="kernel.c" path="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/src/kernel.c"/>
+    <originFiles name="kernel.cpp" path="/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/src/kernel.cpp"/>
   </testbench>
 </autopilotfilemapping:AutoPilotFileMapping>

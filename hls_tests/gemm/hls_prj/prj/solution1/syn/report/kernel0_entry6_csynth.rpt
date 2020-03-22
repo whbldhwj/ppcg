@@ -1,0 +1,148 @@
+
+
+================================================================
+== Vivado HLS Report for 'kernel0_entry6'
+================================================================
+* Date:           Sun Mar 22 14:27:26 2020
+
+* Version:        2019.2 (Build 2698951 on Thu Oct 24 19:15:34 MDT 2019)
+* Project:        prj
+* Solution:       solution1
+* Product family: virtexuplus
+* Target device:  xcu200-fsgd2104-2-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  | 5.00 ns | 1.458 ns |   0.62 ns  |
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |        0|        0|   0 ns   |   0 ns   |    0|    0|   none  |
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+-----+
+|         Name        | BRAM_18K| DSP48E|    FF   |   LUT   | URAM|
++---------------------+---------+-------+---------+---------+-----+
+|DSP                  |        -|      -|        -|        -|    -|
+|Expression           |        -|      -|        0|        2|    -|
+|FIFO                 |        -|      -|        -|        -|    -|
+|Instance             |        -|      -|        -|        -|    -|
+|Memory               |        -|      -|        -|        -|    -|
+|Multiplexer          |        -|      -|        -|       45|    -|
+|Register             |        -|      -|        3|        -|    -|
++---------------------+---------+-------+---------+---------+-----+
+|Total                |        0|      0|        3|       47|    0|
++---------------------+---------+-------+---------+---------+-----+
+|Available SLR        |     1440|   2280|   788160|   394080|  320|
++---------------------+---------+-------+---------+---------+-----+
+|Utilization SLR (%)  |        0|      0|    ~0   |    ~0   |    0|
++---------------------+---------+-------+---------+---------+-----+
+|Available            |     4320|   6840|  2364480|  1182240|  960|
++---------------------+---------+-------+---------+---------+-----+
+|Utilization (%)      |        0|      0|    ~0   |    ~0   |    0|
++---------------------+---------+-------+---------+---------+-----+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP48E: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +-----------------+----------+-------+---+----+------------+------------+
+    |  Variable Name  | Operation| DSP48E| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +-----------------+----------+-------+---+----+------------+------------+
+    |ap_block_state1  |    or    |      0|  0|   2|           1|           1|
+    +-----------------+----------+-------+---+----+------------+------------+
+    |Total            |          |      0|  0|   2|           1|           1|
+    +-----------------+----------+-------+---+----+------------+------------+
+
+    * Multiplexer: 
+    +---------------+----+-----------+-----+-----------+
+    |      Name     | LUT| Input Size| Bits| Total Bits|
+    +---------------+----+-----------+-----+-----------+
+    |A_V_out_blk_n  |   9|          2|    1|          2|
+    |B_V_out_blk_n  |   9|          2|    1|          2|
+    |C_V_out_blk_n  |   9|          2|    1|          2|
+    |ap_done        |   9|          2|    1|          2|
+    |real_start     |   9|          2|    1|          2|
+    +---------------+----+-----------+-----+-----------+
+    |Total          |  45|         10|    5|         10|
+    +---------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +----------------+---+----+-----+-----------+
+    |      Name      | FF| LUT| Bits| Const Bits|
+    +----------------+---+----+-----+-----------+
+    |ap_CS_fsm       |  1|   0|    1|          0|
+    |ap_done_reg     |  1|   0|    1|          0|
+    |start_once_reg  |  1|   0|    1|          0|
+    +----------------+---+----+-----+-----------+
+    |Total           |  3|   0|    3|          0|
+    +----------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++----------------+-----+-----+------------+----------------+--------------+
+|    RTL Ports   | Dir | Bits|  Protocol  |  Source Object |    C Type    |
++----------------+-----+-----+------------+----------------+--------------+
+|ap_clk          |  in |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|ap_rst          |  in |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|ap_start        |  in |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|start_full_n    |  in |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|ap_done         | out |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|ap_continue     |  in |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|ap_idle         | out |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|ap_ready        | out |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|start_out       | out |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|start_write     | out |    1| ap_ctrl_hs | kernel0.entry6 | return value |
+|A_V             |  in |   32|   ap_none  |       A_V      |    scalar    |
+|B_V             |  in |   32|   ap_none  |       B_V      |    scalar    |
+|C_V             |  in |   32|   ap_none  |       C_V      |    scalar    |
+|A_V_out_din     | out |   32|   ap_fifo  |     A_V_out    |    pointer   |
+|A_V_out_full_n  |  in |    1|   ap_fifo  |     A_V_out    |    pointer   |
+|A_V_out_write   | out |    1|   ap_fifo  |     A_V_out    |    pointer   |
+|B_V_out_din     | out |   32|   ap_fifo  |     B_V_out    |    pointer   |
+|B_V_out_full_n  |  in |    1|   ap_fifo  |     B_V_out    |    pointer   |
+|B_V_out_write   | out |    1|   ap_fifo  |     B_V_out    |    pointer   |
+|C_V_out_din     | out |   32|   ap_fifo  |     C_V_out    |    pointer   |
+|C_V_out_full_n  |  in |    1|   ap_fifo  |     C_V_out    |    pointer   |
+|C_V_out_write   | out |    1|   ap_fifo  |     C_V_out    |    pointer   |
++----------------+-----+-----+------------+----------------+--------------+
+

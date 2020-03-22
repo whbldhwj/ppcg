@@ -1,0 +1,432 @@
+passed!
+INFO: [XSIM 43-3496] Using init file passed via -initfile option "/opt/tools/xilinx/Vivado/2019.2/data/xsim/ip/xsim_ip.ini".
+Vivado Simulator 2019.2
+Copyright 1986-1999, 2001-2019 Xilinx, Inc. All Rights Reserved.
+Running: /opt/tools/xilinx/Vivado/2019.2/bin/unwrapped/lnx64.o/xelab xil_defaultlib.apatb_kernel0_top glbl -prj kernel0.prj -L smartconnect_v1_0 -L axi_protocol_checker_v1_1_12 -L axi_protocol_checker_v1_1_13 -L axis_protocol_checker_v1_1_11 -L axis_protocol_checker_v1_1_12 -L xil_defaultlib -L unisims_ver -L xpm --initfile /opt/tools/xilinx/Vivado/2019.2/data/xsim/ip/xsim_ip.ini --lib ieee_proposed=./ieee_proposed -s kernel0 
+Multi-threading is on. Using 70 slave threads.
+WARNING: [XSIM 43-3431] One or more environment variables have been detected which affect the operation of the C compiler. These are typically not set in standard installations and are not tested by Xilinx, however they may be appropriate for your system, so the flow will attempt to continue.  If errors occur, try running xelab with the "-mt off -v 1" switches to see more information from the C compiler. The following environment variables have been detected:
+    C_INCLUDE_PATH
+    LIBRARY_PATH
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/glbl.v" into library work
+INFO: [VRFC 10-311] analyzing module glbl
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_outpcA.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outpcA_ram
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outpcA
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_intra_tra.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_intra_tra
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_deadlock_report_unit.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_deadlock_report_unit
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_tail_lhbi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_tail_lhbi_ram
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_tail_lhbi
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE139_local_C.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE139_local_C_ram
+INFO: [VRFC 10-311] analyzing module PE139_local_C
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainEe0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainEe0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainEe0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_outncg.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outncg_ram
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outncg
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L3_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L3_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainwdI.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainwdI_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainwdI
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L3_out.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L3_out
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_B_IO_L2vdy.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_B_IO_L2vdy_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_B_IO_L2vdy
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_B_duzec.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_B_duzec_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_B_duzec
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_outjbC.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outjbC_ram
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outjbC
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_U0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_U0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_U0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_axi_master_gmem_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_axi_master_gmem_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_he_1.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_he_1
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE142_U0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE142_U0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE142_U0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_inter_tra_1.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_inter_tra_1
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w32_d9_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w32_d9_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w32_d9_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0.autotb.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module apatb_kernel0_top
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_tail_ldEe.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_tail_ldEe_ram
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_tail_ldEe
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainDeQ.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainDeQ_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainDeQ
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_inter_tra.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_inter_tra
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L2_out.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L2_out
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_A_IO_L2tde.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_A_IO_L2tde_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_A_IO_L2tde
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE139_U0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE139_U0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE139_U0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainFfa.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainFfa_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainFfa
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_local_fYi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_local_fYi_ram
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_local_fYi
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_outlbW.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outlbW_ram
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_outlbW
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_gmem_A_m_axi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_reg_slice
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_fifo
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_buffer
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_decoder
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_throttl
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_read
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_A_m_axi_write
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_axi_master_gmem_C.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_axi_master_gmem_C
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_deadlock_detector.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_deadlock_detector
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_deadlock_detection_unit.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_deadlock_detect_unit
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_inter_tra_1.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_inter_tra_1
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L2_out_he.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L2_out_he
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE_B_dummy143.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE_B_dummy143
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w32_d1_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w32_d1_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w32_d1_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w64_d1_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w64_d1_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w64_d1_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_axi_master_gmem_B.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_axi_master_gmem_B
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE_A_dummy.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE_A_dummy
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w32_d2_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w32_d2_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w32_d2_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out145.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out145
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_A_IO_L2sc4.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_A_IO_L2sc4_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_A_IO_L2sc4
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_he.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_he
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_gmem_C_m_axi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_reg_slice
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_fifo
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_buffer
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_decoder
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_throttl
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_read
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_C_m_axi_write
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_local_bkb.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_local_bkb_ram
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_local_bkb
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainyd2.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainyd2_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainyd2
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_A_duBew.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_A_duBew_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_A_duBew
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/fifo_w128_d1_A.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module fifo_w128_d1_A_shiftReg
+INFO: [VRFC 10-311] analyzing module fifo_w128_d1_A
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_B_IO_L2udo.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_B_IO_L2udo_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_B_IO_L2udo
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainrcU.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainrcU_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainrcU
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_B_duCeG.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_B_duCeG_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_B_duCeG
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L3_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L3_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE_A_dummy141.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE_A_dummy141
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_in_2.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_in_2
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_tail.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_tail
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE142.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE142
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE140.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE140
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE139.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE139
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_tail.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_tail
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_control_s_axi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_control_s_axi
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/PE_B_dummy.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module PE_B_dummy
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/AESL_axi_slave_control.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module AESL_axi_slave_control
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_entry6.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_entry6
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/B_IO_L2_in_intra_tra.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module B_IO_L2_in_intra_tra
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/A_IO_L2_in_inter_tra.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module A_IO_L2_in_inter_tra
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE140_U0.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE140_U0_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE140_U0
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0_gmem_B_m_axi.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_reg_slice
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_fifo
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_buffer
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_decoder
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_throttl
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_read
+INFO: [VRFC 10-311] analyzing module kernel0_gmem_B_m_axi_write
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_C_drainAem.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_C_drainAem_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_C_drainAem
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/start_for_PE_A_duxdS.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module start_for_PE_A_duxdS_shiftReg
+INFO: [VRFC 10-311] analyzing module start_for_PE_A_duxdS
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/C_drain_IO_L1_out_in_1.v" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module C_drain_IO_L1_out_in_1
+Starting static elaboration
+Pass Through NonSizing Optimizer
+Completed static elaboration
+Starting simulation data flow analysis
+Completed simulation data flow analysis
+Time Resolution for simulation is 1ps
+Compiling module xil_defaultlib.kernel0_control_s_axi
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_throttl(DAT...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_fifo(DEPTH=...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_write(NUM_W...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi_read(NUM_RE...
+Compiling module xil_defaultlib.kernel0_gmem_A_m_axi(NUM_READ_OU...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_throttl(DAT...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_fifo(DEPTH=...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_write(NUM_W...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi_read(NUM_RE...
+Compiling module xil_defaultlib.kernel0_gmem_B_m_axi(NUM_READ_OU...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_throttl(DAT...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_fifo(DEPTH=...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_fifo(DATA_B...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_write(NUM_W...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_buffer(DATA...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_reg_slice(N...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi_read(NUM_RE...
+Compiling module xil_defaultlib.kernel0_gmem_C_m_axi(NUM_READ_OU...
+Compiling module xil_defaultlib.kernel0_entry6
+Compiling module xil_defaultlib.A_IO_L3_in
+Compiling module xil_defaultlib.A_IO_L2_in_local_bkb_ram
+Compiling module xil_defaultlib.A_IO_L2_in_local_bkb(DataWidth=1...
+Compiling module xil_defaultlib.A_IO_L2_in_intra_tra
+Compiling module xil_defaultlib.A_IO_L2_in_inter_tra_1
+Compiling module xil_defaultlib.A_IO_L2_in
+Compiling module xil_defaultlib.A_IO_L2_in_tail_ldEe_ram
+Compiling module xil_defaultlib.A_IO_L2_in_tail_ldEe(DataWidth=1...
+Compiling module xil_defaultlib.A_IO_L2_in_inter_tra
+Compiling module xil_defaultlib.A_IO_L2_in_tail
+Compiling module xil_defaultlib.B_IO_L3_in
+Compiling module xil_defaultlib.B_IO_L2_in_local_fYi_ram
+Compiling module xil_defaultlib.B_IO_L2_in_local_fYi(DataWidth=1...
+Compiling module xil_defaultlib.B_IO_L2_in_intra_tra
+Compiling module xil_defaultlib.B_IO_L2_in_inter_tra_1
+Compiling module xil_defaultlib.B_IO_L2_in
+Compiling module xil_defaultlib.B_IO_L2_in_tail_lhbi_ram
+Compiling module xil_defaultlib.B_IO_L2_in_tail_lhbi(DataWidth=1...
+Compiling module xil_defaultlib.B_IO_L2_in_inter_tra
+Compiling module xil_defaultlib.B_IO_L2_in_tail
+Compiling module xil_defaultlib.PE139_local_C_ram
+Compiling module xil_defaultlib.PE139_local_C(DataWidth=32,Addre...
+Compiling module xil_defaultlib.PE139
+Compiling module xil_defaultlib.PE140
+Compiling module xil_defaultlib.PE_A_dummy141
+Compiling module xil_defaultlib.PE142
+Compiling module xil_defaultlib.PE_B_dummy143
+Compiling module xil_defaultlib.PE
+Compiling module xil_defaultlib.PE_A_dummy
+Compiling module xil_defaultlib.PE_B_dummy
+Compiling module xil_defaultlib.C_drain_IO_L1_outjbC_ram
+Compiling module xil_defaultlib.C_drain_IO_L1_outjbC(DataWidth=6...
+Compiling module xil_defaultlib.C_drain_IO_L1_out_in
+Compiling module xil_defaultlib.C_drain_IO_L1_out_in_1
+Compiling module xil_defaultlib.C_drain_IO_L1_out_he
+Compiling module xil_defaultlib.C_drain_IO_L1_outlbW_ram
+Compiling module xil_defaultlib.C_drain_IO_L1_outlbW(DataWidth=6...
+Compiling module xil_defaultlib.C_drain_IO_L1_out_in_2
+Compiling module xil_defaultlib.C_drain_IO_L1_out145
+Compiling module xil_defaultlib.C_drain_IO_L1_outncg_ram
+Compiling module xil_defaultlib.C_drain_IO_L1_outncg(DataWidth=6...
+Compiling module xil_defaultlib.C_drain_IO_L1_out_he_1
+Compiling module xil_defaultlib.C_drain_IO_L1_outpcA_ram
+Compiling module xil_defaultlib.C_drain_IO_L1_outpcA(DataWidth=6...
+Compiling module xil_defaultlib.C_drain_IO_L1_out
+Compiling module xil_defaultlib.C_drain_IO_L2_out_he
+Compiling module xil_defaultlib.C_drain_IO_L2_out
+Compiling module xil_defaultlib.C_drain_IO_L3_out
+Compiling module xil_defaultlib.fifo_w32_d2_A_shiftReg
+Compiling module xil_defaultlib.fifo_w32_d2_A
+Compiling module xil_defaultlib.fifo_w32_d9_A_shiftReg
+Compiling module xil_defaultlib.fifo_w32_d9_A
+Compiling module xil_defaultlib.fifo_w128_d1_A_shiftReg
+Compiling module xil_defaultlib.fifo_w128_d1_A
+Compiling module xil_defaultlib.fifo_w64_d1_A_shiftReg
+Compiling module xil_defaultlib.fifo_w64_d1_A
+Compiling module xil_defaultlib.fifo_w32_d1_A_shiftReg
+Compiling module xil_defaultlib.fifo_w32_d1_A
+Compiling module xil_defaultlib.start_for_C_drainrcU_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainrcU
+Compiling module xil_defaultlib.start_for_A_IO_L2sc4_shiftReg
+Compiling module xil_defaultlib.start_for_A_IO_L2sc4
+Compiling module xil_defaultlib.start_for_A_IO_L2tde_shiftReg
+Compiling module xil_defaultlib.start_for_A_IO_L2tde
+Compiling module xil_defaultlib.start_for_PE139_U0_shiftReg
+Compiling module xil_defaultlib.start_for_PE139_U0
+Compiling module xil_defaultlib.start_for_PE142_U0_shiftReg
+Compiling module xil_defaultlib.start_for_PE142_U0
+Compiling module xil_defaultlib.start_for_B_IO_L2udo_shiftReg
+Compiling module xil_defaultlib.start_for_B_IO_L2udo
+Compiling module xil_defaultlib.start_for_B_IO_L2vdy_shiftReg
+Compiling module xil_defaultlib.start_for_B_IO_L2vdy
+Compiling module xil_defaultlib.start_for_PE140_U0_shiftReg
+Compiling module xil_defaultlib.start_for_PE140_U0
+Compiling module xil_defaultlib.start_for_C_drainwdI_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainwdI
+Compiling module xil_defaultlib.start_for_PE_A_duxdS_shiftReg
+Compiling module xil_defaultlib.start_for_PE_A_duxdS
+Compiling module xil_defaultlib.start_for_PE_U0_shiftReg
+Compiling module xil_defaultlib.start_for_PE_U0
+Compiling module xil_defaultlib.start_for_C_drainyd2_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainyd2
+Compiling module xil_defaultlib.start_for_PE_B_duzec_shiftReg
+Compiling module xil_defaultlib.start_for_PE_B_duzec
+Compiling module xil_defaultlib.start_for_C_drainAem_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainAem
+Compiling module xil_defaultlib.start_for_PE_A_duBew_shiftReg
+Compiling module xil_defaultlib.start_for_PE_A_duBew
+Compiling module xil_defaultlib.start_for_PE_B_duCeG_shiftReg
+Compiling module xil_defaultlib.start_for_PE_B_duCeG
+Compiling module xil_defaultlib.start_for_C_drainDeQ_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainDeQ
+Compiling module xil_defaultlib.start_for_C_drainEe0_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainEe0
+Compiling module xil_defaultlib.start_for_C_drainFfa_shiftReg
+Compiling module xil_defaultlib.start_for_C_drainFfa
+Compiling module xil_defaultlib.kernel0
+Compiling module xil_defaultlib.AESL_axi_master_gmem_A
+Compiling module xil_defaultlib.AESL_axi_master_gmem_B
+Compiling module xil_defaultlib.AESL_axi_master_gmem_C
+Compiling module xil_defaultlib.AESL_axi_slave_control
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detect_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_report_unit(PROC_N...
+Compiling module xil_defaultlib.AESL_deadlock_detector_1
+Compiling module xil_defaultlib.apatb_kernel0_top
+Compiling module work.glbl
+Built simulation snapshot kernel0
+
+****** Webtalk v2019.2 (64-bit)
+  **** SW Build 2700185 on Thu Oct 24 18:45:48 MDT 2019
+  **** IP Build 2699827 on Thu Oct 24 21:16:38 MDT 2019
+    ** Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+
+source /curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/xsim.dir/kernel0/webtalk/xsim_webtalk.tcl -notrace
+INFO: [Common 17-186] '/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/xsim.dir/kernel0/webtalk/usage_statistics_ext_xsim.xml' has been successfully sent to Xilinx on Sun Mar 22 14:29:37 2020. For additional details about this file, please refer to the WebTalk help file at /opt/tools/xilinx/Vivado/2019.2/doc/webtalk_introduction.html.
+INFO: [Common 17-206] Exiting Webtalk at Sun Mar 22 14:29:37 2020...
+
+****** xsim v2019.2 (64-bit)
+  **** SW Build 2700185 on Thu Oct 24 18:45:48 MDT 2019
+  **** IP Build 2699827 on Thu Oct 24 21:16:38 MDT 2019
+    ** Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
+
+source xsim.dir/kernel0/xsim_script.tcl
+# xsim {kernel0} -autoloadwcfg -tclbatch {kernel0.tcl}
+Vivado Simulator 2019.2
+Time resolution is 1 ps
+source kernel0.tcl
+## run all
+////////////////////////////////////////////////////////////////////////////////////
+// Inter-Transaction Progress: Completed Transaction / Total Transaction
+// Intra-Transaction Progress: Measured Latency / Latency Estimation * 100%
+//
+// RTL Simulation : "Inter-Transaction Progress" ["Intra-Transaction Progress"] @ "Simulation Time"
+////////////////////////////////////////////////////////////////////////////////////
+// RTL Simulation : 0 / 1 [0.00%] @ "113000"
+
+//////////////////////////////////////////////////////////////////////////////
+// ERROR!!! DEADLOCK DETECTED at 665000 ns! SIMULATION WILL BE STOPPED! //
+//////////////////////////////////////////////////////////////////////////////
+/////////////////////////
+// Dependence cycle 1:
+// (1): Process: kernel0.A_IO_L2_in_tail_U0
+// RTL Simulation : 1 / 1 [100.00%] @ "1643000"
+////////////////////////////////////////////////////////////////////////////////////
+$finish called at time : 1662500 ps : File "/curr/jaywang/research/systolic_compile/ppcg/polysa/hls_tests/gemm/hls_prj/prj/solution1/sim/verilog/kernel0.autotb.v" Line 740
+## quit
+INFO: [Common 17-206] Exiting xsim at Sun Mar 22 14:30:21 2020...
+passed!

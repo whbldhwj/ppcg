@@ -6666,10 +6666,10 @@ static __isl_give isl_schedule *generate_io_module_outer(
   isl_id *id;
   isl_set *context;
   isl_union_set *empty_filter = NULL;
-  char *stmt_name1, *stmt_name2, *stmt_name3;
+  char *stmt_name1, *stmt_name2, *stmt_name3, *stmt_name4, *stmt_name5;
   isl_union_map *group_access;
   isl_union_set *group_domain;
-  isl_schedule_node *node, *graft1, *graft2, *graft3;
+  isl_schedule_node *node, *graft1, *graft2, *graft3, *graft4, *graft5;
   isl_schedule *new_sched;
   int upper_io_level;
   isl_space *space;
@@ -6741,13 +6741,18 @@ static __isl_give isl_schedule *generate_io_module_outer(
   node = polysa_tree_move_up_to_kernel(node);
 
   /* Add the inter_trans and intra_trans function calls */
+//  stmt_name1 = "io_module.inter_trans";
+//  stmt_name2 = "io_module.intra_trans";
   stmt_name1 = "io_module.inter_trans";
   stmt_name2 = "io_module.intra_trans";
-  stmt_name3 = "io_module.state_handle";
+  stmt_name3 = "io_module.inter_intra";
+  stmt_name4 = "io_module.intra_inter"; 
+  stmt_name5 = "io_module.state_handle";
 
   node = polysa_tree_move_down_to_io_mark(node, kernel->core, upper_io_level);
   node = isl_schedule_node_child(node, 0);
   node = isl_schedule_node_cut(node);
+
   space = isl_space_set_alloc(ctx, 0, 0);
   space = isl_space_set_tuple_name(space, isl_dim_set, stmt_name1);
   domain = isl_union_set_from_set(isl_set_universe(space));
@@ -6758,20 +6763,40 @@ static __isl_give isl_schedule *generate_io_module_outer(
   domain = isl_union_set_from_set(isl_set_universe(space));
   graft2 = isl_schedule_node_from_domain(domain);
 
+  space = isl_space_set_alloc(ctx, 0, 0);
+  space = isl_space_set_tuple_name(space, isl_dim_set, stmt_name3);
+  domain = isl_union_set_from_set(isl_set_universe(space));
+  graft3 = isl_schedule_node_from_domain(domain);
+
+  space = isl_space_set_alloc(ctx, 0, 0);
+  space = isl_space_set_tuple_name(space, isl_dim_set, stmt_name4);
+  domain = isl_union_set_from_set(isl_set_universe(space));
+  graft4 = isl_schedule_node_from_domain(domain);
+
+  space = isl_space_set_alloc(ctx, 0, 0);
+  space = isl_space_set_tuple_name(space, isl_dim_set, stmt_name5);
+  domain = isl_union_set_from_set(isl_set_universe(space));
+  graft5 = isl_schedule_node_from_domain(domain);
+
+//  if (read) {
+//    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft1));
+//    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft2));
+//  } else {
+//    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft2));
+//    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft1));
+//  } 
   if (read) {
-    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft1));
-    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft2));
+    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft3));
   } else {
-    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft2));
-    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft1));
+    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft4));
   }  
   if (gen->options->double_buffer) {
     /* Add misc statements for saving and switching states */
-    space = isl_space_set_alloc(ctx, 0, 0);
-    space = isl_space_set_tuple_name(space, isl_dim_set, stmt_name3);
-    domain = isl_union_set_from_set(isl_set_universe(space));
-    graft3 = isl_schedule_node_from_domain(domain);
-    node = isl_schedule_node_graft_before(node, graft3);
+//    space = isl_space_set_alloc(ctx, 0, 0);
+//    space = isl_space_set_tuple_name(space, isl_dim_set, stmt_name3);
+//    domain = isl_union_set_from_set(isl_set_universe(space));
+//    graft3 = isl_schedule_node_from_domain(domain);
+    node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft5));
   }
   node = isl_schedule_node_cut(node);
   /* Insert an empty filter */
@@ -6795,6 +6820,9 @@ static __isl_give isl_schedule *generate_io_module_outer(
   }
   isl_schedule_node_free(graft1);
   isl_schedule_node_free(graft2);
+  isl_schedule_node_free(graft3);
+  isl_schedule_node_free(graft4);
+  isl_schedule_node_free(graft5);
 
   /* Compute the union of domains of all the array references in the group. */
   group_access = isl_union_map_empty(isl_map_get_space(group->access));
