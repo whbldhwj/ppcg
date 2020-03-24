@@ -645,6 +645,9 @@ struct polysa_hw_module {
   isl_schedule *outer_sched; /* Outer loops */
   isl_schedule *inter_sched; /* Inter transfer */
   isl_schedule *intra_sched; /* Intra transfer */
+  
+  isl_schedule *boundary_outer_sched;
+  isl_schedule *boundary_inter_sched;
 
   isl_space *inter_space;
   isl_space *intra_space;
@@ -652,6 +655,14 @@ struct polysa_hw_module {
 
   isl_ast_node *inter_tree;
   isl_ast_node *intra_tree;
+  
+  isl_ast_node *boundary_outer_tree;
+  isl_ast_node *boundary_inter_tree;
+
+  /* Module function schedule for filter modules at the boundary */
+  isl_schedule *boundary_sched;
+  isl_ast_node *boundary_tree;
+  int boundary;
 
   int double_buffer;
 
@@ -759,6 +770,7 @@ struct polysa_kernel_stmt {
       int in;
       int buf;
       int filter;
+      int boundary;
       char *fifo_name;
       char *fifo_type;
       int filter_sched_depth;
@@ -782,6 +794,7 @@ struct polysa_kernel_stmt {
     } m;
     struct {
       struct polysa_hw_module *module;
+      int boundary;
     } f;
 	} u;
 };

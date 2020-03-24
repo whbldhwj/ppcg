@@ -6,8 +6,8 @@
 
 __isl_give isl_ast_node *sa_generate_code(struct polysa_gen *gen,
     __isl_take isl_schedule *schedule);
-__isl_give isl_ast_node *sa_module_generate_code(struct polysa_gen *gen,
-    __isl_take isl_schedule *schedule);
+isl_stat sa_module_generate_code(struct polysa_gen *gen,
+  struct polysa_hw_module *module);
 __isl_give isl_ast_node *sa_module_call_generate_code(struct polysa_gen *gen,
     __isl_take isl_schedule *schedule);
 __isl_give isl_ast_node *sa_fifo_decl_generate_code(struct polysa_gen *gen,

@@ -2371,6 +2371,13 @@ struct polysa_hw_module *polysa_hw_module_alloc()
   module->inter_tree = NULL;
   module->intra_tree = NULL;
   module->credit = 0;
+  module->boundary_sched = NULL;
+  module->boundary_tree = NULL;
+  module->boundary = 0;
+  module->boundary_outer_sched = NULL;
+  module->boundary_inter_sched = NULL;
+  module->boundary_outer_tree = NULL;
+  module->boundary_inter_tree = NULL;
 
   return module;
 }
@@ -2411,6 +2418,9 @@ void *polysa_hw_module_free(struct polysa_hw_module *module)
   isl_ast_node_free(module->device_tree);
   isl_ast_node_free(module->inter_tree);
   isl_ast_node_free(module->intra_tree);
+  isl_ast_node_free(module->boundary_tree);
+  isl_ast_node_free(module->boundary_outer_tree);
+  isl_ast_node_free(module->boundary_inter_tree);
 
   isl_space_free(module->inter_space);
   isl_space_free(module->intra_space);

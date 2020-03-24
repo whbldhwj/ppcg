@@ -1,9 +1,9 @@
 extern "C" {
 void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
 {
-#pragma HLS INTERFACE m_axi port=A offset=slave bundle=gmem
-#pragma HLS INTERFACE m_axi port=B offset=slave bundle=gmem
-#pragma HLS INTERFACE m_axi port=C offset=slave bundle=gmem
+#pragma HLS INTERFACE m_axi port=A offset=slave bundle=gmem_A
+#pragma HLS INTERFACE m_axi port=B offset=slave bundle=gmem_B
+#pragma HLS INTERFACE m_axi port=C offset=slave bundle=gmem_C
 #pragma HLS INTERFACE s_axilite port=A bundle=control
 #pragma HLS INTERFACE s_axilite port=B bundle=control
 #pragma HLS INTERFACE s_axilite port=C bundle=control
@@ -93,11 +93,10 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     /* Module Call */
 
     /* Module Call */
-    A_IO_L2_in(
+    A_IO_L2_in_boundary(
         /* module id */ 1,
         /* fifo */ fifo_A_A_IO_L2_in_1,
-        /* fifo */ fifo_A_A_IO_L2_in_2,
-        /* fifo */ fifo_A_PE_1_0
+        /* fifo */ fifo_A_PE_0_0
     );
     /* Module Call */
 
@@ -118,11 +117,10 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     /* Module Call */
 
     /* Module Call */
-    B_IO_L2_in(
+    B_IO_L2_in_boundary(
         /* module id */ 1,
         /* fifo */ fifo_B_B_IO_L2_in_1,
-        /* fifo */ fifo_B_B_IO_L2_in_2,
-        /* fifo */ fifo_B_PE_0_1
+        /* fifo */ fifo_B_PE_0_0
     );
     /* Module Call */
 
@@ -175,10 +173,9 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     /* Module Call */
 
     /* Module Call */
-    C_drain_IO_L1_out(
+    C_drain_IO_L1_out_boundary(
         /* module id */ 0,
         /* module id */ 0,
-        /* fifo */ fifo_C_drain_C_drain_IO_L1_out_0_0,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_0_1,
         /* fifo */ fifo_C_drain_PE_0_0
     );
@@ -190,15 +187,14 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
         /* module id */ 1,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_0_1,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_0_2,
-        /* fifo */ fifo_C_drain_PE_1_0
+        /* fifo */ fifo_C_drain_PE_0_0
     );
     /* Module Call */
 
     /* Module Call */
-    C_drain_IO_L1_out(
+    C_drain_IO_L1_out_boundary(
         /* module id */ 1,
         /* module id */ 0,
-        /* fifo */ fifo_C_drain_C_drain_IO_L1_out_1_0,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_1_1,
         /* fifo */ fifo_C_drain_PE_0_1
     );
@@ -210,14 +206,13 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
         /* module id */ 1,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_1_1,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_1_2,
-        /* fifo */ fifo_C_drain_PE_1_1
+        /* fifo */ fifo_C_drain_PE_0_1
     );
     /* Module Call */
 
     /* Module Call */
-    C_drain_IO_L2_out(
+    C_drain_IO_L2_out_boundary(
         /* module id */ 0,
-        /* fifo */ fifo_C_drain_C_drain_IO_L2_out_0,
         /* fifo */ fifo_C_drain_C_drain_IO_L2_out_1,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_0_2
     );

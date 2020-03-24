@@ -322,6 +322,7 @@ void top_generate(FILE *f)
     p = isl_printer_end_line(p);
     p = isl_printer_end_line(p);
     // array
+    // io_L3
     {
       {
         p = isl_printer_start_line(p);
@@ -335,7 +336,6 @@ void top_generate(FILE *f)
         p = isl_printer_start_line(p);
         p = isl_printer_print_str(p, "/* array */ A");
       }
-      // io_L3
       for (int c0 = 0; c0 <= 1; c0 += 1)
         if (c0 == 0)
           {
@@ -361,59 +361,105 @@ void top_generate(FILE *f)
     // array
     // io_L3
     for (int c0 = 0; c0 <= 1; c0 += 1) {
-      {
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* Module Call */");
-        p = isl_printer_end_line(p);
-        // Print calls of module: A_IO_L2_in
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "A_IO_L2_in(");
-        p = isl_printer_end_line(p);
-        p = isl_printer_indent(p, 4);
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* module id */ ");
-        p = isl_printer_print_int(p, c0);
-        p = isl_printer_print_str(p, ",");
-        p = isl_printer_end_line(p);
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* fifo */ ");
-        p = isl_printer_print_str(p, "fifo_A_A_IO_L2_in");
-        p = isl_printer_print_str(p, "_");
-        p = isl_printer_print_int(p, c0);
-        p = isl_printer_print_str(p, ",");
-        p = isl_printer_end_line(p);
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* fifo */ ");
-        p = isl_printer_print_str(p, "fifo_A_A_IO_L2_in");
-        p = isl_printer_print_str(p, "_");
-        p = isl_printer_print_int(p, c0 + 1);
-      }
       // io_L2
-      for (int c1 = 0; c1 <= 1; c1 += 1)
-        if (c1 == 0)
-          {
-            p = isl_printer_print_str(p, ",");
-            p = isl_printer_end_line(p);
-            p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "/* fifo */ ");
-            p = isl_printer_print_str(p, "fifo_A_PE");
-            p = isl_printer_print_str(p, "_");
-            p = isl_printer_print_int(p, c0);
-            p = isl_printer_print_str(p, "_");
-            p = isl_printer_print_int(p, 0);
-            p = isl_printer_end_line(p);
-            p = isl_printer_indent(p, -4);
-            p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, ");");
-            p = isl_printer_end_line(p);
-            p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "/* Module Call */");
-            p = isl_printer_end_line(p);
-            p = isl_printer_end_line(p);
-          }
+      if (c0 == 0) {
+        {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* Module Call */");
+          p = isl_printer_end_line(p);
+          // Print calls of module: A_IO_L2_in
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "A_IO_L2_in(");
+          p = isl_printer_end_line(p);
+          p = isl_printer_indent(p, 4);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* module id */ ");
+          p = isl_printer_print_int(p, c0);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_A_A_IO_L2_in");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_A_A_IO_L2_in");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0 + 1);
+        }
+        for (int c1 = 0; c1 <= 1; c1 += 1)
+          if (c1 == 0)
+            {
+              p = isl_printer_print_str(p, ",");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* fifo */ ");
+              p = isl_printer_print_str(p, "fifo_A_PE");
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, 0);
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, 0);
+              p = isl_printer_end_line(p);
+              p = isl_printer_indent(p, -4);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, ");");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* Module Call */");
+              p = isl_printer_end_line(p);
+              p = isl_printer_end_line(p);
+            }
+      } else {
+        {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* Module Call */");
+          p = isl_printer_end_line(p);
+          // Print calls of module: A_IO_L2_in_boundary
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "A_IO_L2_in_boundary(");
+          p = isl_printer_end_line(p);
+          p = isl_printer_indent(p, 4);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* module id */ ");
+          p = isl_printer_print_int(p, c0);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_A_A_IO_L2_in");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0);
+        }
+        for (int c1 = 0; c1 <= 1; c1 += 1)
+          if (c1 == 0)
+            {
+              p = isl_printer_print_str(p, ",");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* fifo */ ");
+              p = isl_printer_print_str(p, "fifo_A_PE");
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, 0);
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, 0);
+              p = isl_printer_end_line(p);
+              p = isl_printer_indent(p, -4);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, ");");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* Module Call */");
+              p = isl_printer_end_line(p);
+              p = isl_printer_end_line(p);
+            }
+      }
     }
 
     // array
+    // io_L3
     {
       {
         p = isl_printer_start_line(p);
@@ -427,7 +473,6 @@ void top_generate(FILE *f)
         p = isl_printer_start_line(p);
         p = isl_printer_print_str(p, "/* array */ B");
       }
-      // io_L3
       for (int c0 = 0; c0 <= 1; c0 += 1)
         if (c0 == 0)
           {
@@ -453,56 +498,101 @@ void top_generate(FILE *f)
     // array
     // io_L3
     for (int c0 = 0; c0 <= 1; c0 += 1) {
-      {
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* Module Call */");
-        p = isl_printer_end_line(p);
-        // Print calls of module: B_IO_L2_in
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "B_IO_L2_in(");
-        p = isl_printer_end_line(p);
-        p = isl_printer_indent(p, 4);
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* module id */ ");
-        p = isl_printer_print_int(p, c0);
-        p = isl_printer_print_str(p, ",");
-        p = isl_printer_end_line(p);
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* fifo */ ");
-        p = isl_printer_print_str(p, "fifo_B_B_IO_L2_in");
-        p = isl_printer_print_str(p, "_");
-        p = isl_printer_print_int(p, c0);
-        p = isl_printer_print_str(p, ",");
-        p = isl_printer_end_line(p);
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* fifo */ ");
-        p = isl_printer_print_str(p, "fifo_B_B_IO_L2_in");
-        p = isl_printer_print_str(p, "_");
-        p = isl_printer_print_int(p, c0 + 1);
-      }
       // io_L2
-      for (int c1 = 0; c1 <= 1; c1 += 1)
-        if (c1 == 0)
-          {
-            p = isl_printer_print_str(p, ",");
-            p = isl_printer_end_line(p);
-            p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "/* fifo */ ");
-            p = isl_printer_print_str(p, "fifo_B_PE");
-            p = isl_printer_print_str(p, "_");
-            p = isl_printer_print_int(p, 0);
-            p = isl_printer_print_str(p, "_");
-            p = isl_printer_print_int(p, c0);
-            p = isl_printer_end_line(p);
-            p = isl_printer_indent(p, -4);
-            p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, ");");
-            p = isl_printer_end_line(p);
-            p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "/* Module Call */");
-            p = isl_printer_end_line(p);
-            p = isl_printer_end_line(p);
-          }
+      if (c0 == 0) {
+        {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* Module Call */");
+          p = isl_printer_end_line(p);
+          // Print calls of module: B_IO_L2_in
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "B_IO_L2_in(");
+          p = isl_printer_end_line(p);
+          p = isl_printer_indent(p, 4);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* module id */ ");
+          p = isl_printer_print_int(p, c0);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_B_B_IO_L2_in");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_B_B_IO_L2_in");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0 + 1);
+        }
+        for (int c1 = 0; c1 <= 1; c1 += 1)
+          if (c1 == 0)
+            {
+              p = isl_printer_print_str(p, ",");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* fifo */ ");
+              p = isl_printer_print_str(p, "fifo_B_PE");
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, 0);
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, 0);
+              p = isl_printer_end_line(p);
+              p = isl_printer_indent(p, -4);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, ");");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* Module Call */");
+              p = isl_printer_end_line(p);
+              p = isl_printer_end_line(p);
+            }
+      } else {
+        {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* Module Call */");
+          p = isl_printer_end_line(p);
+          // Print calls of module: B_IO_L2_in_boundary
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "B_IO_L2_in_boundary(");
+          p = isl_printer_end_line(p);
+          p = isl_printer_indent(p, 4);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* module id */ ");
+          p = isl_printer_print_int(p, c0);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_B_B_IO_L2_in");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0);
+        }
+        for (int c1 = 0; c1 <= 1; c1 += 1)
+          if (c1 == 0)
+            {
+              p = isl_printer_print_str(p, ",");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* fifo */ ");
+              p = isl_printer_print_str(p, "fifo_B_PE");
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, 0);
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, 0);
+              p = isl_printer_end_line(p);
+              p = isl_printer_indent(p, -4);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, ");");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* Module Call */");
+              p = isl_printer_end_line(p);
+              p = isl_printer_end_line(p);
+            }
+      }
     }
 
     // array
@@ -586,99 +676,25 @@ void top_generate(FILE *f)
     for (int c0 = 0; c0 <= 1; c0 += 1) {
       // io_L2
       for (int c1 = 0; c1 <= 1; c1 += 1) {
-        {
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* Module Call */");
-          p = isl_printer_end_line(p);
-          // Print calls of module: C_drain_IO_L1_out
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "C_drain_IO_L1_out(");
-          p = isl_printer_end_line(p);
-          p = isl_printer_indent(p, 4);
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* module id */ ");
-          p = isl_printer_print_int(p, c0);
-          p = isl_printer_print_str(p, ",");
-          p = isl_printer_end_line(p);
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* module id */ ");
-          p = isl_printer_print_int(p, c1);
-          p = isl_printer_print_str(p, ",");
-          p = isl_printer_end_line(p);
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* fifo */ ");
-          p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L1_out");
-          p = isl_printer_print_str(p, "_");
-          p = isl_printer_print_int(p, c0);
-          p = isl_printer_print_str(p, "_");
-          p = isl_printer_print_int(p, c1);
-          p = isl_printer_print_str(p, ",");
-          p = isl_printer_end_line(p);
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* fifo */ ");
-          p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L1_out");
-          p = isl_printer_print_str(p, "_");
-          p = isl_printer_print_int(p, c0);
-          p = isl_printer_print_str(p, "_");
-          p = isl_printer_print_int(p, c1 + 1);
-        }
-        {
-          p = isl_printer_print_str(p, ",");
-          p = isl_printer_end_line(p);
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* fifo */ ");
-          p = isl_printer_print_str(p, "fifo_C_drain_PE");
-          p = isl_printer_print_str(p, "_");
-          p = isl_printer_print_int(p, c1);
-          p = isl_printer_print_str(p, "_");
-          p = isl_printer_print_int(p, c0);
-          p = isl_printer_end_line(p);
-          p = isl_printer_indent(p, -4);
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, ");");
-          p = isl_printer_end_line(p);
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* Module Call */");
-          p = isl_printer_end_line(p);
-          p = isl_printer_end_line(p);
-        }
-      }
-    }
-
-    // array
-    // io_L3
-    for (int c0 = 0; c0 <= 1; c0 += 1) {
-      {
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* Module Call */");
-        p = isl_printer_end_line(p);
-        // Print calls of module: C_drain_IO_L2_out
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "C_drain_IO_L2_out(");
-        p = isl_printer_end_line(p);
-        p = isl_printer_indent(p, 4);
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* module id */ ");
-        p = isl_printer_print_int(p, c0);
-        p = isl_printer_print_str(p, ",");
-        p = isl_printer_end_line(p);
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* fifo */ ");
-        p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
-        p = isl_printer_print_str(p, "_");
-        p = isl_printer_print_int(p, c0);
-        p = isl_printer_print_str(p, ",");
-        p = isl_printer_end_line(p);
-        p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* fifo */ ");
-        p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
-        p = isl_printer_print_str(p, "_");
-        p = isl_printer_print_int(p, c0 + 1);
-      }
-      // io_L2
-      for (int c1 = 0; c1 <= 1; c1 += 1)
-        if (c1 == 1)
+        // io_L1
+        if (c1 == 0) {
           {
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* Module Call */");
+            p = isl_printer_end_line(p);
+            // Print calls of module: C_drain_IO_L1_out_boundary
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "C_drain_IO_L1_out_boundary(");
+            p = isl_printer_end_line(p);
+            p = isl_printer_indent(p, 4);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* module id */ ");
+            p = isl_printer_print_int(p, c0);
+            p = isl_printer_print_str(p, ",");
+            p = isl_printer_end_line(p);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* module id */ ");
+            p = isl_printer_print_int(p, c1);
             p = isl_printer_print_str(p, ",");
             p = isl_printer_end_line(p);
             p = isl_printer_start_line(p);
@@ -688,6 +704,17 @@ void top_generate(FILE *f)
             p = isl_printer_print_int(p, c0);
             p = isl_printer_print_str(p, "_");
             p = isl_printer_print_int(p, c1 + 1);
+          }
+          {
+            p = isl_printer_print_str(p, ",");
+            p = isl_printer_end_line(p);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* fifo */ ");
+            p = isl_printer_print_str(p, "fifo_C_drain_PE");
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, 0);
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, c0);
             p = isl_printer_end_line(p);
             p = isl_printer_indent(p, -4);
             p = isl_printer_start_line(p);
@@ -698,9 +725,169 @@ void top_generate(FILE *f)
             p = isl_printer_end_line(p);
             p = isl_printer_end_line(p);
           }
+        } else {
+          {
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* Module Call */");
+            p = isl_printer_end_line(p);
+            // Print calls of module: C_drain_IO_L1_out
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "C_drain_IO_L1_out(");
+            p = isl_printer_end_line(p);
+            p = isl_printer_indent(p, 4);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* module id */ ");
+            p = isl_printer_print_int(p, c0);
+            p = isl_printer_print_str(p, ",");
+            p = isl_printer_end_line(p);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* module id */ ");
+            p = isl_printer_print_int(p, c1);
+            p = isl_printer_print_str(p, ",");
+            p = isl_printer_end_line(p);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* fifo */ ");
+            p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L1_out");
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, c0);
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, c1);
+            p = isl_printer_print_str(p, ",");
+            p = isl_printer_end_line(p);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* fifo */ ");
+            p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L1_out");
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, c0);
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, c1 + 1);
+          }
+          {
+            p = isl_printer_print_str(p, ",");
+            p = isl_printer_end_line(p);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* fifo */ ");
+            p = isl_printer_print_str(p, "fifo_C_drain_PE");
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, 0);
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, c0);
+            p = isl_printer_end_line(p);
+            p = isl_printer_indent(p, -4);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, ");");
+            p = isl_printer_end_line(p);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* Module Call */");
+            p = isl_printer_end_line(p);
+            p = isl_printer_end_line(p);
+          }
+        }
+      }
     }
 
     // array
+    // io_L3
+    for (int c0 = 0; c0 <= 1; c0 += 1) {
+      // io_L2
+      if (c0 == 0) {
+        {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* Module Call */");
+          p = isl_printer_end_line(p);
+          // Print calls of module: C_drain_IO_L2_out_boundary
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "C_drain_IO_L2_out_boundary(");
+          p = isl_printer_end_line(p);
+          p = isl_printer_indent(p, 4);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* module id */ ");
+          p = isl_printer_print_int(p, c0);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0 + 1);
+        }
+        for (int c1 = 0; c1 <= 1; c1 += 1)
+          if (c1 == 1)
+            {
+              p = isl_printer_print_str(p, ",");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* fifo */ ");
+              p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L1_out");
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, c0);
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, c1 + 1);
+              p = isl_printer_end_line(p);
+              p = isl_printer_indent(p, -4);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, ");");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* Module Call */");
+              p = isl_printer_end_line(p);
+              p = isl_printer_end_line(p);
+            }
+      } else {
+        {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* Module Call */");
+          p = isl_printer_end_line(p);
+          // Print calls of module: C_drain_IO_L2_out
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "C_drain_IO_L2_out(");
+          p = isl_printer_end_line(p);
+          p = isl_printer_indent(p, 4);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* module id */ ");
+          p = isl_printer_print_int(p, c0);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0 + 1);
+        }
+        for (int c1 = 0; c1 <= 1; c1 += 1)
+          if (c1 == 1)
+            {
+              p = isl_printer_print_str(p, ",");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* fifo */ ");
+              p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L1_out");
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, c0);
+              p = isl_printer_print_str(p, "_");
+              p = isl_printer_print_int(p, c1 + 1);
+              p = isl_printer_end_line(p);
+              p = isl_printer_indent(p, -4);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, ");");
+              p = isl_printer_end_line(p);
+              p = isl_printer_start_line(p);
+              p = isl_printer_print_str(p, "/* Module Call */");
+              p = isl_printer_end_line(p);
+              p = isl_printer_end_line(p);
+            }
+      }
+    }
+
+    // array
+    // io_L3
     {
       {
         p = isl_printer_start_line(p);
@@ -714,7 +901,6 @@ void top_generate(FILE *f)
         p = isl_printer_start_line(p);
         p = isl_printer_print_str(p, "/* array */ C");
       }
-      // io_L3
       for (int c0 = 0; c0 <= 1; c0 += 1)
         if (c0 == 1)
           {
