@@ -1,8 +1,0 @@
-[
-    {
-        "cycleName": "Dependence cycle 1",
-        "processList": [
-            {
-                "processName": "kernel0.A_IO_L2_in_tail_U0",
-                "channelList": [
-]
