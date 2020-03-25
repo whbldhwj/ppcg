@@ -13,6 +13,15 @@ static inline int prefixcmp(const char *s, const char *prefix)
 	return strncmp(s, prefix, strlen(prefix));
 }
 
+static inline int suffixcmp(const char *s, const char *suffix)
+{
+  int start = strlen(s) - strlen(suffix);
+  if (start < 0) 
+    return 1;
+  else
+    return strncmp(s + start, suffix, strlen(suffix));
+}
+
 __isl_give isl_multi_val *ppcg_multi_val_from_int(__isl_take isl_space *space,
 	int val);
 __isl_give isl_multi_val *ppcg_multi_val_from_int_list(

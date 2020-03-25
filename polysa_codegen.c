@@ -13,8 +13,10 @@ struct polysa_at_domain_data {
   struct polysa_kernel *kernel;
   struct polysa_hw_module *module;
   struct polysa_hw_top_module *top;
+  struct polysa_pe_dummy_module *pe_dummy_module;
   int filter_buffer;
   int boundary;
+  int pe_dummy;
 
   /* Under a "pipeline" mark */
   int under_pipeline;
@@ -1065,6 +1067,41 @@ static int extract_is_boundary(const char *type)
   return 1;
 }
 
+/* module_call.module_name.boundary */
+static int extract_module_name(isl_ctx *ctx, const char *type)
+{
+  char ch;
+  int loc = 0;
+  int n_dot = 0;
+  isl_printer *p_str;
+  char *module_name;
+
+  while ((ch = type[loc]) != '\0') {
+    if (ch == '.')
+      n_dot++;
+    if (n_dot == 1)
+      break;
+    loc++;
+  }
+  
+  loc++;
+  p_str = isl_printer_to_str(ctx);
+  while ((ch = type[loc]) != '\0') {
+    if (ch == '.')
+      break;
+    char buf[2];
+    buf[0]= ch;
+    buf[1] = '\0';
+    p_str = isl_printer_print_str(p_str, buf);
+    loc++;
+  }
+
+  module_name = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
+
+  return module_name; 
+}
+
 /* Extract the filter field from the I/O statement type.
  * The I/O statement type is in the format of:
  * in/out_trans[_dram].[fifo_name].[is_filter].[is_buffer].[sched_depth].[param_id]
@@ -1345,6 +1382,7 @@ __isl_give isl_ast_expr_list *decl_args_generate(struct polysa_hw_module *module
 
 static __isl_give isl_ast_node *create_module_call_leaf(struct polysa_kernel *kernel,
   __isl_take isl_ast_node *node, struct polysa_hw_module *module,
+  struct polysa_pe_dummy_module *pe_dummy_module,
   struct polysa_array_ref_group *group, const char *name, __isl_keep isl_ast_build *build)
 {
   struct polysa_kernel_stmt *stmt;
@@ -1364,6 +1402,9 @@ static __isl_give isl_ast_node *create_module_call_leaf(struct polysa_kernel *ke
   stmt->u.m.module = module;
   stmt->u.m.group = group;
   stmt->u.m.boundary = extract_is_boundary(name);
+  stmt->u.m.module_name = extract_module_name(ctx, name);
+  stmt->u.m.dummy = !suffixcmp(stmt->u.m.module_name, "dummy");
+  stmt->u.m.pe_dummy_module = pe_dummy_module;
   if (!prefixcmp(name, "module_call_lower")) {
     stmt->u.m.lower = 1;
     stmt->u.m.upper = 0;
@@ -1376,29 +1417,41 @@ static __isl_give isl_ast_node *create_module_call_leaf(struct polysa_kernel *ke
   }
 
   if (stmt->u.m.lower) {
-    if ((module->type == IO_MODULE || module->type == DRAIN_MODULE) && !group->io_pe_expr) {
-      if (module->to_pe) {
-//        // debug
-//        isl_printer *p = isl_printer_to_file(isl_ast_node_get_ctx(node), stdout);
-//        // debug
-        isl_union_map *umap = isl_ast_build_get_schedule(build);
-        isl_union_set *uset = isl_union_map_range(umap);
-        isl_set *set = isl_set_from_union_set(uset);
-        isl_map *map = isl_set_identity(set);
-        map = isl_map_flatten_range(map);
-        trans = isl_multi_aff_copy(group->io_trans);
-        isl_map *map2 = isl_map_from_multi_aff(trans);
-        map2 = isl_map_reverse(map2);
-//        // debug
-//        p = isl_printer_print_map(p, map);
-//        printf("\n");
-//        p = isl_printer_print_map(p, map2);
-//        printf("\n");
-//        // debug
-        map = isl_map_apply_range(map, map2);
-        isl_pw_multi_aff *pma = isl_pw_multi_aff_from_map(map);
-        expr = isl_ast_build_access_from_pw_multi_aff(build, pma);
-        group->io_pe_expr = expr;
+    if (!stmt->u.m.boundary) {
+      if ((module->type == IO_MODULE || module->type == DRAIN_MODULE) && !group->io_pe_expr) {
+        if (module->to_pe) {
+          isl_union_map *umap = isl_ast_build_get_schedule(build);
+          isl_union_set *uset = isl_union_map_range(umap);
+          isl_set *set = isl_set_from_union_set(uset);
+          isl_map *map = isl_set_identity(set);
+          map = isl_map_flatten_range(map);
+          trans = isl_multi_aff_copy(group->io_trans);
+          isl_map *map2 = isl_map_from_multi_aff(trans);
+          map2 = isl_map_reverse(map2);
+          map = isl_map_apply_range(map, map2);
+          isl_pw_multi_aff *pma = isl_pw_multi_aff_from_map(map);
+          expr = isl_ast_build_access_from_pw_multi_aff(build, pma);
+          group->io_pe_expr = expr;
+        }
+      }
+    }
+    /* boundary module */
+    if (stmt->u.m.boundary) {
+      if ((module->type == IO_MODULE || module->type == DRAIN_MODULE) && !group->io_pe_expr_boundary) {
+        if (module->to_pe) {
+          isl_union_map *umap = isl_ast_build_get_schedule(build);
+          isl_union_set *uset = isl_union_map_range(umap);
+          isl_set *set = isl_set_from_union_set(uset);
+          isl_map *map = isl_set_identity(set);
+          map = isl_map_flatten_range(map);
+          trans = isl_multi_aff_copy(group->io_trans);
+          isl_map *map2 = isl_map_from_multi_aff(trans);
+          map2 = isl_map_reverse(map2);
+          map = isl_map_apply_range(map, map2);
+          isl_pw_multi_aff *pma = isl_pw_multi_aff_from_map(map);
+          expr = isl_ast_build_access_from_pw_multi_aff(build, pma);
+          group->io_pe_expr_boundary = expr;
+        }
       }
     }
   }
@@ -1535,7 +1588,8 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
   int is_trans_dram; // i/o transfer statement betwen dram and on-chip modules
   int is_trans_filter; // i/o transfer statment with filters
   int is_trans_buf; // i/o transfer statment with local buffers
-  int is_trans_boundary; 
+  int is_trans_boundary;
+  int is_dummy;
   struct polysa_array_ref_group *group = pair->local_group;
   int depth;
   isl_ctx *ctx;
@@ -1565,6 +1619,12 @@ static __isl_give isl_ast_node *create_io_leaf(struct polysa_kernel *kernel,
     is_trans_filter = extract_is_filter(type);
     is_trans_buf = extract_is_buffer(type);
   }
+  if (!is_trans) {
+    is_dummy = !prefixcmp(type, "in_dummy") || !prefixcmp(type, "out_dummy");
+  } else {
+    is_dummy = 0;
+  }
+  stmt->u.i.dummy = is_dummy;
   stmt->u.i.in = type && !prefixcmp(type, "in");
   stmt->u.i.buf = is_trans_buf;
   stmt->u.i.filter = is_trans_filter;
@@ -1916,7 +1976,7 @@ static __isl_give isl_ast_node *at_domain_module(__isl_take isl_ast_node *node,
     struct polysa_array_ref_group *group = NULL;
     if (!prefixcmp(name, "module_call_lower"))
       group = p;
-    return create_module_call_leaf(data->kernel, node, data->module, group, name, build);
+    return create_module_call_leaf(data->kernel, node, data->module, data->pe_dummy_module, group, name, build);
   }
   if (!prefixcmp(name, "fifo_decl")) {
     /* fifo_decl.[fifo_name]
@@ -2098,6 +2158,9 @@ static isl_stat before_mark_module(__isl_keep isl_id *mark,
 	if (!strcmp(isl_id_get_name(mark), "module")) {
 		data->module = isl_id_get_user(mark);
 	}
+  if (!strcmp(isl_id_get_name(mark), "pe_dummy_module")) {
+    data->pe_dummy_module = isl_id_get_user(mark);
+  }
   if (!strcmp(isl_id_get_name(mark), "io_module.inter_trans") ||
       !strcmp(isl_id_get_name(mark), "io_module.intra_trans")) {
     data->filter_buffer = 1;
@@ -2132,6 +2195,7 @@ static __isl_give isl_ast_node *after_mark_module(__isl_take isl_ast_node *node,
 	struct polysa_kernel *kernel;
 	struct polysa_at_domain_data *data = user;
   struct polysa_hw_module *module;
+  struct polysa_pe_dummy_module *pe_dummy_module;
 
 	ctx = isl_ast_node_get_ctx(node);
 	id = isl_ast_node_mark_get_id(node);
@@ -2200,11 +2264,31 @@ static __isl_give isl_ast_node *after_mark_module(__isl_take isl_ast_node *node,
 		isl_id_free(id);
 		return node;
 	}
-
+  /* Prepare for boundary I/O module */
   if (data->boundary && data->filter_buffer == 0) {
     module = data->module;
     data->module = NULL;
     module->boundary_tree = isl_ast_node_mark_get_node(node);
+    isl_ast_node_free(node);
+    if (!module->space)
+      module->space = isl_ast_build_get_schedule_space(build);
+
+	  expr = isl_ast_expr_from_id(isl_id_copy(id));
+	  list = isl_ast_expr_list_alloc(ctx, 0);
+	  expr = isl_ast_expr_call(expr, list);
+	  node = isl_ast_node_alloc_user(expr);
+	  node = isl_ast_node_set_annotation(node, id);
+
+    return node;
+  }
+
+  /* Prepare for PE dummy module */
+  if (data->pe_dummy && data->filter_buffer == 0) {
+    module = data->module;
+    data->module = NULL;
+    pe_dummy_module = data->pe_dummy_module;
+    data->pe_dummy_module = NULL;
+    pe_dummy_module->device_tree = isl_ast_node_mark_get_node(node);
     isl_ast_node_free(node);
     if (!module->space)
       module->space = isl_ast_build_get_schedule_space(build);
@@ -2444,6 +2528,8 @@ static __isl_give isl_ast_node *polysa_generate_ast_from_schedule(__isl_take isl
   if (schedule == NULL)
     return NULL;
 
+//  isl_options_set_ast_build_group_coscheduled(gen->ctx, 1);
+
   depth = 0;
   if (isl_schedule_foreach_schedule_node_top_down(schedule, &update_depth,
         &depth) < 0)
@@ -2476,6 +2562,8 @@ static void polysa_at_domain_data_init(struct polysa_at_domain_data *data, struc
   data->in_unroll_for = 0;
   data->in_pipeline_for = 0;
   data->boundary = 0;
+  data->pe_dummy = 0;
+  data->pe_dummy_module = NULL;
 }
 
 /* There are three schedules to handle in this module:
@@ -2562,6 +2650,19 @@ isl_stat sa_module_generate_code(struct polysa_gen *gen,
     isl_ast_node_free(tree); 
   }
 
+  if (module->n_pe_dummy_modules > 0) {
+    /* Generate dummy module AST */
+    for (int i = 0; i < module->n_pe_dummy_modules; i++) {
+      struct polysa_pe_dummy_module *dummy_module = module->pe_dummy_modules[i];
+      schedule = dummy_module->sched;
+      polysa_at_domain_data_init(&data, gen);
+      data.pe_dummy = 1;
+      data.pe_dummy_module = dummy_module;
+      tree = polysa_generate_ast_from_schedule(schedule, data, gen);
+      isl_ast_node_free(tree);
+    }
+  }
+
   return isl_stat_ok;
 }
 
@@ -2632,6 +2733,7 @@ __isl_give isl_ast_node *sa_module_call_generate_code(struct polysa_gen *gen,
   data.prog = gen->prog;
   data.kernel = NULL;
   data.module = NULL;
+  data.pe_dummy_module = NULL;
   data.top = gen->hw_top_module;
 
 //  // debug

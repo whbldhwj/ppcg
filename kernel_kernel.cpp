@@ -404,23 +404,23 @@ void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_
     int local_C[2][2];
 
     for (int c0 = 0; c0 <= 1; c0 += 1)
-      for (int c1 = 0; c1 <= 1; c1 += 1) {
-        // array
-        // pe
-        // latency
-        for (int c6 = 0; c6 <= 1; c6 += 1) {
-          // latency
-          // hls_pipeline
-          for (int c7 = 0; c7 <= 1; c7 += 1) {
-            // simd
-            // hls_unroll
-            local_C[c7][c6] = 0;
-          }
-        }
+      for (int c1 = 0; c1 <= 1; c1 += 1)
         for (int c2 = 0; c2 <= 1; c2 += 1) {
           // array
           // pe
           for (int c5 = 0; c5 <= 1; c5 += 1) {
+            if (c2 == 0 && c5 == 0) {
+              // latency
+              for (int c6 = 0; c6 <= 1; c6 += 1) {
+                // latency
+                // hls_pipeline
+                for (int c7 = 0; c7 <= 1; c7 += 1) {
+                  // simd
+                  // hls_unroll
+                  local_C[c7][c6] = 0;
+                }
+              }
+            }
             // latency
             for (int c6 = 0; c6 <= 1; c6 += 1) {
               // latency
@@ -464,7 +464,64 @@ void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_
             }
           }
         }
-      }
+}
+/* Module Definition */
+
+/* Module Definition */
+void A_PE_dummy(int idx, int idy, hls::stream<A_t2> &fifo_A_in)
+{
+    int p0 = idx, p1 = idy; // module id
+
+    for (int c0 = 0; c0 <= 1; c0 += 1)
+      for (int c1 = 0; c1 <= 1; c1 += 1)
+        for (int c2 = 0; c2 <= 1; c2 += 1) {
+          // array
+          // pe
+          for (int c5 = 0; c5 <= 1; c5 += 1) {
+            // latency
+            for (int c6 = 0; c6 <= 1; c6 += 1) {
+              // latency
+              // hls_pipeline
+              for (int c7 = 0; c7 <= 1; c7 += 1) {
+                A_t2 fifo_data;
+                fifo_data = fifo_A_in.read();
+                // simd
+                // hls_unroll
+                for (int c8 = 0; c8 <= 1; c8 += 1) {
+                }
+              }
+            }
+          }
+        }
+}
+/* Module Definition */
+
+/* Module Definition */
+void B_PE_dummy(int idx, int idy, hls::stream<B_t2> &fifo_B_in)
+{
+    int p0 = idx, p1 = idy; // module id
+
+    for (int c0 = 0; c0 <= 1; c0 += 1)
+      for (int c1 = 0; c1 <= 1; c1 += 1)
+        for (int c2 = 0; c2 <= 1; c2 += 1) {
+          // array
+          // pe
+          for (int c5 = 0; c5 <= 1; c5 += 1) {
+            // latency
+            for (int c6 = 0; c6 <= 1; c6 += 1) {
+              // latency
+              // hls_pipeline
+              for (int c7 = 0; c7 <= 1; c7 += 1) {
+                B_t2 fifo_data;
+                fifo_data = fifo_B_in.read();
+                // simd
+                // hls_unroll
+                for (int c8 = 0; c8 <= 1; c8 += 1) {
+                }
+              }
+            }
+          }
+        }
 }
 /* Module Definition */
 

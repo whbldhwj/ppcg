@@ -1485,6 +1485,8 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
 //  isl_mat_free(group->io_trans_mat);
   isl_ast_expr_free(group->io_pe_expr);
   isl_ast_expr_free(group->io_L1_pe_expr);
+  isl_ast_expr_free(group->io_pe_expr_boundary);
+  isl_ast_expr_free(group->io_L1_pe_expr_boundary);
   for (int i = 0; i < group->n_io_buffer; i++) {
     polysa_array_tile_free(group->io_buffers[i]->tile);
     free(group->io_buffers[i]);
@@ -1496,6 +1498,42 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
 	free(group);
 
 	return NULL;
+}
+
+struct polysa_array_ref_group *polysa_array_ref_group_init(
+  struct polysa_array_ref_group *group)
+{
+  group->local_array = NULL;
+  group->array = NULL;
+  group->nr = -1;
+  group->access = NULL;
+  group->write = -1;
+  group->exact_write = -1;
+  group->slice = -1;
+  group->min_depth = -1;
+  group->shared_tile = NULL;
+  group->private_tile = NULL;
+  group->local_tile = NULL;
+  group->n_ref = 0;
+  group->refs = NULL;
+  group->io_buffers = NULL;
+  group->n_io_buffer = 0;
+  group->io_type = POLYSA_UNKNOWN_IO;
+  group->pe_io_dir = IO_UNKNOWN; 
+  group->array_io_dir = IO_UNKNOWN;
+  group->io_trans = NULL;
+  group->io_L1_trans = NULL;
+  group->io_pe_expr = NULL;
+  group->io_L1_pe_expr = NULL;
+  group->io_pe_expr_boundary = NULL;
+  group->io_L1_pe_expr_boundary = NULL;
+  group->io_schedule = NULL;
+  group->io_L1_schedule = NULL;
+  group->io_level = 0;
+  group->space_dim = 0;
+  group->n_lane = 0;
+  group->copy_schedule_dim = 0;
+  group->copy_schedule = NULL;
 }
 
 static void *free_polysa_io_info(struct polysa_io_info *io_info) 
@@ -2221,6 +2259,8 @@ void polysa_kernel_stmt_free(void *user)
       isl_ast_expr_free(stmt->u.i.index);
       break;
     case POLYSA_KERNEL_STMT_MODULE_CALL:
+      free(stmt->u.m.module_name);
+      break;
     case POLYSA_KERNEL_STMT_FIFO_DECL:
       break;
   }
@@ -2378,8 +2418,33 @@ struct polysa_hw_module *polysa_hw_module_alloc()
   module->boundary_inter_sched = NULL;
   module->boundary_outer_tree = NULL;
   module->boundary_inter_tree = NULL;
+  module->n_pe_dummy_modules = 0;
+  module->pe_dummy_modules = NULL;
 
   return module;
+}
+
+struct polysa_pe_dummy_module *polysa_pe_dummy_module_alloc()
+{
+  struct polysa_pe_dummy_module *module = (struct polysa_pe_dummy_module *)malloc(sizeof(struct polysa_pe_dummy_module));
+  module->module = NULL;
+  module->io_group = NULL;
+  module->sched = NULL;
+  module->tree = NULL;
+  module->device_tree = NULL;
+
+  return module;
+}
+
+void *polysa_pe_dummy_module_free(struct polysa_pe_dummy_module *module) {
+  if (!module)
+    return NULL;
+
+  isl_ast_node_free(module->tree);
+  isl_ast_node_free(module->device_tree);
+  free(module);
+
+  return NULL;
 }
 
 struct polysa_hw_top_module *polysa_hw_top_module_alloc()
@@ -2433,6 +2498,10 @@ void *polysa_hw_module_free(struct polysa_hw_module *module)
   }
   free(module->var);
   free(module->io_groups);
+  for (int i = 0; i < module->n_pe_dummy_modules; i++) {
+    polysa_pe_dummy_module_free(module->pe_dummy_modules[i]);
+  }
+  free(module->pe_dummy_modules);
   free(module);
 
   return NULL;

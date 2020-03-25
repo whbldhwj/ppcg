@@ -96,7 +96,7 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     A_IO_L2_in_boundary(
         /* module id */ 1,
         /* fifo */ fifo_A_A_IO_L2_in_1,
-        /* fifo */ fifo_A_PE_0_0
+        /* fifo */ fifo_A_PE_1_0
     );
     /* Module Call */
 
@@ -120,7 +120,7 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     B_IO_L2_in_boundary(
         /* module id */ 1,
         /* fifo */ fifo_B_B_IO_L2_in_1,
-        /* fifo */ fifo_B_PE_0_0
+        /* fifo */ fifo_B_PE_0_1
     );
     /* Module Call */
 
@@ -173,6 +173,38 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
     /* Module Call */
 
     /* Module Call */
+    A_PE_dummy(
+        /* module id */ 0,
+        /* module id */ 1,
+        /* fifo */ fifo_A_PE_0_2
+    );
+    /* Module Call */
+
+    /* Module Call */
+    A_PE_dummy(
+        /* module id */ 1,
+        /* module id */ 1,
+        /* fifo */ fifo_A_PE_1_2
+    );
+    /* Module Call */
+
+    /* Module Call */
+    B_PE_dummy(
+        /* module id */ 1,
+        /* module id */ 0,
+        /* fifo */ fifo_B_PE_2_0
+    );
+    /* Module Call */
+
+    /* Module Call */
+    B_PE_dummy(
+        /* module id */ 1,
+        /* module id */ 1,
+        /* fifo */ fifo_B_PE_2_1
+    );
+    /* Module Call */
+
+    /* Module Call */
     C_drain_IO_L1_out_boundary(
         /* module id */ 0,
         /* module id */ 0,
@@ -187,7 +219,7 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
         /* module id */ 1,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_0_1,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_0_2,
-        /* fifo */ fifo_C_drain_PE_0_0
+        /* fifo */ fifo_C_drain_PE_1_0
     );
     /* Module Call */
 
@@ -206,7 +238,7 @@ void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)
         /* module id */ 1,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_1_1,
         /* fifo */ fifo_C_drain_C_drain_IO_L1_out_1_2,
-        /* fifo */ fifo_C_drain_PE_0_1
+        /* fifo */ fifo_C_drain_PE_1_1
     );
     /* Module Call */
 

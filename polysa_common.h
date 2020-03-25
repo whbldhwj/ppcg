@@ -471,13 +471,13 @@ struct polysa_array_ref_group {
   /* I/O direction at the array level */
   enum polysa_io_dir array_io_dir;
   /* Maps PE identifiers to I/O identifiers */
-  isl_multi_aff *io_trans; /* pe ids -> io ids */ // TODO
+  isl_multi_aff *io_trans; /* pe ids -> io ids */ 
   isl_multi_aff *io_L1_trans; /* pe ids -> L1 io ids */
-//  /* Maps PE identifiers to I/O identifiers */
-//  isl_mat *io_trans_mat; // TODO
   /* AST expression maps L1 I/O identifiers to PE identifiers */
-  isl_ast_expr *io_pe_expr; /* io ids -> pe ids */ // TODO
-  isl_ast_expr *io_L1_pe_expr; /* L1 io ids -> pe ids */ // TODO
+  isl_ast_expr *io_pe_expr; /* io ids -> pe ids */ 
+  isl_ast_expr *io_L1_pe_expr; /* L1 io ids -> pe ids */ 
+  isl_ast_expr *io_pe_expr_boundary;
+  isl_ast_expr *io_L1_pe_expr_boundary;
   /* I/O schedule */
   isl_schedule *io_schedule;
   isl_schedule *io_L1_schedule;
@@ -608,6 +608,14 @@ struct polysa_hw_top_module {
   struct polysa_kernel *kernel;
 };
 
+struct polysa_pe_dummy_module {
+  struct polysa_hw_module *module;
+  struct polysa_array_ref_group *io_group;
+  isl_schedule *sched;
+  isl_ast_node *tree;
+  isl_ast_node *device_tree;
+};
+
 struct polysa_hw_module {
   enum polysa_module_type type;
   /* Module name */
@@ -646,8 +654,8 @@ struct polysa_hw_module {
   isl_schedule *inter_sched; /* Inter transfer */
   isl_schedule *intra_sched; /* Intra transfer */
   
-  isl_schedule *boundary_outer_sched;
-  isl_schedule *boundary_inter_sched;
+  isl_schedule *boundary_outer_sched; /* Outer loops in boundary module */
+  isl_schedule *boundary_inter_sched; /* Inter transfer in boundary module */
 
   isl_space *inter_space;
   isl_space *intra_space;
@@ -663,6 +671,10 @@ struct polysa_hw_module {
   isl_schedule *boundary_sched;
   isl_ast_node *boundary_tree;
   int boundary;
+
+  /* Dummy modules for collecting data at boundary PEs */
+  int n_pe_dummy_modules;
+  struct polysa_pe_dummy_module **pe_dummy_modules;
 
   int double_buffer;
 
@@ -771,6 +783,7 @@ struct polysa_kernel_stmt {
       int buf;
       int filter;
       int boundary;
+      int dummy;
       char *fifo_name;
       char *fifo_type;
       int filter_sched_depth;
@@ -787,10 +800,13 @@ struct polysa_kernel_stmt {
     } i;
     struct {
       struct polysa_hw_module *module;
+      struct polysa_pe_dummy_module *pe_dummy_module;
       struct polysa_array_ref_group *group;
       int boundary;
+      int dummy;
       int upper;
       int lower;
+      char *module_name;
     } m;
     struct {
       struct polysa_hw_module *module;
@@ -877,6 +893,8 @@ int polysa_array_is_scalar(struct polysa_array_info *array);
 int polysa_kernel_requires_array_argument(struct polysa_kernel *kernel, int i);
 struct polysa_array_ref_group *polysa_array_ref_group_free(
 	struct polysa_array_ref_group *group);
+struct polysa_array_ref_group *polysa_array_ref_group_init(
+  struct polysa_array_ref_group *group);
 
 /* PolySA stmts related functions */
 struct polysa_stmt *extract_stmts(isl_ctx *ctx, struct ppcg_scop *scop,
