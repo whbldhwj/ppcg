@@ -116,6 +116,13 @@ int polysa_tree_node_is_kernel(__isl_keep isl_schedule_node *node)
   return is_marked(node, "kernel");
 }
 
+int polysa_tree_node_is_mark(__isl_keep isl_schedule_node *node, char *mark) {
+  if (mark == NULL)
+    return (isl_schedule_node_get_type(node) == isl_schedule_node_mark);
+
+  return is_marked(node, mark);
+}
+
 /* Move to the only child of "node" where the branch containing 
  * the domain elements in "core".
  *

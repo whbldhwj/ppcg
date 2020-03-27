@@ -8,7 +8,7 @@ void top_generate(FILE *f)
     p = isl_printer_print_str(p, "extern \"C\" {");
     p = isl_printer_end_line(p);
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)");
+    p = isl_printer_print_str(p, "void kernel0(A_t16 *A, B_t16 *B, C_t4 *C)");
     p = isl_printer_end_line(p);
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "{");
@@ -770,9 +770,9 @@ void top_generate(FILE *f)
             p = isl_printer_start_line(p);
             p = isl_printer_print_str(p, "/* Module Call */");
             p = isl_printer_end_line(p);
-            // Print calls of module: C_drain_IO_L1_out_boundary
+            // Print calls of module: C_drain_IO_L1_out
             p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "C_drain_IO_L1_out_boundary(");
+            p = isl_printer_print_str(p, "C_drain_IO_L1_out(");
             p = isl_printer_end_line(p);
             p = isl_printer_indent(p, 4);
             p = isl_printer_start_line(p);
@@ -792,6 +792,15 @@ void top_generate(FILE *f)
             p = isl_printer_print_int(p, c0);
             p = isl_printer_print_str(p, "_");
             p = isl_printer_print_int(p, c1 + 1);
+            p = isl_printer_print_str(p, ",");
+            p = isl_printer_end_line(p);
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "/* fifo */ ");
+            p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L1_out");
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, c0);
+            p = isl_printer_print_str(p, "_");
+            p = isl_printer_print_int(p, c1);
           }
           {
             p = isl_printer_print_str(p, ",");
@@ -818,9 +827,9 @@ void top_generate(FILE *f)
             p = isl_printer_start_line(p);
             p = isl_printer_print_str(p, "/* Module Call */");
             p = isl_printer_end_line(p);
-            // Print calls of module: C_drain_IO_L1_out
+            // Print calls of module: C_drain_IO_L1_out_boundary
             p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "C_drain_IO_L1_out(");
+            p = isl_printer_print_str(p, "C_drain_IO_L1_out_boundary(");
             p = isl_printer_end_line(p);
             p = isl_printer_indent(p, 4);
             p = isl_printer_start_line(p);
@@ -840,15 +849,6 @@ void top_generate(FILE *f)
             p = isl_printer_print_int(p, c0);
             p = isl_printer_print_str(p, "_");
             p = isl_printer_print_int(p, c1);
-            p = isl_printer_print_str(p, ",");
-            p = isl_printer_end_line(p);
-            p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "/* fifo */ ");
-            p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L1_out");
-            p = isl_printer_print_str(p, "_");
-            p = isl_printer_print_int(p, c0);
-            p = isl_printer_print_str(p, "_");
-            p = isl_printer_print_int(p, c1 + 1);
           }
           {
             p = isl_printer_print_str(p, ",");
@@ -883,9 +883,9 @@ void top_generate(FILE *f)
           p = isl_printer_start_line(p);
           p = isl_printer_print_str(p, "/* Module Call */");
           p = isl_printer_end_line(p);
-          // Print calls of module: C_drain_IO_L2_out_boundary
+          // Print calls of module: C_drain_IO_L2_out
           p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "C_drain_IO_L2_out_boundary(");
+          p = isl_printer_print_str(p, "C_drain_IO_L2_out(");
           p = isl_printer_end_line(p);
           p = isl_printer_indent(p, 4);
           p = isl_printer_start_line(p);
@@ -898,9 +898,16 @@ void top_generate(FILE *f)
           p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
           p = isl_printer_print_str(p, "_");
           p = isl_printer_print_int(p, c0 + 1);
+          p = isl_printer_print_str(p, ",");
+          p = isl_printer_end_line(p);
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "/* fifo */ ");
+          p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
+          p = isl_printer_print_str(p, "_");
+          p = isl_printer_print_int(p, c0);
         }
         for (int c1 = 0; c1 <= 1; c1 += 1)
-          if (c1 == 1)
+          if (c1 == 0)
             {
               p = isl_printer_print_str(p, ",");
               p = isl_printer_end_line(p);
@@ -910,7 +917,7 @@ void top_generate(FILE *f)
               p = isl_printer_print_str(p, "_");
               p = isl_printer_print_int(p, c0);
               p = isl_printer_print_str(p, "_");
-              p = isl_printer_print_int(p, c1 + 1);
+              p = isl_printer_print_int(p, c1);
               p = isl_printer_end_line(p);
               p = isl_printer_indent(p, -4);
               p = isl_printer_start_line(p);
@@ -926,9 +933,9 @@ void top_generate(FILE *f)
           p = isl_printer_start_line(p);
           p = isl_printer_print_str(p, "/* Module Call */");
           p = isl_printer_end_line(p);
-          // Print calls of module: C_drain_IO_L2_out
+          // Print calls of module: C_drain_IO_L2_out_boundary
           p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "C_drain_IO_L2_out(");
+          p = isl_printer_print_str(p, "C_drain_IO_L2_out_boundary(");
           p = isl_printer_end_line(p);
           p = isl_printer_indent(p, 4);
           p = isl_printer_start_line(p);
@@ -941,16 +948,9 @@ void top_generate(FILE *f)
           p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
           p = isl_printer_print_str(p, "_");
           p = isl_printer_print_int(p, c0);
-          p = isl_printer_print_str(p, ",");
-          p = isl_printer_end_line(p);
-          p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* fifo */ ");
-          p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
-          p = isl_printer_print_str(p, "_");
-          p = isl_printer_print_int(p, c0 + 1);
         }
         for (int c1 = 0; c1 <= 1; c1 += 1)
-          if (c1 == 1)
+          if (c1 == 0)
             {
               p = isl_printer_print_str(p, ",");
               p = isl_printer_end_line(p);
@@ -960,7 +960,7 @@ void top_generate(FILE *f)
               p = isl_printer_print_str(p, "_");
               p = isl_printer_print_int(p, c0);
               p = isl_printer_print_str(p, "_");
-              p = isl_printer_print_int(p, c1 + 1);
+              p = isl_printer_print_int(p, c1);
               p = isl_printer_end_line(p);
               p = isl_printer_indent(p, -4);
               p = isl_printer_start_line(p);
@@ -990,7 +990,7 @@ void top_generate(FILE *f)
         p = isl_printer_print_str(p, "/* array */ C");
       }
       for (int c0 = 0; c0 <= 1; c0 += 1)
-        if (c0 == 1)
+        if (c0 == 0)
           {
             p = isl_printer_print_str(p, ",");
             p = isl_printer_end_line(p);
@@ -998,7 +998,7 @@ void top_generate(FILE *f)
             p = isl_printer_print_str(p, "/* fifo */ ");
             p = isl_printer_print_str(p, "fifo_C_drain_C_drain_IO_L2_out");
             p = isl_printer_print_str(p, "_");
-            p = isl_printer_print_int(p, c0 + 1);
+            p = isl_printer_print_int(p, c0);
             p = isl_printer_end_line(p);
             p = isl_printer_indent(p, -4);
             p = isl_printer_start_line(p);

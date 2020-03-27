@@ -97,6 +97,12 @@ APPLY_DOMBASE	isl/isl_multi_apply_set.c	1;"	d	file:
 APPLY_DOMBASE	isl/isl_multi_apply_set.c	6;"	d	file:
 APPLY_DOMBASE	isl/isl_multi_apply_union_set.c	1;"	d	file:
 APPLY_DOMBASE	isl/isl_multi_apply_union_set.c	6;"	d	file:
+AP_CLANG_PATH	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^AP_CLANG_PATH := ${AUTOPILOT_TOOL}\/clang-3.9\/bin$/;"	m
+AP_CLANG_PATH	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^AP_CLANG_PATH := ${AUTOPILOT_TOOL}\/clang-3.9\/bin$/;"	m
+AP_CLANG_PATH	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^AP_CLANG_PATH := ${AUTOPILOT_TOOL}\/clang-3.9\/bin$/;"	m
+AP_GCC_PATH	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^  AP_GCC_PATH := \/opt\/tools\/xilinx\/Vivado\/2019.2\/tps\/lnx64\/gcc-6.2.0\/bin$/;"	m
+AP_GCC_PATH	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^  AP_GCC_PATH := \/opt\/tools\/xilinx\/Vivado\/2019.2\/tps\/lnx64\/gcc-6.2.0\/bin$/;"	m
+AP_GCC_PATH	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^  AP_GCC_PATH := \/opt\/tools\/xilinx\/Vivado\/2019.2\/tps\/lnx64\/gcc-6.2.0\/bin$/;"	m
 AR	Makefile	/^AR = ar$/;"	m
 AR	isl/Makefile	/^AR = ar$/;"	m
 AR	isl/doc/Makefile	/^AR = ar$/;"	m
@@ -128,43 +134,76 @@ AUTOMAKE	isl/interface/Makefile	/^AUTOMAKE = ${SHELL} \/curr\/jaywang\/research\
 AUTOMAKE	pet/Makefile	/^AUTOMAKE = ${SHELL} \/curr\/jaywang\/research\/systolic_compile\/ppcg\/polysa\/pet\/build-aux\/missing automake-1.15$/;"	m
 AUTOMAKE_OPTIONS	isl/Makefile	/^AUTOMAKE_OPTIONS = nostdinc subdir-objects$/;"	m
 AUTOMAKE_OPTIONS	isl/interface/Makefile	/^AUTOMAKE_OPTIONS = nostdinc$/;"	m
+AUTOPILOT_MACH	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^  AUTOPILOT_MACH := Linux_x86$/;"	m
+AUTOPILOT_MACH	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_MACH := lnx64$/;"	m
+AUTOPILOT_MACH	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^  AUTOPILOT_MACH := Linux_x86$/;"	m
+AUTOPILOT_MACH	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_MACH := lnx64$/;"	m
+AUTOPILOT_MACH	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^  AUTOPILOT_MACH := Linux_x86$/;"	m
+AUTOPILOT_MACH	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_MACH := lnx64$/;"	m
+AUTOPILOT_ROOT	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_ROOT := \/opt\/tools\/xilinx\/Vivado\/2019.2$/;"	m
+AUTOPILOT_ROOT	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_ROOT := \/opt\/tools\/xilinx\/Vivado\/2019.2$/;"	m
+AUTOPILOT_ROOT	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_ROOT := \/opt\/tools\/xilinx\/Vivado\/2019.2$/;"	m
+AUTOPILOT_TECH	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_TECH := ${AUTOPILOT_ROOT}\/common\/technology$/;"	m
+AUTOPILOT_TECH	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_TECH := ${AUTOPILOT_ROOT}\/common\/technology$/;"	m
+AUTOPILOT_TECH	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_TECH := ${AUTOPILOT_ROOT}\/common\/technology$/;"	m
+AUTOPILOT_TOOL	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_TOOL := ${AUTOPILOT_ROOT}\/${AUTOPILOT_MACH}\/tools$/;"	m
+AUTOPILOT_TOOL	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_TOOL := ${AUTOPILOT_ROOT}\/${AUTOPILOT_MACH}\/tools$/;"	m
+AUTOPILOT_TOOL	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^AUTOPILOT_TOOL := ${AUTOPILOT_ROOT}\/${AUTOPILOT_MACH}\/tools$/;"	m
 AWK	Makefile	/^AWK = mawk$/;"	m
 AWK	isl/Makefile	/^AWK = mawk$/;"	m
 AWK	isl/doc/Makefile	/^AWK = mawk$/;"	m
 AWK	isl/interface/Makefile	/^AWK = mawk$/;"	m
 AWK	pet/Makefile	/^AWK = mawk$/;"	m
 A_IO_L2_in	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
+A_IO_L2_in	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
+A_IO_L2_in	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
 A_IO_L2_in	kernel_kernel.cpp	/^void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
 A_IO_L2_in	kernel_kernel_cp.c	/^void A_IO_L2_in(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_A_local_out)$/;"	f
 A_IO_L2_in	kernel_xilinx.cpp	/^void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
 A_IO_L2_in_boundary	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void A_IO_L2_in_boundary(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
+A_IO_L2_in_boundary	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void A_IO_L2_in_boundary(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
+A_IO_L2_in_boundary	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void A_IO_L2_in_boundary(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
 A_IO_L2_in_boundary	kernel_kernel.cpp	/^void A_IO_L2_in_boundary(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
 A_IO_L2_in_boundary	kernel_xilinx.cpp	/^void A_IO_L2_in_boundary(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t2> &fifo_A_local_out)$/;"	f
 A_IO_L2_in_inter_trans	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, bool inter_trans_en)$/;"	f
-A_IO_L2_in_inter_trans	kernel_kernel.cpp	/^void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, bool inter_trans_en)$/;"	f
+A_IO_L2_in_inter_trans	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans(int idx, int c3, int c4, int c5, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, bool inter_trans_en)$/;"	f
+A_IO_L2_in_inter_trans	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, bool inter_trans_en)$/;"	f
+A_IO_L2_in_inter_trans	kernel_kernel.cpp	/^void A_IO_L2_in_inter_trans(int idx, int c3, int c4, int c5, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, bool inter_trans_en)$/;"	f
 A_IO_L2_in_inter_trans	kernel_kernel_cp.c	/^void A_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, int local_A[1][4], hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out)$/;"	f
-A_IO_L2_in_inter_trans	kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, bool inter_trans_en)$/;"	f
+A_IO_L2_in_inter_trans	kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans(int idx, int c3, int c4, int c5, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A_out, bool inter_trans_en)$/;"	f
 A_IO_L2_in_inter_trans_boundary	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans_boundary(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, bool inter_trans_en)$/;"	f
-A_IO_L2_in_inter_trans_boundary	kernel_kernel.cpp	/^void A_IO_L2_in_inter_trans_boundary(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, bool inter_trans_en)$/;"	f
-A_IO_L2_in_inter_trans_boundary	kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans_boundary(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, bool inter_trans_en)$/;"	f
+A_IO_L2_in_inter_trans_boundary	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans_boundary(int idx, int c3, int c4, int c5, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, bool inter_trans_en)$/;"	f
+A_IO_L2_in_inter_trans_boundary	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans_boundary(int idx, int c0, int c1, int c2, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, bool inter_trans_en)$/;"	f
+A_IO_L2_in_inter_trans_boundary	kernel_kernel.cpp	/^void A_IO_L2_in_inter_trans_boundary(int idx, int c3, int c4, int c5, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, bool inter_trans_en)$/;"	f
+A_IO_L2_in_inter_trans_boundary	kernel_xilinx.cpp	/^void A_IO_L2_in_inter_trans_boundary(int idx, int c3, int c4, int c5, A_t4 local_A[2][1], hls::stream<A_t4> &fifo_A_in, bool inter_trans_en)$/;"	f
 A_IO_L2_in_intra_trans	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out, bool intra_trans_en)$/;"	f
-A_IO_L2_in_intra_trans	kernel_kernel.cpp	/^void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out, bool intra_trans_en)$/;"	f
+A_IO_L2_in_intra_trans	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void A_IO_L2_in_intra_trans(int idx, int c3_prev, int c4_prev, int c5_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out, bool intra_trans_en)$/;"	f
+A_IO_L2_in_intra_trans	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out, bool intra_trans_en)$/;"	f
+A_IO_L2_in_intra_trans	kernel_kernel.cpp	/^void A_IO_L2_in_intra_trans(int idx, int c3_prev, int c4_prev, int c5_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out, bool intra_trans_en)$/;"	f
 A_IO_L2_in_intra_trans	kernel_kernel_cp.c	/^void A_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, int local_A[1][4], hls::stream<int> &fifo_A_local_out)$/;"	f
-A_IO_L2_in_intra_trans	kernel_xilinx.cpp	/^void A_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out, bool intra_trans_en)$/;"	f
+A_IO_L2_in_intra_trans	kernel_xilinx.cpp	/^void A_IO_L2_in_intra_trans(int idx, int c3_prev, int c4_prev, int c5_prev, A_t4 local_A[2][1], hls::stream<A_t2> &fifo_A_local_out, bool intra_trans_en)$/;"	f
 A_IO_L3_in	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void A_IO_L3_in(A_t4 *A, hls::stream<A_t4> &fifo_A_local_out)$/;"	f
-A_IO_L3_in	kernel_kernel.cpp	/^void A_IO_L3_in(A_t4 *A, hls::stream<A_t4> &fifo_A_local_out)$/;"	f
+A_IO_L3_in	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void A_IO_L3_in(A_t16 *A, hls::stream<A_t4> &fifo_A_local_out)$/;"	f
+A_IO_L3_in	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void A_IO_L3_in(A_t4 *A, hls::stream<A_t4> &fifo_A_local_out)$/;"	f
+A_IO_L3_in	kernel_kernel.cpp	/^void A_IO_L3_in(A_t16 *A, hls::stream<A_t4> &fifo_A_local_out)$/;"	f
 A_IO_L3_in	kernel_kernel_cp.c	/^void A_IO_L3_in(int idx, int *A, hls::stream<int> &fifo_A_local_out)$/;"	f
-A_IO_L3_in	kernel_xilinx.cpp	/^void A_IO_L3_in(A_t4 *A, hls::stream<A_t4> &fifo_A_local_out)$/;"	f
+A_IO_L3_in	kernel_xilinx.cpp	/^void A_IO_L3_in(A_t16 *A, hls::stream<A_t4> &fifo_A_local_out)$/;"	f
 A_L2_in_IO	kernel_intel.c	/^__kernel void A_L2_in_IO()$/;"	f
-A_L2_in_IO	kernel_xilinx.c	/^__kernel void A_L2_in_IO(int idx, channel int fifo_A_in, channel int fifo_A_out, channel int fifo_A_local_out)$/;"	f
 A_L3_in_IO	kernel_intel.c	/^__kernel void A_L3_in_IO(int *A)$/;"	f
-A_L3_in_IO	kernel_xilinx.c	/^__kernel void A_L3_in_IO(int *A, channel int fifo_A_local_out)$/;"	f
 A_PE_dummy	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void A_PE_dummy(int idx, int idy, hls::stream<A_t2> &fifo_A_in)$/;"	f
+A_PE_dummy	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void A_PE_dummy(int idx, int idy, hls::stream<A_t2> &fifo_A_in)$/;"	f
+A_PE_dummy	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void A_PE_dummy(int idx, int idy, hls::stream<A_t2> &fifo_A_in)$/;"	f
 A_PE_dummy	kernel_kernel.cpp	/^void A_PE_dummy(int idx, int idy, hls::stream<A_t2> &fifo_A_in)$/;"	f
 A_PE_dummy	kernel_xilinx.cpp	/^void A_PE_dummy(int idx, int idy, hls::stream<A_t2> &fifo_A_in)$/;"	f
+A_t16	hls_tests/gemm/hls_prj2/src/kernel_kernel.h	/^typedef ap_uint<512> A_t16;$/;"	t
+A_t16	kernel_kernel.h	/^typedef ap_uint<512> A_t16;$/;"	t
 A_t2	hls_tests/gemm/hls_prj/src/kernel_kernel.h	/^typedef ap_uint<64> A_t2;$/;"	t
+A_t2	hls_tests/gemm/hls_prj2/src/kernel_kernel.h	/^typedef ap_uint<64> A_t2;$/;"	t
+A_t2	hls_tests/gemm/hls_prj3/src/kernel_kernel.h	/^typedef ap_uint<64> A_t2;$/;"	t
 A_t2	kernel_kernel.h	/^typedef ap_uint<64> A_t2;$/;"	t
 A_t4	hls_tests/gemm/hls_prj/src/kernel_kernel.h	/^typedef ap_uint<128> A_t4;$/;"	t
+A_t4	hls_tests/gemm/hls_prj2/src/kernel_kernel.h	/^typedef ap_uint<128> A_t4;$/;"	t
+A_t4	hls_tests/gemm/hls_prj3/src/kernel_kernel.h	/^typedef ap_uint<128> A_t4;$/;"	t
 A_t4	kernel_kernel.h	/^typedef ap_uint<128> A_t4;$/;"	t
 An tt Omega	isl/doc/implementation.tex	/^the composition of these extra elements with powers of $R_i$.$/;"	b
 BASE	isl/flow_cmp.c	48;"	d	file:
@@ -287,37 +326,55 @@ BUILT_SOURCES	Makefile	/^BUILT_SOURCES = gitversion.h$/;"	m
 BUILT_SOURCES	isl/Makefile	/^BUILT_SOURCES = gitversion.h $(CPP_INTERFACES)$/;"	m
 BUILT_SOURCES	pet/Makefile	/^BUILT_SOURCES = \\$/;"	m
 B_IO_L2_in	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void B_IO_L2_in(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
+B_IO_L2_in	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void B_IO_L2_in(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
+B_IO_L2_in	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void B_IO_L2_in(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
 B_IO_L2_in	kernel_kernel.cpp	/^void B_IO_L2_in(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
 B_IO_L2_in	kernel_kernel_cp.c	/^void B_IO_L2_in(int idx, int idy, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_B_local_out)$/;"	f
 B_IO_L2_in	kernel_xilinx.cpp	/^void B_IO_L2_in(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
 B_IO_L2_in_boundary	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void B_IO_L2_in_boundary(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
+B_IO_L2_in_boundary	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void B_IO_L2_in_boundary(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
+B_IO_L2_in_boundary	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void B_IO_L2_in_boundary(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
 B_IO_L2_in_boundary	kernel_kernel.cpp	/^void B_IO_L2_in_boundary(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
 B_IO_L2_in_boundary	kernel_xilinx.cpp	/^void B_IO_L2_in_boundary(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t2> &fifo_B_local_out)$/;"	f
 B_IO_L2_in_inter_trans	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, bool inter_trans_en)$/;"	f
-B_IO_L2_in_inter_trans	kernel_kernel.cpp	/^void B_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, bool inter_trans_en)$/;"	f
+B_IO_L2_in_inter_trans	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans(int idx, int c3, int c4, int c5, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, bool inter_trans_en)$/;"	f
+B_IO_L2_in_inter_trans	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, bool inter_trans_en)$/;"	f
+B_IO_L2_in_inter_trans	kernel_kernel.cpp	/^void B_IO_L2_in_inter_trans(int idx, int c3, int c4, int c5, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, bool inter_trans_en)$/;"	f
 B_IO_L2_in_inter_trans	kernel_kernel_cp.c	/^void B_IO_L2_in_inter_trans(int idx, int idy, int c0, int c1, int c2, int local_B[4][1], hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out)$/;"	f
-B_IO_L2_in_inter_trans	kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, bool inter_trans_en)$/;"	f
+B_IO_L2_in_inter_trans	kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans(int idx, int c3, int c4, int c5, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B_out, bool inter_trans_en)$/;"	f
 B_IO_L2_in_inter_trans_boundary	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans_boundary(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, bool inter_trans_en)$/;"	f
-B_IO_L2_in_inter_trans_boundary	kernel_kernel.cpp	/^void B_IO_L2_in_inter_trans_boundary(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, bool inter_trans_en)$/;"	f
-B_IO_L2_in_inter_trans_boundary	kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans_boundary(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, bool inter_trans_en)$/;"	f
+B_IO_L2_in_inter_trans_boundary	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans_boundary(int idx, int c3, int c4, int c5, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, bool inter_trans_en)$/;"	f
+B_IO_L2_in_inter_trans_boundary	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans_boundary(int idx, int c0, int c1, int c2, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, bool inter_trans_en)$/;"	f
+B_IO_L2_in_inter_trans_boundary	kernel_kernel.cpp	/^void B_IO_L2_in_inter_trans_boundary(int idx, int c3, int c4, int c5, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, bool inter_trans_en)$/;"	f
+B_IO_L2_in_inter_trans_boundary	kernel_xilinx.cpp	/^void B_IO_L2_in_inter_trans_boundary(int idx, int c3, int c4, int c5, B_t4 local_B[2][1], hls::stream<B_t4> &fifo_B_in, bool inter_trans_en)$/;"	f
 B_IO_L2_in_intra_trans	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out, bool intra_trans_en)$/;"	f
-B_IO_L2_in_intra_trans	kernel_kernel.cpp	/^void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out, bool intra_trans_en)$/;"	f
+B_IO_L2_in_intra_trans	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void B_IO_L2_in_intra_trans(int idx, int c3_prev, int c4_prev, int c5_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out, bool intra_trans_en)$/;"	f
+B_IO_L2_in_intra_trans	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out, bool intra_trans_en)$/;"	f
+B_IO_L2_in_intra_trans	kernel_kernel.cpp	/^void B_IO_L2_in_intra_trans(int idx, int c3_prev, int c4_prev, int c5_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out, bool intra_trans_en)$/;"	f
 B_IO_L2_in_intra_trans	kernel_kernel_cp.c	/^void B_IO_L2_in_intra_trans(int idx, int idy, int c0_prev, int c1_prev, int c2_prev, int local_B[4][1], hls::stream<int> &fifo_B_local_out)$/;"	f
-B_IO_L2_in_intra_trans	kernel_xilinx.cpp	/^void B_IO_L2_in_intra_trans(int idx, int c0_prev, int c1_prev, int c2_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out, bool intra_trans_en)$/;"	f
+B_IO_L2_in_intra_trans	kernel_xilinx.cpp	/^void B_IO_L2_in_intra_trans(int idx, int c3_prev, int c4_prev, int c5_prev, B_t4 local_B[2][1], hls::stream<B_t2> &fifo_B_local_out, bool intra_trans_en)$/;"	f
 B_IO_L3_in	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void B_IO_L3_in(B_t4 *B, hls::stream<B_t4> &fifo_B_local_out)$/;"	f
-B_IO_L3_in	kernel_kernel.cpp	/^void B_IO_L3_in(B_t4 *B, hls::stream<B_t4> &fifo_B_local_out)$/;"	f
+B_IO_L3_in	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void B_IO_L3_in(B_t16 *B, hls::stream<B_t4> &fifo_B_local_out)$/;"	f
+B_IO_L3_in	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void B_IO_L3_in(B_t4 *B, hls::stream<B_t4> &fifo_B_local_out)$/;"	f
+B_IO_L3_in	kernel_kernel.cpp	/^void B_IO_L3_in(B_t16 *B, hls::stream<B_t4> &fifo_B_local_out)$/;"	f
 B_IO_L3_in	kernel_kernel_cp.c	/^void B_IO_L3_in(int idx, int *B, hls::stream<int> &fifo_B_local_out)$/;"	f
-B_IO_L3_in	kernel_xilinx.cpp	/^void B_IO_L3_in(B_t4 *B, hls::stream<B_t4> &fifo_B_local_out)$/;"	f
+B_IO_L3_in	kernel_xilinx.cpp	/^void B_IO_L3_in(B_t16 *B, hls::stream<B_t4> &fifo_B_local_out)$/;"	f
 B_L2_in_IO	kernel_intel.c	/^__kernel void B_L2_in_IO()$/;"	f
-B_L2_in_IO	kernel_xilinx.c	/^__kernel void B_L2_in_IO(int idx, channel int fifo_B_in, channel int fifo_B_out, channel int fifo_B_local_out)$/;"	f
 B_L3_in_IO	kernel_intel.c	/^__kernel void B_L3_in_IO(int *B)$/;"	f
-B_L3_in_IO	kernel_xilinx.c	/^__kernel void B_L3_in_IO(int *B, channel int fifo_B_local_out)$/;"	f
 B_PE_dummy	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void B_PE_dummy(int idx, int idy, hls::stream<B_t2> &fifo_B_in)$/;"	f
+B_PE_dummy	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void B_PE_dummy(int idx, int idy, hls::stream<B_t2> &fifo_B_in)$/;"	f
+B_PE_dummy	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void B_PE_dummy(int idx, int idy, hls::stream<B_t2> &fifo_B_in)$/;"	f
 B_PE_dummy	kernel_kernel.cpp	/^void B_PE_dummy(int idx, int idy, hls::stream<B_t2> &fifo_B_in)$/;"	f
 B_PE_dummy	kernel_xilinx.cpp	/^void B_PE_dummy(int idx, int idy, hls::stream<B_t2> &fifo_B_in)$/;"	f
+B_t16	hls_tests/gemm/hls_prj2/src/kernel_kernel.h	/^typedef ap_uint<512> B_t16;$/;"	t
+B_t16	kernel_kernel.h	/^typedef ap_uint<512> B_t16;$/;"	t
 B_t2	hls_tests/gemm/hls_prj/src/kernel_kernel.h	/^typedef ap_uint<64> B_t2;$/;"	t
+B_t2	hls_tests/gemm/hls_prj2/src/kernel_kernel.h	/^typedef ap_uint<64> B_t2;$/;"	t
+B_t2	hls_tests/gemm/hls_prj3/src/kernel_kernel.h	/^typedef ap_uint<64> B_t2;$/;"	t
 B_t2	kernel_kernel.h	/^typedef ap_uint<64> B_t2;$/;"	t
 B_t4	hls_tests/gemm/hls_prj/src/kernel_kernel.h	/^typedef ap_uint<128> B_t4;$/;"	t
+B_t4	hls_tests/gemm/hls_prj2/src/kernel_kernel.h	/^typedef ap_uint<128> B_t4;$/;"	t
+B_t4	hls_tests/gemm/hls_prj3/src/kernel_kernel.h	/^typedef ap_uint<128> B_t4;$/;"	t
 B_t4	kernel_kernel.h	/^typedef ap_uint<128> B_t4;$/;"	t
 BinaryOperatorKind2pet_op_type	pet/scan.cc	/^static enum pet_op_type BinaryOperatorKind2pet_op_type(BinaryOperatorKind kind)$/;"	f	file:
 C	polysa_tests/cnn/kernel.h	9;"	d
@@ -454,6 +511,9 @@ CREATETARGETINFO_TAKES_SHARED_PTR	pet/config.h	20;"	d
 CSCOPE	Makefile	/^CSCOPE = cscope$/;"	m
 CSCOPE	isl/Makefile	/^CSCOPE = cscope$/;"	m
 CSCOPE	pet/Makefile	/^CSCOPE = cscope$/;"	m
+CSIM_DESIGN	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^CSIM_DESIGN = 1$/;"	m
+CSIM_DESIGN	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^CSIM_DESIGN = 1$/;"	m
+CSIM_DESIGN	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^CSIM_DESIGN = 1$/;"	m
 CTAGS	Makefile	/^CTAGS = ctags$/;"	m
 CTAGS	isl/Makefile	/^CTAGS = ctags$/;"	m
 CTAGS	isl/interface/Makefile	/^CTAGS = ctags$/;"	m
@@ -498,42 +558,59 @@ CYGPATH_W	isl/doc/Makefile	/^CYGPATH_W = echo$/;"	m
 CYGPATH_W	isl/interface/Makefile	/^CYGPATH_W = echo$/;"	m
 CYGPATH_W	pet/Makefile	/^CYGPATH_W = echo$/;"	m
 C_drain_IO_L1_out	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L1_out	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L1_out	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L1_out	kernel_kernel.cpp	/^void C_drain_IO_L1_out(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L1_out	kernel_kernel_cp.c	/^void C_drain_IO_L1_out(int idx, int idy, int idz, hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L1_out	kernel_xilinx.cpp	/^void C_drain_IO_L1_out(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L1_out_boundary	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_boundary(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L1_out_boundary	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_boundary(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L1_out_boundary	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_boundary(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L1_out_boundary	kernel_kernel.cpp	/^void C_drain_IO_L1_out_boundary(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L1_out_boundary	kernel_xilinx.cpp	/^void C_drain_IO_L1_out_boundary(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L1_out_inter_trans	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
-C_drain_IO_L1_out_inter_trans	kernel_kernel.cpp	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
+C_drain_IO_L1_out_inter_trans	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c3_prev, int c4_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
+C_drain_IO_L1_out_inter_trans	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
+C_drain_IO_L1_out_inter_trans	kernel_kernel.cpp	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c3_prev, int c4_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
 C_drain_IO_L1_out_inter_trans	kernel_kernel_cp.c	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int idz, int c0_prev, int c1_prev, int local_C[1][1], hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out)$/;"	f
-C_drain_IO_L1_out_inter_trans	kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
+C_drain_IO_L1_out_inter_trans	kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c3_prev, int c4_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
 C_drain_IO_L1_out_inter_trans_boundary	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans_boundary(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
-C_drain_IO_L1_out_inter_trans_boundary	kernel_kernel.cpp	/^void C_drain_IO_L1_out_inter_trans_boundary(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
-C_drain_IO_L1_out_inter_trans_boundary	kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans_boundary(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
+C_drain_IO_L1_out_inter_trans_boundary	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans_boundary(int idx, int idy, int c3_prev, int c4_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
+C_drain_IO_L1_out_inter_trans_boundary	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans_boundary(int idx, int idy, int c0_prev, int c1_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
+C_drain_IO_L1_out_inter_trans_boundary	kernel_kernel.cpp	/^void C_drain_IO_L1_out_inter_trans_boundary(int idx, int idy, int c3_prev, int c4_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
+C_drain_IO_L1_out_inter_trans_boundary	kernel_xilinx.cpp	/^void C_drain_IO_L1_out_inter_trans_boundary(int idx, int idy, int c3_prev, int c4_prev, C_t2 local_C[2][1], hls::stream<C_t2> &fifo_C_drain_out, bool inter_trans_en)$/;"	f
 C_drain_IO_L1_out_intra_trans	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c0, int c1, C_t2 local_C[2][1], hls::stream<int> &fifo_C_drain_local_in, bool intra_trans_en)$/;"	f
-C_drain_IO_L1_out_intra_trans	kernel_kernel.cpp	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c0, int c1, C_t2 local_C[2][1], hls::stream<int> &fifo_C_drain_local_in, bool intra_trans_en)$/;"	f
+C_drain_IO_L1_out_intra_trans	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c3, int c4, C_t2 local_C[2][1], hls::stream<int> &fifo_C_drain_local_in, bool intra_trans_en)$/;"	f
+C_drain_IO_L1_out_intra_trans	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c0, int c1, C_t2 local_C[2][1], hls::stream<int> &fifo_C_drain_local_in, bool intra_trans_en)$/;"	f
+C_drain_IO_L1_out_intra_trans	kernel_kernel.cpp	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c3, int c4, C_t2 local_C[2][1], hls::stream<int> &fifo_C_drain_local_in, bool intra_trans_en)$/;"	f
 C_drain_IO_L1_out_intra_trans	kernel_kernel_cp.c	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int idz, int c0, int c1, int local_C[1][1], hls::stream<int> &fifo_C_drain_local_in)$/;"	f
-C_drain_IO_L1_out_intra_trans	kernel_xilinx.cpp	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c0, int c1, C_t2 local_C[2][1], hls::stream<int> &fifo_C_drain_local_in, bool intra_trans_en)$/;"	f
+C_drain_IO_L1_out_intra_trans	kernel_xilinx.cpp	/^void C_drain_IO_L1_out_intra_trans(int idx, int idy, int c3, int c4, C_t2 local_C[2][1], hls::stream<int> &fifo_C_drain_local_in, bool intra_trans_en)$/;"	f
 C_drain_IO_L2_out	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void C_drain_IO_L2_out(int idx, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L2_out	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void C_drain_IO_L2_out(int idx, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L2_out	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void C_drain_IO_L2_out(int idx, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L2_out	kernel_kernel.cpp	/^void C_drain_IO_L2_out(int idx, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L2_out	kernel_kernel_cp.c	/^void C_drain_IO_L2_out(int idx, int idy, hls::stream<int> &fifo_C_drain_in, hls::stream<int> &fifo_C_drain_out, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L2_out	kernel_xilinx.cpp	/^void C_drain_IO_L2_out(int idx, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L2_out_boundary	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void C_drain_IO_L2_out_boundary(int idx, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L2_out_boundary	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void C_drain_IO_L2_out_boundary(int idx, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L2_out_boundary	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void C_drain_IO_L2_out_boundary(int idx, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L2_out_boundary	kernel_kernel.cpp	/^void C_drain_IO_L2_out_boundary(int idx, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L2_out_boundary	kernel_xilinx.cpp	/^void C_drain_IO_L2_out_boundary(int idx, hls::stream<C_t2> &fifo_C_drain_out, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L3_out	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void C_drain_IO_L3_out(C_t2 *C, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
-C_drain_IO_L3_out	kernel_kernel.cpp	/^void C_drain_IO_L3_out(C_t2 *C, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L3_out	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void C_drain_IO_L3_out(C_t4 *C, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L3_out	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void C_drain_IO_L3_out(C_t2 *C, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L3_out	kernel_kernel.cpp	/^void C_drain_IO_L3_out(C_t4 *C, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
 C_drain_IO_L3_out	kernel_kernel_cp.c	/^void C_drain_IO_L3_out(int idx, int *C, hls::stream<int> &fifo_C_drain_local_in)$/;"	f
-C_drain_IO_L3_out	kernel_xilinx.cpp	/^void C_drain_IO_L3_out(C_t2 *C, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
+C_drain_IO_L3_out	kernel_xilinx.cpp	/^void C_drain_IO_L3_out(C_t4 *C, hls::stream<C_t2> &fifo_C_drain_local_in)$/;"	f
 C_drain_L1_out_IO	kernel_intel.c	/^__kernel void C_drain_L1_out_IO()$/;"	f
-C_drain_L1_out_IO	kernel_xilinx.c	/^__kernel void C_drain_L1_out_IO(int idx, int idy, channel int fifo_C_drain_in, channel int fifo_C_drain_out, channel int fifo_C_drain_local_in)$/;"	f
 C_drain_L2_out_IO	kernel_intel.c	/^__kernel void C_drain_L2_out_IO()$/;"	f
-C_drain_L2_out_IO	kernel_xilinx.c	/^__kernel void C_drain_L2_out_IO(int idx, channel int fifo_C_drain_in, channel int fifo_C_drain_out, channel int fifo_C_drain_local_in)$/;"	f
 C_drain_L3_out_IO	kernel_intel.c	/^__kernel void C_drain_L3_out_IO(int *C)$/;"	f
-C_drain_L3_out_IO	kernel_xilinx.c	/^__kernel void C_drain_L3_out_IO(int *C, channel int fifo_C_drain_local_in)$/;"	f
 C_t2	hls_tests/gemm/hls_prj/src/kernel_kernel.h	/^typedef ap_uint<64> C_t2;$/;"	t
+C_t2	hls_tests/gemm/hls_prj2/src/kernel_kernel.h	/^typedef ap_uint<64> C_t2;$/;"	t
+C_t2	hls_tests/gemm/hls_prj3/src/kernel_kernel.h	/^typedef ap_uint<64> C_t2;$/;"	t
 C_t2	kernel_kernel.h	/^typedef ap_uint<64> C_t2;$/;"	t
+C_t4	hls_tests/gemm/hls_prj2/src/kernel_kernel.h	/^typedef ap_uint<128> C_t4;$/;"	t
+C_t4	kernel_kernel.h	/^typedef ap_uint<128> C_t4;$/;"	t
 Choice of Constant Term on which to Split	isl/doc/implementation.tex	/^The idea of keeping track of witnesses was first used in {\\tt barvinok}.$/;"	b
 ClangAPI	isl/interface/extract_interface.cc	/^struct ClangAPI {$/;"	s	file:
 ClangAPI	isl/interface/generator.cc	/^struct ClangAPI {$/;"	s	namespace:__anon78	file:
@@ -1252,6 +1329,9 @@ HDRS	isl/imath/Makefile	/^HDRS=imath.h imrat.h iprime.h imdrover.h rsamath.h gmp
 HEADERS	isl/Makefile	/^HEADERS = $(nodist_pkginclude_HEADERS) $(pkginclude_HEADERS)$/;"	m
 HEADERS	pet/Makefile	/^HEADERS = $(include_HEADERS)$/;"	m
 HIGH_BIT_SET	isl/imath/imath.c	205;"	d	file:
+HLS_SOURCES	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^HLS_SOURCES = ..\/..\/..\/..\/src\/kernel.cpp ..\/..\/..\/..\/src\/kernel_xilinx.cpp$/;"	m
+HLS_SOURCES	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^HLS_SOURCES = ..\/..\/..\/..\/src\/kernel.cpp ..\/..\/..\/..\/src\/kernel_xilinx.cpp$/;"	m
+HLS_SOURCES	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^HLS_SOURCES = ..\/..\/..\/..\/src\/kernel.cpp ..\/..\/..\/..\/src\/kernel_xilinx.cpp$/;"	m
 HOST_ENDIAN	isl/imath/gmp_compat.c	48;"	d	file:
 HYBRID_H	hybrid.h	2;"	d
 HandleDiagnostic	pet/pet.cc	/^	virtual void HandleDiagnostic(DiagnosticsEngine::Level level,$/;"	f	struct:MyDiagnosticPrinter
@@ -1268,6 +1348,8 @@ HandleTopLevelDeclContinue	pet/config.h	107;"	d
 HandleTopLevelDeclReturn	isl/isl_config.h	135;"	d
 HandleTopLevelDeclReturn	pet/config.h	110;"	d
 I	hls_tests/gemm/hls_prj/src/kernel.h	6;"	d
+I	hls_tests/gemm/hls_prj2/src/kernel.h	6;"	d
+I	hls_tests/gemm/hls_prj3/src/kernel.h	6;"	d
 I	kernel.h	6;"	d
 I	polysa_tests/cnn/kernel.h	7;"	d
 I	polysa_tests/gemm/kernel.h	6;"	d
@@ -1800,6 +1882,8 @@ IslIntPrinter	isl/libisl-gdb.py	/^class IslIntPrinter:$/;"	c
 IslObjectPrinter	isl/libisl-gdb.py	/^class IslObjectPrinter:$/;"	c
 IslPrintCommand	isl/libisl-gdb.py	/^class IslPrintCommand (gdb.Command):$/;"	c
 J	hls_tests/gemm/hls_prj/src/kernel.h	7;"	d
+J	hls_tests/gemm/hls_prj2/src/kernel.h	7;"	d
+J	hls_tests/gemm/hls_prj3/src/kernel.h	7;"	d
 J	kernel.h	7;"	d
 J	polysa_tests/gemm/kernel.h	7;"	d
 J	polysa_tests/mttkrp/kernel.h	7;"	d
@@ -1810,6 +1894,8 @@ J	t2s_tests/mttkrp/kernel.h	7;"	d
 J	t2s_tests/ttm/kernel.h	7;"	d
 J	t2s_tests/ttmc/kernel.h	7;"	d
 K	hls_tests/gemm/hls_prj/src/kernel.h	8;"	d
+K	hls_tests/gemm/hls_prj2/src/kernel.h	8;"	d
+K	hls_tests/gemm/hls_prj3/src/kernel.h	8;"	d
 K	kernel.h	8;"	d
 K	pet/tests/QR.c	/^int N, K = 256;$/;"	v
 K	polysa_tests/2dconv/kernel.h	8;"	d
@@ -2297,6 +2383,9 @@ OTOOL64	isl/doc/Makefile	/^OTOOL64 = $/;"	m
 OTOOL64	isl/interface/Makefile	/^OTOOL64 = $/;"	m
 OTOOL64	pet/Makefile	/^OTOOL64 = $/;"	m
 OUTPUT_LIMIT	isl/imath/imdrover.c	60;"	d	file:
+ObjDir	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^ObjDir = obj$/;"	m
+ObjDir	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^ObjDir = obj$/;"	m
+ObjDir	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^ObjDir = obj$/;"	m
 Offline Symmetry Detection	isl/doc/implementation.tex	/^would obviate the need for removing parametric equalities.$/;"	b
 Online Symmetry Detection	isl/doc/implementation.tex	/^\\end{table}$/;"	b
 OptionParser	isl/imath/tests/gmp-compat-test/runtest.py	/^from optparse import OptionParser$/;"	i
@@ -2360,10 +2449,11 @@ PDFLATEX	isl/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PDFLATEX	isl/doc/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PDFLATEX	isl/interface/Makefile	/^PDFLATEX = pdflatex$/;"	m
 PE	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_A_out, hls::stream<B_t2> &fifo_B_in, hls::stream<B_t2> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)$/;"	f
+PE	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_A_out, hls::stream<B_t2> &fifo_B_in, hls::stream<B_t2> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)$/;"	f
+PE	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_A_out, hls::stream<B_t2> &fifo_B_in, hls::stream<B_t2> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)$/;"	f
 PE	kernel_intel.c	/^__kernel void PE()$/;"	f
 PE	kernel_kernel.cpp	/^void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_A_out, hls::stream<B_t2> &fifo_B_in, hls::stream<B_t2> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)$/;"	f
 PE	kernel_kernel_cp.c	/^void PE(int idx, int idy, hls::stream<int> &fifo_A_in, hls::stream<int> &fifo_A_out, hls::stream<int> &fifo_B_in, hls::stream<int> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)$/;"	f
-PE	kernel_xilinx.c	/^__kernel void PE(int idx, int idy, channel int fifo_A_in, channel int fifo_A_out, channel int fifo_B_in, channel int fifo_B_out, channel int fifo_C_drain_out)$/;"	f
 PE	kernel_xilinx.cpp	/^void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_A_out, hls::stream<B_t2> &fifo_B_in, hls::stream<B_t2> &fifo_B_out, hls::stream<int> &fifo_C_drain_out)$/;"	f
 PERL	isl/Makefile	/^PERL = perl$/;"	m
 PERL	isl/doc/Makefile	/^PERL = perl$/;"	m
@@ -2446,12 +2536,12 @@ POLYSA_KERNEL_STMT_IO_TRANSFER_BUF	polysa_common.h	/^  POLYSA_KERNEL_STMT_IO_TRA
 POLYSA_KERNEL_STMT_MODULE_CALL	polysa_common.h	/^  POLYSA_KERNEL_STMT_MODULE_CALL,$/;"	e	enum:polysa_kernel_stmt_type
 POLYSA_KERNEL_STMT_SYNC	polysa_common.h	/^  POLYSA_KERNEL_STMT_SYNC,$/;"	e	enum:polysa_kernel_stmt_type
 POLYSA_PE_GROUP	polysa_common.h	/^  POLYSA_PE_GROUP,$/;"	e	enum:polysa_group_type
-POLYSA_SA_TYPE_ASYNC	ppcg_options.h	152;"	d
-POLYSA_SA_TYPE_SYNC	ppcg_options.h	151;"	d
-POLYSA_TARGET_C	ppcg_options.h	146;"	d
-POLYSA_TARGET_INTEL_OPENCL	ppcg_options.h	148;"	d
-POLYSA_TARGET_T2S	ppcg_options.h	149;"	d
-POLYSA_TARGET_XILINX_HLS	ppcg_options.h	147;"	d
+POLYSA_SA_TYPE_ASYNC	ppcg_options.h	155;"	d
+POLYSA_SA_TYPE_SYNC	ppcg_options.h	154;"	d
+POLYSA_TARGET_C	ppcg_options.h	149;"	d
+POLYSA_TARGET_INTEL_OPENCL	ppcg_options.h	151;"	d
+POLYSA_TARGET_T2S	ppcg_options.h	152;"	d
+POLYSA_TARGET_XILINX_HLS	ppcg_options.h	150;"	d
 POLYSA_TREE_H	polysa_tree.h	2;"	d
 POLYSA_UNKNOWN_GROUP	polysa_common.h	/^  POLYSA_UNKNOWN_GROUP$/;"	e	enum:polysa_group_type
 POLYSA_UNKNOWN_IO	polysa_common.h	/^  POLYSA_UNKNOWN_IO$/;"	e	enum:polysa_io_type
@@ -2469,9 +2559,9 @@ PP	pet/pet.cc	/^	Preprocessor &PP;$/;"	m	struct:PetASTConsumer	file:
 PP	pet/scan.h	/^	clang::Preprocessor &PP;$/;"	m	struct:PetScan
 PPCG_H	ppcg.h	2;"	d
 PPCG_OPTIONS_H	ppcg_options.h	2;"	d
-PPCG_TARGET_C	ppcg_options.h	143;"	d
-PPCG_TARGET_CUDA	ppcg_options.h	144;"	d
-PPCG_TARGET_OPENCL	ppcg_options.h	145;"	d
+PPCG_TARGET_C	ppcg_options.h	146;"	d
+PPCG_TARGET_CUDA	ppcg_options.h	147;"	d
+PPCG_TARGET_OPENCL	ppcg_options.h	148;"	d
 PRE_INSTALL	Makefile	/^PRE_INSTALL = :$/;"	m
 PRE_INSTALL	isl/Makefile	/^PRE_INSTALL = :$/;"	m
 PRE_INSTALL	isl/doc/Makefile	/^PRE_INSTALL = :$/;"	m
@@ -2585,6 +2675,8 @@ ROUND_PREC	isl/imath/imath.c	106;"	d	file:
 RSAMATH_H_	isl/imath/rsamath.h	28;"	d
 Re	examples/chemv.c	/^	float Re;$/;"	m	struct:ComplexFloat	file:
 Reinterpret	hls_tests/gemm/hls_prj/src/kernel_kernel.h	/^inline To Reinterpret(const From &val) {$/;"	f
+Reinterpret	hls_tests/gemm/hls_prj2/src/kernel_kernel.h	/^inline To Reinterpret(const From &val) {$/;"	f
+Reinterpret	hls_tests/gemm/hls_prj3/src/kernel_kernel.h	/^inline To Reinterpret(const From &val) {$/;"	f
 Reinterpret	kernel_kernel.h	/^inline To Reinterpret(const From &val) {$/;"	f
 ResourceDir	isl/interface/extract_interface.cc	/^static const char *ResourceDir =$/;"	v	file:
 ResourceDir	pet/pet.cc	/^static const char *ResourceDir =$/;"	v	file:
@@ -2711,6 +2803,9 @@ Simple Hull	isl/doc/implementation.tex	/^\\end{definition}$/;"	s
 StmtRange	pet/scan.h	/^	StmtRange(Stmt::child_range range) :$/;"	f	struct:clang::StmtRange
 StmtRange	pet/scan.h	/^	StmtRange(const StmtIterator &begin, const StmtIterator &end) :$/;"	f	struct:clang::StmtRange
 StmtRange	pet/scan.h	/^struct StmtRange : std::pair<StmtIterator,StmtIterator> {$/;"	s	namespace:clang
+TARGET	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^TARGET := csim.exe$/;"	m
+TARGET	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^TARGET := csim.exe$/;"	m
+TARGET	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^TARGET := csim.exe$/;"	m
 TARGETS	isl/imath/Makefile	/^TARGETS=imtest imtimer pi bintest $(REGRESSIONS)$/;"	m
 TEMP	isl/imath/imath.c	167;"	d	file:
 TEMP	isl/imath/imrat.c	33;"	d	file:
@@ -2847,6 +2942,27 @@ _POLYSA_TRANS_H	polysa_trans.h	2;"	d
 _POLYSA_UTILITIES_H	polysa_utilities.h	2;"	d
 _SCHEDULE_H	schedule.h	2;"	d
 _STDINT_HAVE_STDINT_H	isl/include/isl/stdint.h	6;"	d
+__HLS_FPO_v6_1__	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^__HLS_FPO_v6_1__ = 1$/;"	m
+__HLS_FPO_v6_1__	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^__HLS_FPO_v6_1__ = 1$/;"	m
+__HLS_FPO_v6_1__	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^__HLS_FPO_v6_1__ = 1$/;"	m
+__SIM_DDS__	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^__SIM_DDS__ = 1$/;"	m
+__SIM_DDS__	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^__SIM_DDS__ = 1$/;"	m
+__SIM_DDS__	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^__SIM_DDS__ = 1$/;"	m
+__SIM_FFT__	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^__SIM_FFT__ = 1$/;"	m
+__SIM_FFT__	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^__SIM_FFT__ = 1$/;"	m
+__SIM_FFT__	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^__SIM_FFT__ = 1$/;"	m
+__SIM_FIR__	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^__SIM_FIR__ = 1$/;"	m
+__SIM_FIR__	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^__SIM_FIR__ = 1$/;"	m
+__SIM_FIR__	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^__SIM_FIR__ = 1$/;"	m
+__SIM_FPO__	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^__SIM_FPO__ = 1$/;"	m
+__SIM_FPO__	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^__SIM_FPO__ = 1$/;"	m
+__SIM_FPO__	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^__SIM_FPO__ = 1$/;"	m
+__SIM_MATHHLS__	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^__SIM_MATHHLS__ = 1$/;"	m
+__SIM_MATHHLS__	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^__SIM_MATHHLS__ = 1$/;"	m
+__SIM_MATHHLS__	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^__SIM_MATHHLS__ = 1$/;"	m
+__SIM_OPENCV__	hls_tests/gemm/hls_prj/prj/solution1/csim/build/csim.mk	/^__SIM_OPENCV__ = 1$/;"	m
+__SIM_OPENCV__	hls_tests/gemm/hls_prj2/prj/solution1/csim/build/csim.mk	/^__SIM_OPENCV__ = 1$/;"	m
+__SIM_OPENCV__	hls_tests/gemm/hls_prj3/prj/solution1/csim/build/csim.mk	/^__SIM_OPENCV__ = 1$/;"	m
 __attribute__	isl/isl_config_post.h	2;"	d
 __del__	pet/interface/pet.py	/^    def __del__(self):$/;"	m	class:scop	file:
 __init__	isl/imath/tests/gmp-compat-test/genctest.py	/^  def __init__(self, gmpapi):$/;"	m	class:APITest
@@ -5765,6 +5881,8 @@ data_pack	ppcg_options.h	/^  int data_pack;$/;"	m	struct:ppcg_options
 data_pack_inter	polysa_common.h	/^  int data_pack_inter;$/;"	m	struct:polysa_hw_module
 data_pack_intra	polysa_common.h	/^  int data_pack_intra;$/;"	m	struct:polysa_hw_module
 data_t	hls_tests/gemm/hls_prj/src/kernel.h	/^typedef int data_t;$/;"	t
+data_t	hls_tests/gemm/hls_prj2/src/kernel.h	/^typedef int data_t;$/;"	t
+data_t	hls_tests/gemm/hls_prj3/src/kernel.h	/^typedef int data_t;$/;"	t
 data_t	kernel.h	/^typedef int data_t;$/;"	t
 data_t	polysa_tests/2dconv/kernel.h	/^typedef float data_t;$/;"	t
 data_t	polysa_tests/cholesky/kernel.h	/^typedef float data_t;$/;"	t
@@ -8795,6 +8913,7 @@ hls	polysa_fpga.c	/^  struct hls_info *hls;$/;"	m	struct:print_hw_module_data	ty
 hls_close_files	polysa_fpga.c	/^static void hls_close_files(struct hls_info *info)$/;"	f	file:
 hls_info	polysa_common.h	/^struct hls_info {$/;"	s
 hls_open_files	polysa_fpga.c	/^static void hls_open_files(struct hls_info *info, const char *input)$/;"	f	file:
+hoist_L2_io_buffer	polysa_group.c	/^static isl_stat hoist_L2_io_buffer(struct polysa_kernel *kernel, $/;"	f	file:
 hoist_guard	isl/isl_ast_graft.c	/^static __isl_give isl_set *hoist_guard(__isl_take isl_set *guard,$/;"	f	file:
 hoist_out_of_context	isl/isl_ast_codegen.c	/^static __isl_give isl_ast_graft_list *hoist_out_of_context($/;"	f	file:
 homogeneous_map	isl/isl_convex_hull.c	/^static __isl_give isl_basic_set *homogeneous_map(__isl_take isl_basic_set *bset,$/;"	f	file:
@@ -9033,6 +9152,7 @@ index	pet/expr.h	/^	isl_multi_pw_aff *index;$/;"	m	struct:pet_expr_access
 index	pet/skip.h	/^	isl_multi_pw_aff *index[2];$/;"	m	struct:pet_skip_info
 index	polysa_common.h	/^			isl_ast_expr *index;$/;"	m	struct:polysa_kernel_stmt::__anon104::__anon105
 index	polysa_common.h	/^      isl_ast_expr *index;$/;"	m	struct:polysa_kernel_stmt::__anon104::__anon107
+index_simplify	codegen.py	/^def index_simplify(matchobj):$/;"	f
 indicator_function	pet/aff.c	/^static __isl_give isl_pw_aff *indicator_function(__isl_take isl_set *set,$/;"	f	file:
 indicator_function	pet/scop.c	/^static __isl_give isl_pw_aff *indicator_function(__isl_take isl_set *set,$/;"	f	file:
 induced_lineality_space	isl/isl_convex_hull.c	/^static __isl_give isl_basic_set *induced_lineality_space($/;"	f	file:
@@ -13869,9 +13989,10 @@ kernel	polysa_trans.c	/^  struct polysa_kernel *kernel;$/;"	m	struct:stride_coal
 kernel	t2s_tests/cnn/kernel.c	/^void kernel(data_t X[I][R + 2][C + 2], data_t W[O][I][3][3], data_t Z[O][R][C]) {$/;"	f
 kernel	t2s_tests/cnn/kernel.polysa.c	/^void kernel(data_t X[I][R + 2][C + 2], data_t W[O][I][3][3], data_t Z[O][R][C]) {$/;"	f
 kernel0	hls_tests/gemm/hls_prj/src/kernel_xilinx.cpp	/^void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)$/;"	f
-kernel0	kernel_xilinx.c	/^void kernel0(int *A, int *B, int *C)$/;"	f
-kernel0	kernel_xilinx.cpp	/^void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)$/;"	f
-kernel0	temp.c	/^void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)$/;"	f
+kernel0	hls_tests/gemm/hls_prj2/src/kernel_xilinx.cpp	/^void kernel0(A_t16 *A, B_t16 *B, C_t4 *C)$/;"	f
+kernel0	hls_tests/gemm/hls_prj3/src/kernel_xilinx.cpp	/^void kernel0(A_t4 *A, B_t4 *B, C_t2 *C)$/;"	f
+kernel0	kernel_xilinx.cpp	/^void kernel0(A_t16 *A, B_t16 *B, C_t4 *C)$/;"	f
+kernel0	temp.c	/^void kernel0(A_t16 *A, B_t16 *B, C_t4 *C)$/;"	f
 kernel_c	cuda_common.h	/^	FILE *kernel_c;$/;"	m	struct:cuda_info
 kernel_c	opencl.c	/^	FILE *kernel_c;$/;"	m	struct:opencl_info	file:
 kernel_c	polysa_common.h	/^  FILE *kernel_c;        \/* Definition of hardware modules. *\/$/;"	m	struct:hls_info
@@ -14150,6 +14271,8 @@ main	config.guess	/^	main ()$/;"	f
 main	config.guess	/^main ()$/;"	f
 main	examples/chemv.c	/^int main()$/;"	f
 main	hls_tests/gemm/hls_prj/src/kernel.cpp	/^int main(int argc, char **argv) {$/;"	f
+main	hls_tests/gemm/hls_prj2/src/kernel.cpp	/^int main(int argc, char **argv) {$/;"	f
+main	hls_tests/gemm/hls_prj3/src/kernel.cpp	/^int main(int argc, char **argv) {$/;"	f
 main	isl/bound.c	/^int main(int argc, char **argv)$/;"	f
 main	isl/cat.c	/^int main(int argc, char **argv)$/;"	f
 main	isl/closure.c	/^int main(int argc, char **argv)$/;"	f
@@ -14665,6 +14788,7 @@ mod	isl/include/isl/cpp.h	/^isl::pw_aff pw_aff::mod(isl::val mod) const$/;"	f	cl
 mod	isl/include/isl/cpp.h	/^isl::val val::mod(isl::val v2) const$/;"	f	class:isl::val
 mod	isl/include/isl/cpp.h	/^schedule_node_band schedule_node_band::mod(isl::multi_val mv) const$/;"	f	class:isl::schedule_node_band
 mod_constraint_is_simpler	isl/isl_ast_build_expr.c	/^static int mod_constraint_is_simpler(struct isl_extract_mod_data *data,$/;"	f	file:
+mod_simplify	codegen.py	/^def mod_simplify(matchobj):$/;"	f
 modified	isl/isl_coalesce.c	/^	int modified;$/;"	m	struct:isl_coalesce_info	file:
 module	polysa_codegen.c	/^  struct polysa_hw_module *module;$/;"	m	struct:polysa_at_domain_data	typeref:struct:polysa_at_domain_data::polysa_hw_module	file:
 module	polysa_common.h	/^      struct polysa_hw_module *module;$/;"	m	struct:polysa_kernel_stmt::__anon104::__anon107	typeref:struct:polysa_kernel_stmt::__anon104::__anon107::polysa_hw_module
@@ -16867,6 +16991,7 @@ polysa_tree_move_up_to_kernel	polysa_tree.c	/^__isl_give isl_schedule_node *poly
 polysa_tree_move_up_to_mark	polysa_tree.c	/^__isl_give isl_schedule_node *polysa_tree_move_up_to_mark($/;"	f
 polysa_tree_move_up_to_pe	polysa_tree.c	/^__isl_give isl_schedule_node *polysa_tree_move_up_to_pe($/;"	f
 polysa_tree_node_is_kernel	polysa_tree.c	/^int polysa_tree_node_is_kernel(__isl_keep isl_schedule_node *node)$/;"	f
+polysa_tree_node_is_mark	polysa_tree.c	/^int polysa_tree_node_is_mark(__isl_keep isl_schedule_node *node, char *mark) {$/;"	f
 polysa_types	polysa_common.h	/^struct polysa_types {$/;"	s
 polysa_verbose	ppcg_options.h	/^  int polysa_verbose;$/;"	m	struct:ppcg_debug_options
 polysa_vsa	polysa_vsa.h	/^struct polysa_vsa {$/;"	s
@@ -17801,6 +17926,7 @@ read	polysa_trans.c	/^  int read;$/;"	m	struct:add_io_copies_stmt_acc_data	file:
 read	polysa_trans.c	/^  int read;$/;"	m	struct:polysa_add_L2_ext_io_copies_data	file:
 read	polysa_trans.c	/^  int read;$/;"	m	struct:polysa_add_pe_ext_io_copies_data	file:
 read_aff_domain	isl/isl_input.c	/^static __isl_give isl_set *read_aff_domain(__isl_keep isl_stream *s,$/;"	f	file:
+read_array_part_L2_tile_sizes	polysa_common.c	/^int *read_array_part_L2_tile_sizes(struct polysa_kernel *sa, int *tile_len)$/;"	f
 read_array_part_tile_sizes	polysa_common.c	/^int *read_array_part_tile_sizes(struct polysa_kernel *sa, int *tile_len)$/;"	f
 read_band	isl/isl_schedule_read.c	/^static __isl_give isl_schedule_tree *read_band(isl_stream *s)$/;"	f	file:
 read_block_sizes	gpu.c	/^static isl_stat read_block_sizes(struct ppcg_kernel *kernel,$/;"	f	file:
@@ -18936,6 +19062,7 @@ simd_stride	polysa_common.h	/^  int simd_stride;$/;"	m	struct:polysa_stmt_access
 simd_vectorization_data	polysa_trans.c	/^struct simd_vectorization_data {$/;"	s	file:
 simd_w	polysa_common.h	/^  int simd_w;$/;"	m	struct:polysa_kernel
 simplify	isl/isl_coalesce.c	/^	int simplify;$/;"	m	struct:isl_coalesce_info	file:
+simplify_expressions	codegen.py	/^def simplify_expressions(lines):$/;"	f
 single	isl/imath/imath.h	/^  mp_digit    single;$/;"	m	struct:mpz
 single	isl/isl_ast_codegen.c	/^	int single;$/;"	m	struct:isl_ast_generate_parallel_domains_data	file:
 single_disjunct	isl/isl_test.c	/^	int single_disjunct;$/;"	m	struct:__anon33	file:
@@ -19291,6 +19418,7 @@ swap_initial	isl/isl_tab_pip.c	/^static void swap_initial(struct isl_sol *sol)$/
 swap_rows	isl/isl_tab.c	/^static void swap_rows(struct isl_tab *tab, int row1, int row2)$/;"	f	file:
 swap_sched	isl/isl_scheduler.c	/^static void swap_sched(struct isl_sched_node *node1,$/;"	f	file:
 swap_vars	isl/isl_map.c	/^static void swap_vars(struct isl_blk blk, isl_int *a,$/;"	f	file:
+sympy	codegen.py	/^import sympy$/;"	i
 sync_writes	gpu.h	/^	isl_union_set *sync_writes;$/;"	m	struct:ppcg_kernel
 sys	codegen.py	/^import sys$/;"	i
 sys	isl/imath/findsizes.py	/^import getopt, os, re, subprocess, sys, tempfile$/;"	i
@@ -19882,6 +20010,7 @@ tuple_has_expr	isl/isl_input.c	/^static isl_bool tuple_has_expr(__isl_keep isl_m
 tuple_id	isl/isl_space.c	/^static __isl_keep isl_id *tuple_id(__isl_keep isl_space *dim,$/;"	f	file:
 tuple_id	isl/isl_space_private.h	/^	isl_id *tuple_id[2];$/;"	m	struct:isl_space
 two	isl/isl_ctx_private.h	/^	isl_int			two;$/;"	m	struct:isl_ctx
+two_level_buffer	ppcg_options.h	/^  int two_level_buffer;$/;"	m	struct:ppcg_options
 type	gpu.c	/^	const char *type;$/;"	m	struct:ppcg_extract_size_data	file:
 type	gpu.h	/^	char *type;$/;"	m	struct:gpu_array_info
 type	gpu.h	/^	enum ppcg_group_access_type type;$/;"	m	struct:ppcg_kernel_var	typeref:enum:ppcg_kernel_var::ppcg_group_access_type

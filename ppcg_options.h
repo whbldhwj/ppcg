@@ -95,6 +95,9 @@ struct ppcg_options {
   /* Enable credit control between different array partitions */
   int credit_control;
 
+  /* Enable two-level buffering in I/O modules */
+  int two_level_buffer;
+
   /* PolySA Extended */
 
 	/* Generate OpenMP macros (C target only). */

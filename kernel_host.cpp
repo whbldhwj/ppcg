@@ -54,9 +54,9 @@ int main(int argc, char **argv) {
     }
 
     // Allocate Memory in Host Memory
-    std::vector<int, aligned_allocator<int>> dev_A((8) * (8));
-    std::vector<int, aligned_allocator<int>> dev_B((8) * (8));
-    std::vector<int, aligned_allocator<int>> dev_C((8) * (8));
+    std::vector<int, aligned_allocator<int>> dev_A((16) * (16));
+    std::vector<int, aligned_allocator<int>> dev_B((16) * (16));
+    std::vector<int, aligned_allocator<int>> dev_C((16) * (16));
 
     // Allocate Buffer in Global Memory
     // Buffers are allocated using CL_MEM_USE_HOST_PTR for efficient memory and
@@ -64,19 +64,19 @@ int main(int argc, char **argv) {
     OCL_CHECK(err,
               cl::Buffer buffer_A(context,
                                   CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
-                                  (8) * (8) * sizeof(int),
+                                  (16) * (16) * sizeof(int),
                                   dev_A.data(),
                                   &err));
     OCL_CHECK(err,
               cl::Buffer buffer_B(context,
                                   CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
-                                  (8) * (8) * sizeof(int),
+                                  (16) * (16) * sizeof(int),
                                   dev_B.data(),
                                   &err));
     OCL_CHECK(err,
               cl::Buffer buffer_C(context,
                                   CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
-                                  (8) * (8) * sizeof(int),
+                                  (16) * (16) * sizeof(int),
                                   dev_C.data(),
                                   &err));
     

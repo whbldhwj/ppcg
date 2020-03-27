@@ -1,3 +1,4 @@
+import sympy
 import sys
 import argparse
 import re
@@ -141,13 +142,16 @@ def insert_xlnx_pragmas(lines):
   For "// hls_unroll", if the next codeline contains for loop, insert
   the "#pragma HLS UNROLL" below the for loop;
   otherwise, do not insert the pragma.
+  For "// hls_dependence.x", the position is the same with hls_pipeline.
+  Insert "#pragma HLS DEPENDENCE variable=x inter false".
 
   Args:
     lines: contains the codelines of the program
   """
 
   code_len = len(lines)
-  for pos in range(code_len):
+  pos = 0
+  while pos < code_len:
     line = lines[pos]
     if line.find("// hls_pipeline") != -1:
       # check the next line
@@ -165,15 +169,177 @@ def insert_xlnx_pragmas(lines):
         del lines[pos]
         lines.insert(pos, new_line)
     elif line.find("// hls_unroll") != -1:
+      # check the prev line
+      prev_line = lines[pos - 1]
+      is_simd = 0
+      if prev_line.find("simd") != -1:
+        is_simd = 1
       # check the next line
       next_line = lines[pos + 1]
       if next_line.find("for") != -1:
         indent = next_line.find("for")
         new_line = " " * indent + "#pragma HLS UNROLL\n"
         lines.insert(pos + 2, new_line)
+        if is_simd:
+          if next_line.find("{") == -1:
+            # Add brackets
+            next_line = next_line.rstrip() + " {\n"
+            lines[pos + 1] = next_line
+            new_line = " " * indent + "}\n"
+            lines.insert(pos + 4, new_line)
+            code_len = code_len + 1
         # delete the annotation
         del lines[pos]
+    elif line.find("// hls_dependence") != -1:
+      line_cp = line
+      var_name = line_cp.strip().split('.')[-1]
+      next_line = lines[pos + 2]
+      if next_line.find("for") != -1:
+        indent = next_line.find("for")
+        new_line = " " * indent + "#pragma HLS DEPENDENCE variable=" + var_name + " inter false\n"
+        lines.insert(pos + 3, new_line)
+        # delete the annotation
+        del lines[pos]
+      else:
+        # insert the pragma in-place
+        indent = line.find("//")
+        new_line = " " * indent + "#pragma HLS DEPENDENCE variable=" + var_name + " inter false\n"
+        del lines[pos]
+        lines.insert(pos, new_line)
+    pos = pos + 1
 
+  return lines
+
+def index_simplify(matchobj):
+  str_expr = matchobj.group(0)
+#  print(str_expr[1:len(str_expr)-1])
+  expr = sympy.sympify(str_expr[1 : len(str_expr) - 1])
+  expr = sympy.simplify(expr)
+  str_expr = str(expr)
+  return '[' + str_expr + ']'
+
+def mod_simplify(matchobj):
+  str_expr = matchobj.group(0)
+#  print(str_expr)
+  str_expr = str_expr[1: len(str_expr) - 3]
+  expr = sympy.sympify(str_expr)
+  expr = sympy.simplify(expr)
+  str_expr = str(expr)
+
+  return '(' + str_expr + ') %'
+
+def simplify_expressions(lines):
+  """ Simplify the index expressions in the program
+
+  Use Sympy to simplify all the array index expressions in the program.
+
+  Args:
+    lines: contains the codelines of the program
+  """
+
+  code_len = len(lines)
+  # Simplify array index expressions
+  for pos in range(code_len):
+    line = lines[pos]
+    line = re.sub('\[(.+?)\]', index_simplify, line)
+    lines[pos] = line
+
+  # Simplify module expressions
+  for pos in range(code_len):
+    line = lines[pos]
+    line = re.sub('\((.+?)\) %', mod_simplify, line)
+    lines[pos] = line
+
+  return lines
+
+def reorder_module_calls(lines):
+  """ Reorder the module calls in the program
+
+  For I/O module calls, we will reverse the sequence of calls for output modules.
+  Starting from the first module, enlist the module calls until the boundary module is met.
+  Reverse the list and output it.
+
+  Args:
+    lines: contains the codelines of the program
+  """
+
+  code_len = len(lines)
+  module_calls = []
+  module_start = 0
+  module_call = []
+  output_io = 0
+  boundary = 0
+  new_module = 0
+  prev_module_name = ""
+  first_line = -1
+  last_line = -1
+  reset = 0
+
+  for pos in range(code_len):
+    line = lines[pos]
+    if line.find("/* Module Call */") != -1:
+      if module_start == 0:
+        module_start = 1
+      else:
+        module_start = 0
+
+      if module_start:
+        # Examine if the module is an output I/O module
+        nxt_line = lines[pos + 1]
+        if nxt_line.find("IO") != -1 and nxt_line.find("out") != -1:
+          output_io = 1
+          # Examine if the module is an boundary module
+          if nxt_line.find("boundary") != -1:
+            boundary = 1
+        # Extract the module name
+        module_name = nxt_line.strip()[:-1]
+        if boundary:
+          module_name = module_name[:-9]
+        if prev_module_name == "":
+          prev_module_name = module_name
+          first_line = pos
+        else:
+          if prev_module_name != module_name:
+            new_module = 1
+            prev_module_name = module_name
+            first_line = pos
+            reset = 0
+          else:
+            if reset:
+              first_line = pos
+              reset = 0
+            new_module = 0
+
+      if not module_start:
+        if output_io:
+          last_line = pos
+          module_call.append(line)
+          module_calls.append(module_call.copy())
+          module_call.clear()
+          if boundary:
+            # Reverse the list
+            module_calls.reverse()
+            # Insert it back
+            left_lines = lines[last_line + 1:]
+            lines = lines[:first_line]
+            first = 1
+            for c in module_calls:
+              if not first:
+                lines.append("\n")
+              lines = lines + c
+              first = 0
+            lines = lines + left_lines
+            # Clean up
+            module_calls.clear()
+            boundary = 0
+            output_io = 0
+            reset = 1
+          if new_module:
+            # Pop out the previous module calls except the last one
+            module_calls = module_calls[-1:]
+
+    if module_start and output_io:
+      module_call.append(line)
 
   return lines
 
@@ -194,6 +360,9 @@ def xilinx_run(kernel_call, kernel_def, kernel='kernel'):
   with open(kernel_def, 'r') as f:
     lines = f.readlines()
 
+  # Simplify the expressions
+  lines = simplify_expressions(lines)
+
   # Insert the HLS pragmas
   lines = insert_xlnx_pragmas(lines)
 
@@ -203,8 +372,11 @@ def xilinx_run(kernel_call, kernel_def, kernel='kernel'):
 
   with open(kernel, 'w') as f:
     f.writelines(lines)
+    # Load kernel call file
     with open(kernel_call, 'r') as f2:
       lines = f2.readlines()
+      # Reorder module calls
+      lines = reorder_module_calls(lines)
       f.writelines(lines)
 
 def intel_run(kernel_call, kernel_def, kernel='kernel'):

@@ -2731,6 +2731,29 @@ error:
   return NULL;
 }
 
+int *read_array_part_L2_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+{
+  int n;
+  int *tile_size;
+  isl_set *size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < *tile_len; ++n) 
+    tile_size[n] = sa->scop->options->sa_tile_size;
+  
+  size = extract_sa_sizes(sa->sizes, "array_part_L2", sa->id);
+  if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
+    goto error;
+  set_sa_used_sizes(sa, "array_part_L2", sa->id, tile_size, *tile_len);
+
+  return tile_size;
+error:
+  free(tile_size);
+  return NULL;
+}
+
 /* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
  * defaulting to option->sa_tile_size in each dimension.
  * *tile_len contains the maximum number of tile sizes needed.

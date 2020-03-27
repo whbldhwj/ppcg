@@ -134,6 +134,8 @@ ISL_ARG_INT(struct ppcg_options, n_hbm_port, 0, "hbm-port-num", "num", 2,
   "Default HBM port number")
 ISL_ARG_BOOL(struct ppcg_options, double_buffer, 0, "double-buffer", 1,
   "Enable double-buffering for data transfer")
+ISL_ARG_BOOL(struct ppcg_options, two_level_buffer, 0, "two-level-buffer", 0,
+  "Enable two-level buffering in I/O modules")
 ISL_ARG_BOOL(struct ppcg_options, credit_control, 0, "credit-control", 0,
   "Enable credit control between different array partitions")
 ISL_ARG_INT(struct ppcg_options, max_sa_dim, 0,
