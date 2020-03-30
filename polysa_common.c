@@ -2806,3 +2806,401 @@ error:
   free(tile_size);
   return NULL;
 }
+
+/*****************************************************************
+ * PolySA latency and resource estimation
+ *****************************************************************/
+struct extract_loop_info_data {
+  cJSON *loop_struct;
+};
+
+/* Extract the loop info containing: iterator, lower bound,
+ * upper bound, and stride.
+ * Return the pointer to the loop child.
+ */
+static cJSON *extract_isl_ast_node_for(__isl_keep isl_ast_node *node, cJSON *loop, 
+  isl_bool degenerate) {
+  cJSON *loop_info = cJSON_CreateObject();
+  cJSON *loop_child = cJSON_CreateObject();
+  isl_printer *p_str = NULL;
+  isl_ctx *ctx = isl_ast_node_get_ctx(node);
+  char *str = NULL;
+  
+  /* Extract the loop info */
+  isl_ast_expr *init, *cond, *inc, *iterator, *arg;
+  init = isl_ast_node_for_get_init(node);
+  cond = isl_ast_node_for_get_cond(node);
+  inc = isl_ast_node_for_get_inc(node);
+  iterator = isl_ast_node_for_get_iterator(node);
+
+  /* iterator */
+  p_str = isl_printer_to_str(ctx);
+  p_str = isl_printer_set_output_format(p_str, ISL_FORMAT_C);
+  p_str = isl_printer_print_ast_expr(p_str, iterator);
+  str = isl_printer_get_str(p_str);
+  cJSON_AddStringToObject(loop_info, "iter", str);
+  isl_printer_free(p_str);
+  free(str);
+  isl_ast_expr_free(iterator);
+
+  /* lower bound */
+  p_str = isl_printer_to_str(ctx);
+  p_str = isl_printer_set_output_format(p_str, ISL_FORMAT_C);
+  p_str = isl_printer_print_ast_expr(p_str, init);
+  str = isl_printer_get_str(p_str); 
+  cJSON_AddStringToObject(loop_info, "lb", str);
+  isl_printer_free(p_str);
+  free(str);
+  isl_ast_expr_free(init);
+
+  if (!degenerate) {
+    /* upper bound */
+    p_str = isl_printer_to_str(ctx);
+    p_str = isl_printer_set_output_format(p_str, ISL_FORMAT_C);
+    arg = isl_ast_expr_op_get_arg(cond, 1);
+    p_str = isl_printer_print_ast_expr(p_str, arg);
+    str = isl_printer_get_str(p_str);
+    cJSON_AddStringToObject(loop_info, "ub", str);
+    isl_printer_free(p_str);
+    free(str);
+    isl_ast_expr_free(arg);
+  
+    /* stride */
+    p_str = isl_printer_to_str(ctx);
+    p_str = isl_printer_set_output_format(p_str, ISL_FORMAT_C);
+    p_str = isl_printer_print_ast_expr(p_str, inc);
+    str = isl_printer_get_str(p_str); 
+    cJSON_AddStringToObject(loop_info, "stride", str);
+    isl_printer_free(p_str);
+    free(str);
+  } else {
+    const cJSON *lb;
+
+    lb = cJSON_GetObjectItemCaseSensitive(loop_info, "lb");
+    cJSON_AddStringToObject(loop_info, "ub", lb->valuestring);
+    cJSON_AddStringToObject(loop_info, "stride", "1");
+  }
+  isl_ast_expr_free(cond);
+  isl_ast_expr_free(inc);
+
+  cJSON_AddItemToObject(loop, "loop_info", loop_info);
+  cJSON_AddItemToObject(loop, "child", loop_child);
+
+  return loop_child;
+}
+
+static cJSON *extract_isl_ast_node_block(__isl_keep isl_ast_node *node, cJSON *block)
+{
+  cJSON *block_child = cJSON_CreateArray();
+  cJSON_AddItemToObject(block, "child", block_child);
+
+  return block_child;
+}
+
+static cJSON *extract_isl_ast_node_mark(__isl_keep isl_ast_node *node, cJSON *mark)
+{
+  cJSON *mark_child = cJSON_CreateObject();
+  isl_id *id = isl_ast_node_mark_get_id(node);
+  char *name = isl_id_get_name(id);
+  isl_id_free(id);
+  cJSON_AddStringToObject(mark, "mark_name", name);
+  cJSON_AddItemToObject(mark, "child", mark_child);
+
+  return mark_child;
+}
+
+static cJSON *extract_isl_ast_node_user(__isl_keep isl_ast_node *node, cJSON *user)
+{
+  isl_ctx *ctx = isl_ast_node_get_ctx(node);
+  isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
+  isl_printer *p_str = isl_printer_to_str(ctx);
+  p_str = isl_printer_set_output_format(p_str, ISL_FORMAT_C);
+  p_str = isl_printer_print_ast_expr(p_str, expr);
+  char *user_expr = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
+
+  cJSON_AddStringToObject(user, "user_expr", user_expr);
+  free(user_expr);
+  isl_ast_expr_free(expr);
+
+  return user;
+}
+
+static cJSON *extract_loop_info_at_ast_node(__isl_keep isl_ast_node *node, 
+  cJSON *loop_struct)
+{
+  enum isl_ast_node_type type;
+  isl_ctx *ctx = isl_ast_node_get_ctx(node);
+  type = isl_ast_node_get_type(node);
+
+  switch(type) {
+    case isl_ast_node_for: 
+    {
+      isl_bool degenerate = isl_ast_node_for_is_degenerate(node);      
+      /* Extract the loop information and insert it into the loop struct */
+      cJSON *loop = cJSON_CreateObject();
+      cJSON *loop_child = extract_isl_ast_node_for(node, loop, degenerate);
+      if (cJSON_IsObject(loop_struct)) {
+        cJSON_AddItemToObject(loop_struct, "loop", loop);      
+      } else if (cJSON_IsArray(loop_struct)) {
+        cJSON *item = cJSON_CreateObject();
+        cJSON_AddItemToObject(item, "loop", loop);
+        cJSON_AddItemToArray(loop_struct, item); 
+      }
+      isl_ast_node *child_node;
+      /* Update the JSON pointer */
+      child_node = isl_ast_node_for_get_body(node);
+      extract_loop_info_at_ast_node(child_node, loop_child);
+      isl_ast_node_free(child_node);
+
+      break;
+    }
+    case isl_ast_node_block:
+    {
+      /* Extract the block information and insert it into the loop struct */
+      isl_ast_node_list *child_list = isl_ast_node_block_get_children(node);
+      int n_child = isl_ast_node_list_n_ast_node(child_list);
+      cJSON *block = cJSON_CreateObject();      
+      cJSON *block_child = extract_isl_ast_node_block(node, block);
+      if (cJSON_IsObject(loop_struct)) {
+        cJSON_AddItemToObject(loop_struct, "block", block);
+      } else if (cJSON_IsArray(loop_struct)) {
+        cJSON *item = cJSON_CreateObject();
+        cJSON_AddItemToObject(item, "block", block);
+        cJSON_AddItemToArray(loop_struct, item);
+      }
+
+      isl_ast_node *child_node;
+      for (int i = 0; i < n_child; i++) {
+        cJSON *child_struct;
+        child_node = isl_ast_node_list_get_ast_node(child_list, i);
+        extract_loop_info_at_ast_node(child_node, block_child);
+        isl_ast_node_free(child_node);
+      }
+      isl_ast_node_list_free(child_list);
+
+      break;
+    }
+    case isl_ast_node_user:
+    {
+      /* Extract the user information and insert it into the loop struct */
+      cJSON *user = cJSON_CreateObject();
+      user = extract_isl_ast_node_user(node, user);
+
+      if (cJSON_IsObject(loop_struct)) {
+        cJSON_AddItemToObject(loop_struct, "user", user);
+      } else if (cJSON_IsArray(loop_struct)) {
+        cJSON *item = cJSON_CreateObject();
+        cJSON_AddItemToObject(item, "user", user);
+        cJSON_AddItemToArray(loop_struct, item);
+      }
+      
+      break;
+    }
+    case isl_ast_node_if:
+    {
+      cJSON *if_struct = cJSON_CreateObject();
+      cJSON *then_struct = cJSON_CreateObject();
+      cJSON *else_struct = NULL;
+      if (cJSON_IsObject(loop_struct)) {
+        cJSON_AddItemToObject(loop_struct, "if", if_struct);
+      } else if (cJSON_IsArray(loop_struct)) {
+        cJSON *item = cJSON_CreateObject();
+        cJSON_AddItemToObject(item, "if", if_struct);
+        cJSON_AddItemToArray(loop_struct, item);
+      }
+      
+      isl_ast_node *child_node;
+      child_node = isl_ast_node_if_get_then_node(node);
+      cJSON_AddItemToObject(if_struct, "then", then_struct);
+      extract_loop_info_at_ast_node(child_node, then_struct);
+      isl_ast_node_free(child_node);
+
+      child_node = isl_ast_node_if_get_else_node(node);
+      if (child_node) {
+        else_struct = cJSON_CreateObject();
+        cJSON_AddItemToObject(if_struct, "else", else_struct);
+        extract_loop_info_at_ast_node(child_node, else_struct);
+        isl_ast_node_free(child_node);
+      }
+      
+      break;
+    }
+    case isl_ast_node_mark:      
+    {
+      /* Extract the mark id and insert it into the loop struct */
+      cJSON *mark = cJSON_CreateObject();
+      cJSON *mark_child = extract_isl_ast_node_mark(node, mark);
+      if (cJSON_IsObject(loop_struct)) {
+        cJSON_AddItemToObject(loop_struct, "mark", mark);
+      } else if (cJSON_IsArray(loop_struct)) {
+        cJSON *item = cJSON_CreateObject();
+        cJSON_AddItemToObject(item, "mark", mark);
+        cJSON_AddItemToArray(loop_struct, item);
+      }
+
+      isl_ast_node *child_node;
+      child_node = isl_ast_node_mark_get_node(node);
+      extract_loop_info_at_ast_node(child_node, mark_child);
+      isl_ast_node_free(child_node);
+
+      break;
+    }
+    default:
+      break;
+  }
+
+  return NULL;
+}
+
+/* Extract the loop structure and detailed information of the hardware module into 
+ * a JSON struct.
+ * If "print" is set, we will print out the JSON file. Otherwise, return it as a string.
+ */
+static char *extract_loop_info_from_module(
+  struct polysa_gen *gen, __isl_keep isl_ast_node *tree, 
+  char *module_name, int print)
+{
+  cJSON *loop_struct = cJSON_CreateObject();
+  char *json_str = NULL;
+
+//  // debug
+//  isl_printer *p = isl_printer_to_file(gen->ctx, stdout);
+//  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
+//  p = isl_printer_print_ast_node(p, tree);
+//  printf("\n");
+//  // debug
+
+  cJSON_AddStringToObject(loop_struct, "module_name", module_name);
+  extract_loop_info_at_ast_node(tree, loop_struct);
+
+  /* Print the JSON file */
+  json_str = cJSON_Print(loop_struct);
+
+  if (!print) {
+    cJSON_Delete(loop_struct);
+    return json_str;
+  } else {
+    char *file_name;
+    FILE *fp;    
+    isl_printer *p_str;
+    const cJSON *module_name = NULL;
+
+    module_name = cJSON_GetObjectItemCaseSensitive(loop_struct, "module_name");
+    p_str = isl_printer_to_str(gen->ctx);
+    p_str = isl_printer_print_str(p_str, "latency_est/");
+    p_str = isl_printer_print_str(p_str, module_name->valuestring);
+    p_str = isl_printer_print_str(p_str, "_loop_info.json");
+    file_name = isl_printer_get_str(p_str);
+    isl_printer_free(p_str);
+    cJSON_Delete(loop_struct);
+    
+    fp = fopen(file_name, "w");
+    free(file_name);
+    fprintf(fp, "%s", json_str);
+    fclose(fp);
+    free(json_str);
+
+    return NULL;
+  }
+
+}
+
+/* Extract the loop structure and detailed information of the hardware module into 
+ * a JSON struct.
+ */
+isl_stat sa_extract_loop_info(struct polysa_gen *gen, struct polysa_hw_module *module) 
+{
+  char *module_name = NULL;
+  char *json_str = NULL;
+  isl_ctx *ctx = gen->ctx;
+
+  if (module->is_filter && module->is_buffer) {
+    /* Parse the loop structure of the intra trans module */
+    module_name = concat(ctx, module->name, "intra_trans");
+    json_str = extract_loop_info_from_module(gen, module->intra_tree, module_name, 1);
+    free(module_name);
+
+    /* Parse the loop structure of the inter trans module */
+    module_name = concat(ctx, module->name, "inter_trans");
+    json_str = extract_loop_info_from_module(gen, module->inter_tree, module_name, 1);
+    free(module_name);
+
+    if (module->boundary) {
+      module_name = concat(ctx, module->name, "inter_trans_boundary");
+      json_str = extract_loop_info_from_module(gen, module->inter_tree, module_name, 1);
+      free(module_name);
+    }
+  } 
+    
+  /* Parse the loop structure of the default module */
+  json_str = extract_loop_info_from_module(gen, module->device_tree, module->name, 1);
+
+  /* Parse the loop structure of the boundary module */
+  if (module->boundary) {
+    module_name = concat(ctx, module->name, "boundary");
+    json_str = extract_loop_info_from_module(gen, module->boundary_tree, module_name, 1);
+    free(module_name);
+  }
+
+  /* Parse the loop structure of the dummy module */
+  if (module->n_pe_dummy_modules > 0) {
+    for (int i = 0; i < module->n_pe_dummy_modules; i++) {
+      struct polysa_pe_dummy_module *dummy_module = module->pe_dummy_modules[i];
+      struct polysa_array_ref_group *group = dummy_module->io_group;
+
+      /* Generate module name */
+      isl_printer *p_str = isl_printer_to_str(gen->ctx);
+      p_str = isl_printer_print_str(p_str, group->array->name);
+      if (group->group_type == POLYSA_IO_GROUP) {
+        if (group->local_array->n_io_group > 1) {
+          p_str = isl_printer_print_str(p_str, "_");
+          p_str = isl_printer_print_int(p_str, group->nr);
+        }          
+      } else if (group->group_type == POLYSA_DRAIN_GROUP) {
+        p_str = isl_printer_print_str(p_str, "_");
+        p_str = isl_printer_print_str(p_str, "drain");
+      }
+      p_str = isl_printer_print_str(p_str, "_PE_dummy");
+      module_name = isl_printer_get_str(p_str);
+      isl_printer_free(p_str);
+      json_str = extract_loop_info_from_module(gen, dummy_module->device_tree, module_name, 1);
+      free(module_name);
+    }
+  }
+
+  return isl_stat_ok;
+}
+
+/* Extract the array type information that will be used for latency estimation */
+isl_stat sa_extract_array_info(struct polysa_kernel *kernel)
+{
+  cJSON *array_info = cJSON_CreateObject();
+  char *json_str = NULL;
+  FILE *fp;
+
+  for (int i = 0; i < kernel->n_array; i++) {
+    cJSON *array = cJSON_CreateObject();
+    struct polysa_local_array_info *local_array = &kernel->array[i];
+    char *array_name = local_array->array->name; /* Name of the array */
+    char *array_type = local_array->array->type; /* Element type */
+
+    cJSON *n_lane = cJSON_CreateNumber(local_array->n_lane); /* Data pack factor of the array */
+    cJSON *array_size = cJSON_CreateNumber(local_array->array->size); /* Element size */
+
+    cJSON_AddItemToObject(array, "n_lane", n_lane);
+    cJSON_AddStringToObject(array, "ele_type", array_type);
+    cJSON_AddItemToObject(array, "ele_size", array_size);
+    cJSON_AddItemToObject(array_info, array_name, array);
+  }
+  
+  /* Print out the JSON */
+  json_str = cJSON_Print(array_info);
+  fp = fopen("latency_est/array_info.json", "w");
+  fprintf(fp, "%s", json_str);
+  fclose(fp);
+  free(json_str);
+  cJSON_Delete(array_info);
+
+  return isl_stat_ok;
+}

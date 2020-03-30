@@ -5753,6 +5753,11 @@ static __isl_give isl_schedule_node *add_io_copies_stmt_tile(
     graft = isl_schedule_node_child(graft, 0);
   }
 
+  /* Insert a coalesce mark */
+  id = isl_id_alloc(ctx, "access_coalesce", NULL);
+  graft = isl_schedule_node_insert_mark(graft, id);
+  graft = isl_schedule_node_child(graft, 0);
+
   if (n_lane > 1) {
     /* Peform data packing */
     int tile_size[1];
@@ -9095,6 +9100,13 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
       }
     }
     sa_top_module_generate_code(gen);
+
+    /* Extract loop structure for latency estimation */
+    for (int i = 0; i < gen->n_hw_modules; i++) {
+      sa_extract_loop_info(gen, gen->hw_modules[i]);
+    }
+    /* Dump out the array information */
+    sa_extract_array_info(gen->kernel);
 
     p = ppcg_set_macro_names(p);
     p = ppcg_print_exposed_declarations(p, prog->scop);

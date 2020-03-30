@@ -1,0 +1,56 @@
+{
+	"module_name":	"C_drain_IO_L1_out_intra_trans",
+	"mark":	{
+		"mark_name":	"io_L1",
+		"child":	{
+			"mark":	{
+				"mark_name":	"pe",
+				"child":	{
+					"mark":	{
+						"mark_name":	"latency",
+						"child":	{
+							"loop":	{
+								"loop_info":	{
+									"iter":	"c9",
+									"lb":	"0",
+									"ub":	"1",
+									"stride":	"1"
+								},
+								"child":	{
+									"mark":	{
+										"mark_name":	"latency",
+										"child":	{
+											"loop":	{
+												"loop_info":	{
+													"iter":	"c10",
+													"lb":	"0",
+													"ub":	"1",
+													"stride":	"1"
+												},
+												"child":	{
+													"mark":	{
+														"mark_name":	"simd",
+														"child":	{
+															"mark":	{
+																"mark_name":	"hls_pipeline",
+																"child":	{
+																	"user":	{
+																		"user_expr":	"in_trans.fifo_C_drain_local.0.1.-1.-1.2.1(0, 0, 0, c3, c4, 3, p0, 1, 1, c9, c10, 1, 4 * c3 + c10 + 2, 2 * p0 + 4 * c4 + c9)"
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

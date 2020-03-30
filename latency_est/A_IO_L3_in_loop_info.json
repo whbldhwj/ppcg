@@ -1,0 +1,114 @@
+{
+	"module_name":	"A_IO_L3_in",
+	"mark":	{
+		"mark_name":	"array_L2",
+		"child":	{
+			"loop":	{
+				"loop_info":	{
+					"iter":	"c3",
+					"lb":	"0",
+					"ub":	"3",
+					"stride":	"1"
+				},
+				"child":	{
+					"block":	{
+						"child":	[{
+								"loop":	{
+									"loop_info":	{
+										"iter":	"c4",
+										"lb":	"0",
+										"ub":	"3",
+										"stride":	"1"
+									},
+									"child":	{
+										"mark":	{
+											"mark_name":	"access_coalesce",
+											"child":	{
+												"mark":	{
+													"mark_name":	"hls_pipeline",
+													"child":	{
+														"user":	{
+															"user_expr":	"in_trans_dram.fifo_A_local.0.1.5.-1.16.16(0, 0, 0, c3, 4 * c3 + c4, 0)"
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}, {
+								"loop":	{
+									"loop_info":	{
+										"iter":	"c4",
+										"lb":	"0",
+										"ub":	"3",
+										"stride":	"1"
+									},
+									"child":	{
+										"loop":	{
+											"loop_info":	{
+												"iter":	"c5",
+												"lb":	"0",
+												"ub":	"3",
+												"stride":	"1"
+											},
+											"child":	{
+												"mark":	{
+													"mark_name":	"array",
+													"child":	{
+														"mark":	{
+															"mark_name":	"io_L3",
+															"child":	{
+																"loop":	{
+																	"loop_info":	{
+																		"iter":	"c6",
+																		"lb":	"0",
+																		"ub":	"1",
+																		"stride":	"1"
+																	},
+																	"child":	{
+																		"mark":	{
+																			"mark_name":	"io_L2",
+																			"child":	{
+																				"loop":	{
+																					"loop_info":	{
+																						"iter":	"c7",
+																						"lb":	"0",
+																						"ub":	"1",
+																						"stride":	"1"
+																					},
+																					"child":	{
+																						"mark":	{
+																							"mark_name":	"access_coalesce",
+																							"child":	{
+																								"mark":	{
+																									"mark_name":	"hls_pipeline",
+																									"child":	{
+																										"user":	{
+																											"user_expr":	"out_trans.fifo_A_local.0.1.-1.-1.16.4(0, 0, 0, c3, c4, c5, c6, 4 * c3 + 2 * c6 + c7, 4 * c5)"
+																										}
+																									}
+																								}
+																							}
+																						}
+																					}
+																				}
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}]
+					}
+				}
+			}
+		}
+	}
+}

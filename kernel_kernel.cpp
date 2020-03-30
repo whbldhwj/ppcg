@@ -7,6 +7,7 @@ void A_IO_L3_in(A_t16 *A, hls::stream<A_t4> &fifo_A_local_out)
     // array_L2
     for (int c3 = 0; c3 <= 3; c3 += 1) {
       for (int c4 = 0; c4 <= 3; c4 += 1) {
+        // access_coalesce
         // hls_pipeline
       {
         A_t16 fifo_data;
@@ -21,6 +22,7 @@ void A_IO_L3_in(A_t16 *A, hls::stream<A_t4> &fifo_A_local_out)
           for (int c6 = 0; c6 <= 1; c6 += 1) {
             // io_L2
             for (int c7 = 0; c7 <= 1; c7 += 1) {
+              // access_coalesce
               // hls_pipeline
               {
                 A_t4 fifo_data;
@@ -94,6 +96,7 @@ void A_IO_L2_in_inter_trans(int idx, int c3, int c4, int c5, A_t4 local_A[2][1],
     for (int c6 = p0; c6 <= 1; c6 += 1) {
       // io_L2
       for (int c7 = 0; c7 <= 1; c7 += 1) {
+        // access_coalesce
         // hls_pipeline
         {
           A_t4 fifo_data;
@@ -120,6 +123,7 @@ void A_IO_L2_in_inter_trans_boundary(int idx, int c3, int c4, int c5, A_t4 local
     for (int c6 = p0; c6 <= 1; c6 += 1) {
       // io_L2
       for (int c7 = 0; c7 <= 1; c7 += 1) {
+        // access_coalesce
         // hls_pipeline
         {
           A_t4 fifo_data;
@@ -228,6 +232,7 @@ void B_IO_L3_in(B_t16 *B, hls::stream<B_t4> &fifo_B_local_out)
     for (int c3 = 0; c3 <= 3; c3 += 1)
       for (int c4 = 0; c4 <= 3; c4 += 1) {
         for (int c5 = 0; c5 <= 3; c5 += 1) {
+          // access_coalesce
           // hls_pipeline
         {
           B_t16 fifo_data;
@@ -241,6 +246,7 @@ void B_IO_L3_in(B_t16 *B, hls::stream<B_t4> &fifo_B_local_out)
           for (int c6 = 0; c6 <= 1; c6 += 1) {
             // io_L2
             for (int c7 = 0; c7 <= 1; c7 += 1) {
+              // access_coalesce
               // hls_pipeline
               {
                 B_t4 fifo_data;
@@ -314,6 +320,7 @@ void B_IO_L2_in_inter_trans(int idx, int c3, int c4, int c5, B_t4 local_B[2][1],
     for (int c6 = p0; c6 <= 1; c6 += 1) {
       // io_L2
       for (int c7 = 0; c7 <= 1; c7 += 1) {
+        // access_coalesce
         // hls_pipeline
         {
           B_t4 fifo_data;
@@ -340,6 +347,7 @@ void B_IO_L2_in_inter_trans_boundary(int idx, int c3, int c4, int c5, B_t4 local
     for (int c6 = p0; c6 <= 1; c6 += 1) {
       // io_L2
       for (int c7 = 0; c7 <= 1; c7 += 1) {
+        // access_coalesce
         // hls_pipeline
         {
           B_t4 fifo_data;
@@ -632,6 +640,7 @@ void C_drain_IO_L1_out_inter_trans(int idx, int idy, int c3_prev, int c4_prev, C
     for (int c7 = p1; c7 <= 1; c7 += 1) {
       // io_L1
       for (int c8 = 0; c8 <= 1; c8 += 1) {
+        // access_coalesce
         // hls_dependence.local_C
         // hls_pipeline
         {
@@ -659,6 +668,7 @@ void C_drain_IO_L1_out_inter_trans_boundary(int idx, int idy, int c3_prev, int c
     for (int c7 = p1; c7 <= 1; c7 += 1) {
       // io_L1
       for (int c8 = 0; c8 <= 1; c8 += 1) {
+        // access_coalesce
         // hls_dependence.local_C
         // hls_pipeline
         {
@@ -771,6 +781,7 @@ void C_drain_IO_L2_out(int idx, hls::stream<C_t2> &fifo_C_drain_in, hls::stream<
             // io_L1
             // pe
             for (int c8 = 0; c8 <= 1; c8 += 1) {
+              // access_coalesce
               // hls_pipeline
               {
                 C_t2 fifo_data;
@@ -804,6 +815,7 @@ void C_drain_IO_L2_out_boundary(int idx, hls::stream<C_t2> &fifo_C_drain_out, hl
             // io_L1
             // pe
             for (int c8 = 0; c8 <= 1; c8 += 1) {
+              // access_coalesce
               // hls_pipeline
               {
                 C_t2 fifo_data;
@@ -832,6 +844,7 @@ void C_drain_IO_L3_out(C_t4 *C, hls::stream<C_t2> &fifo_C_drain_local_in)
           for (int c7 = 0; c7 <= 1; c7 += 1) {
             // io_L1
             for (int c8 = 0; c8 <= 1; c8 += 1) {
+              // access_coalesce
               // hls_dependence.local_C
               // hls_pipeline
               {
@@ -855,6 +868,7 @@ void C_drain_IO_L3_out(C_t4 *C, hls::stream<C_t2> &fifo_C_drain_local_in)
           }
         }
         for (int c6 = 0; c6 <= 3; c6 += 1) {
+          // access_coalesce
           // hls_dependence.local_C
           // hls_pipeline
         {

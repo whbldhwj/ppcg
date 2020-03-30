@@ -15,6 +15,8 @@
 #include <isl/schedule.h>
 #include <isl/schedule_node.h>
 
+#include <cJSON/cJSON.h>
+
 #include "ppcg.h"
 #include "schedule.h"
 #include "gpu.h"
@@ -922,5 +924,9 @@ __isl_give isl_set *extract_sa_sizes(__isl_keep isl_union_map *sizes,
 int *read_array_part_tile_sizes(struct polysa_kernel *sa, int *tile_len);
 int *read_latency_tile_sizes(struct polysa_kernel *sa, int *tile_len);
 int *read_simd_tile_sizes(struct polysa_kernel *sa, int *tile_len);
+
+/* PolySA latency and resource estimation */
+isl_stat sa_extract_loop_info(struct polysa_gen *gen, struct polysa_hw_module *module); 
+isl_stat sa_extract_array_info(struct polysa_kernel *kernel);
 
 #endif

@@ -1,0 +1,41 @@
+{
+	"module_name":	"A_IO_L2_in_inter_trans",
+	"loop":	{
+		"loop_info":	{
+			"iter":	"c6",
+			"lb":	"p0",
+			"ub":	"1",
+			"stride":	"1"
+		},
+		"child":	{
+			"mark":	{
+				"mark_name":	"io_L2",
+				"child":	{
+					"loop":	{
+						"loop_info":	{
+							"iter":	"c7",
+							"lb":	"0",
+							"ub":	"1",
+							"stride":	"1"
+						},
+						"child":	{
+							"mark":	{
+								"mark_name":	"access_coalesce",
+								"child":	{
+									"mark":	{
+										"mark_name":	"hls_pipeline",
+										"child":	{
+											"user":	{
+												"user_expr":	"in_trans.fifo_A.1.1.6.0.4.4(0, 0, 0, c3, c4, c5, c6, 4 * c3 + 2 * c6 + c7, 4 * c5)"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
