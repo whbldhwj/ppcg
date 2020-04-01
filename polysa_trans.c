@@ -8015,16 +8015,7 @@ static __isl_give isl_schedule *pe_dummy_gen_module_call(struct polysa_gen *gen,
   p_str = isl_printer_to_str(ctx);
   p_str = isl_printer_print_str(p_str, "module_call.");
 //  p_str = isl_printer_print_str(p_str, module->name);
-  p_str = isl_printer_print_str(p_str, group->array->name);
-  if (group->group_type == POLYSA_IO_GROUP) {
-    if (group->local_array->n_io_group > 1) {
-      p_str = isl_printer_print_str(p_str, "_");
-      p_str = isl_printer_print_int(p_str, group->nr);
-    }
-  } else if (group->group_type == POLYSA_DRAIN_GROUP) {
-    p_str = isl_printer_print_str(p_str, "_");
-    p_str = isl_printer_print_str(p_str, "drain");
-  }
+  p_str = polysa_array_ref_group_print_prefix(group, p_str);
   p_str = isl_printer_print_str(p_str, "_PE_dummy");
   stmt_name = isl_printer_get_str(p_str);
   isl_printer_free(p_str);
@@ -8150,6 +8141,9 @@ static isl_stat top_module_pe_gen_module_call(struct polysa_gen *gen,
   top->module_call_scheds = (isl_schedule **)realloc(top->module_call_scheds,
       top->n_module_calls * sizeof(isl_schedule *));
   top->module_call_scheds[top->n_module_calls - 1] = schedule;
+//  top->module_call_names = (char **)realloc(top->module_call_names,
+//      top->n_module_calls * sizeof(char *));
+//  top->module_call_names[top->n_module_calls - 1] = strdup(module->name);
 
   if (module->n_pe_dummy_modules > 0) {
     /* Generate dummy module calls */
@@ -8164,6 +8158,15 @@ static isl_stat top_module_pe_gen_module_call(struct polysa_gen *gen,
       top->module_call_scheds = (isl_schedule **)realloc(top->module_call_scheds,
           top->n_module_calls * sizeof(isl_schedule *));
       top->module_call_scheds[top->n_module_calls - 1] = sched;
+      
+//      isl_printer *p_str = isl_printer_to_str(ctx);
+//      p_str = polysa_array_ref_group_print_prefix(pe_dummy_module->io_group, p_str);
+//      p_str = isl_printer_print_str(p_str, "_PE_dummy");
+//      char *module_name = isl_printer_get_str(p_str);
+//      isl_printer_free(p_str);
+//      top->module_call_names = (char **)realloc(top->module_call_names,
+//        top->n_module_calls * sizeof(char *));
+//      top->module_call_names[top->n_module_calls - 1] = module_name;
     }
   }
 
@@ -8338,6 +8341,22 @@ static isl_stat top_module_pe_gen_fifo_decl(struct polysa_gen *gen,
     top->fifo_decl_scheds = (isl_schedule **)realloc(top->fifo_decl_scheds,
         top->n_fifo_decls * sizeof(isl_schedule *));
     top->fifo_decl_scheds[top->n_fifo_decls - 1] = schedule;
+    top->fifo_decl_names = (char **)realloc(top->fifo_decl_names,
+        top->n_fifo_decls * sizeof(char *));
+    /* Generate fifo_decl name in the format of 
+     * [fifo_name].[fifo_width] 
+     */
+    p_str = isl_printer_to_str(ctx);
+    p_str = polysa_array_ref_group_print_fifo_name(group, p_str);
+    p_str = isl_printer_print_str(p_str, "_");
+    p_str = isl_printer_print_str(p_str, module->name);
+    p_str = isl_printer_print_str(p_str, ".");
+    int n_lane = get_io_group_n_lane(module, group);
+    int data_size = group->array->size;
+    int width = data_size * n_lane; // in bytes
+    p_str = isl_printer_print_int(p_str, width);
+    top->fifo_decl_names[top->n_fifo_decls - 1] = isl_printer_get_str(p_str);
+    isl_printer_free(p_str);
   }
 
   return isl_stat_ok;
@@ -8751,6 +8770,22 @@ static isl_stat top_module_io_gen_fifo_decl(struct polysa_gen *gen,
   top->fifo_decl_scheds = (isl_schedule **)realloc(top->fifo_decl_scheds,
       top->n_fifo_decls * sizeof(isl_schedule *));
   top->fifo_decl_scheds[top->n_fifo_decls - 1] = schedule;
+  top->fifo_decl_names = (char **)realloc(top->fifo_decl_names,
+      top->n_fifo_decls * sizeof(char *));
+  /* Generate fifo_decl name in the format of
+   * [fifo_name].[fifo_width]
+   */
+  p_str = isl_printer_to_str(ctx);
+  p_str = polysa_array_ref_group_print_fifo_name(group, p_str);
+  p_str = isl_printer_print_str(p_str, "_");
+  p_str = isl_printer_print_str(p_str, module->name);
+  p_str = isl_printer_print_str(p_str, ".");
+  int n_lane = get_io_group_n_lane(module, group);
+  int data_size = group->array->size;
+  int width = data_size * n_lane; // in bytes
+  p_str = isl_printer_print_int(p_str, width);
+  top->fifo_decl_names[top->n_fifo_decls - 1] = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
 
   return isl_stat_ok; 
 
@@ -9107,6 +9142,8 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
     }
     /* Dump out the array information */
     sa_extract_array_info(gen->kernel);
+    /* Extract design information for resource estimation */
+    sa_extract_design_info(gen);
 
     p = ppcg_set_macro_names(p);
     p = ppcg_print_exposed_declarations(p, prog->scop);

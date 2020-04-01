@@ -598,7 +598,9 @@ struct polysa_hw_top_module {
   isl_schedule **module_call_scheds;
   isl_ast_node **fifo_decl_trees;
   isl_ast_node **module_call_trees;
-  
+//  char **module_call_names;
+  char **fifo_decl_names;
+
   /* Wrapped AST */
   int n_fifo_decl_wrapped;
   int n_module_call_wrapped;
@@ -928,5 +930,6 @@ int *read_simd_tile_sizes(struct polysa_kernel *sa, int *tile_len);
 /* PolySA latency and resource estimation */
 isl_stat sa_extract_loop_info(struct polysa_gen *gen, struct polysa_hw_module *module); 
 isl_stat sa_extract_array_info(struct polysa_kernel *kernel);
+isl_stat sa_extract_design_info(struct polysa_gen *gen) ;
 
 #endif

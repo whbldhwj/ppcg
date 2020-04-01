@@ -1495,6 +1495,13 @@ static __isl_give isl_printer *print_kernel_var_xilinx(__isl_take isl_printer *p
     p = isl_printer_print_str(p, " cyclic");
     p = isl_printer_end_line(p);
   }
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "#pragma HLS RESOURCE variable=");
+  p = isl_printer_print_str(p, var->name);
+  if (double_buffer)
+    p = isl_printer_print_str(p, "_ping");
+  p = isl_printer_print_str(p, " core=RAM_2P_BRAM");
+  p = isl_printer_end_line(p);
 
   /* Print pong buffer */
   if (double_buffer) {
@@ -1521,6 +1528,13 @@ static __isl_give isl_printer *print_kernel_var_xilinx(__isl_take isl_printer *p
   	}
   	p = isl_printer_print_str(p, ";");
   	p = isl_printer_end_line(p);
+    
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "#pragma HLS RESOURCE variable=");
+    p = isl_printer_print_str(p, var->name);
+    p = isl_printer_print_str(p, "_pong");
+    p = isl_printer_print_str(p, " core=RAM_2P_BRAM");
+    p = isl_printer_end_line(p);
   }
 
 	return p;
@@ -2806,6 +2820,14 @@ __isl_give isl_printer *print_fifo_decl(__isl_take isl_printer *p,
   int n_lane;
 
   p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "// Count channel number");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "fifo_cnt++;");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "// Print channel declarations of module: ");
   p = isl_printer_print_str(p, module->name);
   p = isl_printer_end_line(p);
@@ -2818,13 +2840,14 @@ __isl_give isl_printer *print_fifo_decl(__isl_take isl_printer *p,
   p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"");
   p = print_fifo_comment(p, module);
   p = isl_printer_print_str(p, " ");
-  if (module->type == PE_MODULE) {
-    n_lane = (group->local_array->array_type == POLYSA_EXT_ARRAY)? group->n_lane : 
-      ((group->group_type == POLYSA_DRAIN_GROUP)? group->n_lane: 
-      ((group->io_type == POLYSA_EXT_IO)? group->n_lane : group->io_buffers[0]->n_lane));
-  } else {
-    n_lane = module->data_pack_inter;
-  }
+  n_lane = get_io_group_n_lane(module, group);
+//  if (module->type == PE_MODULE) {
+//    n_lane = (group->local_array->array_type == POLYSA_EXT_ARRAY)? group->n_lane : 
+//      ((group->group_type == POLYSA_DRAIN_GROUP)? group->n_lane: 
+//      ((group->io_type == POLYSA_EXT_IO)? group->n_lane : group->io_buffers[0]->n_lane));
+//  } else {
+//    n_lane = module->data_pack_inter;
+//  }
   if (hls->target == XILINX_HW)
     p = print_fifo_type_xilinx(p, group, n_lane);
   else if (hls->target == INTEL_HW)
@@ -3200,10 +3223,39 @@ __isl_give isl_printer *polysa_kernel_print_module_call(__isl_take isl_printer *
   int lower = stmt->u.m.lower;
   int complete = (upper == 0 && lower == 0);
   int dummy = stmt->u.m.dummy;
+  int boundary = stmt->u.m.boundary;
+  char *module_name = stmt->u.m.module_name;
+  struct polysa_hw_module *module = stmt->u.m.module;
   p = ppcg_start_block(p);
 
   /* Build the module name */  
   if (complete) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "// Count module number");
+    p = isl_printer_end_line(p);
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, module_name);
+    if (boundary) 
+      p = isl_printer_print_str(p, "_boundary");
+    p = isl_printer_print_str(p, "_cnt++;");
+    p = isl_printer_end_line(p);
+    if (module->is_filter && module->is_buffer) {
+      /* Print counter for inter_trans and intra_trans module */
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, module_name);
+      p = isl_printer_print_str(p, "_intra_trans_cnt++;");
+      p = isl_printer_end_line(p);
+
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, module_name);
+      if (boundary)        
+        p = isl_printer_print_str(p, "_inter_trans_boundary_cnt++;");
+      else
+        p = isl_printer_print_str(p, "_inter_trans_cnt++;");
+      p = isl_printer_end_line(p);
+    }
+
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
     p = isl_printer_end_line(p);
@@ -3236,6 +3288,32 @@ __isl_give isl_printer *polysa_kernel_print_module_call(__isl_take isl_printer *
     p = isl_printer_end_line(p);
   } else {
     if (upper) {
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "// Count module number");
+      p = isl_printer_end_line(p);
+  
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, module_name);
+      if (boundary) 
+        p = isl_printer_print_str(p, "_boundary");
+      p = isl_printer_print_str(p, "_cnt++;");
+      p = isl_printer_end_line(p);
+      if (module->is_filter && module->is_buffer) {
+        /* Print counter for inter_trans and intra_trans module */
+        p = isl_printer_start_line(p);
+        p = isl_printer_print_str(p, module_name);
+        p = isl_printer_print_str(p, "_intra_trans_cnt++;");
+        p = isl_printer_end_line(p);
+
+        p = isl_printer_start_line(p);
+        p = isl_printer_print_str(p, module_name);
+        if (boundary)
+          p = isl_printer_print_str(p, "_inter_trans_boundary_cnt++;");
+        else
+          p = isl_printer_print_str(p, "_inter_trans_cnt++;");
+        p = isl_printer_end_line(p);
+      }
+
       p = isl_printer_start_line(p);
       p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
       p = isl_printer_end_line(p);
@@ -4747,6 +4825,56 @@ static __isl_give isl_printer *print_top_module_headers_xilinx(__isl_take isl_pr
   return p;
 }
 
+static char *extract_fifo_name_from_fifo_decl_name(isl_ctx *ctx, char *fifo_decl_name) {
+  int loc = 0;
+  char ch;
+  isl_printer *p_str = isl_printer_to_str(ctx);
+  char *name = NULL;
+
+  while ((ch = fifo_decl_name[loc]) != '\0') {
+    if (ch == '.')
+      break;
+    char buf[2];
+    buf[0] = ch;
+    buf[1] = '\0';
+    p_str = isl_printer_print_str(p_str, buf);
+    loc++;
+  }
+
+  name = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
+
+  return name;
+}
+
+static char *extract_fifo_width_from_fifo_decl_name(isl_ctx *ctx, char *fifo_decl_name) {
+  int loc = 0;
+  char ch;
+  isl_printer *p_str = isl_printer_to_str(ctx);
+  char *name = NULL;
+
+  while ((ch = fifo_decl_name[loc]) != '\0') {
+    if (ch == '.')
+      break;
+    loc++;
+  }
+
+  loc++;
+
+  while ((ch = fifo_decl_name[loc]) != '\0') {
+    char buf[2];
+    buf[0] = ch;
+    buf[1] = '\0';
+    p_str = isl_printer_print_str(p_str, buf);
+    loc++;
+  }
+
+  name = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
+
+  return name;
+}
+
 static void print_top_gen_host_code(
   struct polysa_prog *prog, __isl_keep isl_ast_node *node,
   struct polysa_hw_top_module *top, struct hls_info *hls)
@@ -4765,10 +4893,18 @@ static void print_top_gen_host_code(
   p = isl_printer_indent(p, 4);
 
   p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "FILE *fd = fopen(\"design_info.dat\", \"w\");");
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "int fifo_cnt;");
+  p = isl_printer_end_line(p);
+
+  p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "isl_ctx *ctx = isl_ctx_alloc();");
   p = isl_printer_end_line(p);
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "isl_printer *p = isl_printer_to_file(ctx, f);");
+  p = isl_printer_end_line(p);
   p = isl_printer_end_line(p);
 
   if (hls->target == XILINX_HW)
@@ -4791,14 +4927,34 @@ static void print_top_gen_host_code(
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
   p = isl_printer_end_line(p);
+  p = isl_printer_end_line(p);
 
   for (int i = 0; i < top->n_fifo_decls; i++) {
+    /* Generate fifo decl counter */
+    char *fifo_decl_name = top->fifo_decl_names[i];
+    char *fifo_name = extract_fifo_name_from_fifo_decl_name(ctx, fifo_decl_name);
+    char *fifo_w = extract_fifo_width_from_fifo_decl_name(ctx, fifo_decl_name);
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "fifo_cnt = 0;");
+    p = isl_printer_end_line(p);
+
+    /* Print AST */
     print_options = isl_ast_print_options_alloc(ctx);
     print_options = isl_ast_print_options_set_print_user(print_options,
                       &print_top_module_fifo_stmt, &hw_data); 
   
     p = isl_ast_node_print(top->fifo_decl_wrapped_trees[i], 
           p, print_options); 
+
+    /* fifo:fifo_name:fifo_cnt:fifo_width */
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "fprintf(fd, \"fifo:");
+    p = isl_printer_print_str(p, fifo_name);
+    p = isl_printer_print_str(p, ":\%d:");
+    p = isl_printer_print_str(p, fifo_w);
+    p = isl_printer_print_str(p, "\\n\", fifo_cnt);");
+    p = isl_printer_end_line(p);
+
     p = isl_printer_end_line(p);
   }
 
@@ -4818,17 +4974,101 @@ static void print_top_gen_host_code(
   p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
   p = isl_printer_end_line(p);
 
+  int n_module_names = 0;
+  char **module_names = NULL;
+  for (int i = 0; i < top->n_hw_modules; i++) {
+    /* Generate module call counter */
+    struct polysa_hw_module *module = top->hw_modules[i];
+    char *module_name;
+
+    if (module->is_filter && module->is_buffer) {
+      module_name = concat(ctx, module->name, "intra_trans");
+      
+      n_module_names++;
+      module_names = (char **)realloc(module_names, n_module_names * sizeof(char *));
+      module_names[n_module_names - 1] = module_name;
+
+      module_name = concat(ctx, module->name, "inter_trans");
+      
+      n_module_names++;
+      module_names = (char **)realloc(module_names, n_module_names * sizeof(char *));
+      module_names[n_module_names - 1] = module_name;
+
+      if (module->boundary) {
+        module_name = concat(ctx, module->name, "inter_trans_boundary");
+      
+        n_module_names++;
+        module_names = (char **)realloc(module_names, n_module_names * sizeof(char *));
+        module_names[n_module_names - 1] = module_name;       
+      }
+    }
+        
+    module_name = strdup(module->name);
+    
+    n_module_names++;
+    module_names = (char **)realloc(module_names, n_module_names * sizeof(char *));
+    module_names[n_module_names - 1] = module_name;       
+ 
+    if (module->boundary) {
+      module_name = concat(ctx, module->name, "boundary");
+      
+      n_module_names++;
+      module_names = (char **)realloc(module_names, n_module_names * sizeof(char *));
+      module_names[n_module_names - 1] = module_name;       
+    }
+
+    if (module->n_pe_dummy_modules > 0) {
+      for (int j = 0; j < module->n_pe_dummy_modules; j++) {
+        struct polysa_pe_dummy_module *dummy_module = module->pe_dummy_modules[j];
+        struct polysa_array_ref_group *group = dummy_module->io_group;
+        isl_printer *p_str = isl_printer_to_str(ctx);
+        p_str = polysa_array_ref_group_print_prefix(group, p_str);
+        p_str = isl_printer_print_str(p_str, "_PE_dummy");
+        module_name = isl_printer_get_str(p_str);
+        isl_printer_free(p_str);
+        
+        n_module_names++;
+        module_names = (char **)realloc(module_names, n_module_names * sizeof(char *));
+        module_names[n_module_names - 1] = module_name;       
+      }
+    }
+  }
+  for (int i = 0; i < n_module_names; i++) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "int ");
+    p = isl_printer_print_str(p, module_names[i]);
+    p = isl_printer_print_str(p, "_cnt = 0;");
+    p = isl_printer_end_line(p);
+  }
+
   /* Print module calls */
   for (int i = 0; i < top->n_module_calls; i++) {
+    /* Print AST */
     print_options = isl_ast_print_options_alloc(ctx);
     print_options = isl_ast_print_options_set_print_user(print_options,
                       &print_top_module_call_stmt, &hw_data); 
   
     p = isl_ast_node_print(top->module_call_wrapped_trees[i], 
-          p, print_options); 
-   
-    p = isl_printer_end_line(p);    
+          p, print_options);    
   }
+
+  // TODO: fix inter/intra trans
+  /* module:module_name:module_cnt */
+  for (int i = 0; i < n_module_names; i++) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "fprintf(fd, \"module:");
+    p = isl_printer_print_str(p, module_names[i]);
+    p = isl_printer_print_str(p, ":\%d\\n\", ");
+    p = isl_printer_print_str(p, module_names[i]);
+    p = isl_printer_print_str(p, "_cnt);");
+    p = isl_printer_end_line(p);
+  }
+  p = isl_printer_end_line(p);   
+
+  for (int i = 0; i < n_module_names; i++) {
+    free(module_names[i]);
+  }
+  free(module_names);
 
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "p = isl_printer_indent(p, -4);");
@@ -4842,6 +5082,11 @@ static void print_top_gen_host_code(
     p = print_str_new_line(p, "p = isl_printer_print_str(p, \"}\");");
     p = print_str_new_line(p, "p = isl_printer_end_line(p);");
   }
+
+  p = isl_printer_end_line(p);
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "fclose(fd);");
+  p = isl_printer_end_line(p);
 
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "isl_printer_free(p);");

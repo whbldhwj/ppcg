@@ -3,6 +3,7 @@
 void A_IO_L3_in(A_t16 *A, hls::stream<A_t4> &fifo_A_local_out)
 {
     A_t16 local_A[4][1];
+    #pragma HLS RESOURCE variable=local_A core=RAM_2P_BRAM
 
     // array_L2
     for (int c3 = 0; c3 <= 3; c3 += 1) {
@@ -140,7 +141,9 @@ void A_IO_L2_in(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t4> &fifo_A
 {
     int p0 = idx; // module id
     A_t4 local_A_ping[2][1];
+    #pragma HLS RESOURCE variable=local_A_ping core=RAM_2P_BRAM
     A_t4 local_A_pong[2][1];
+    #pragma HLS RESOURCE variable=local_A_pong core=RAM_2P_BRAM
     bool arb = 0;
     bool inter_trans_en = 1;
     bool intra_trans_en = 0;
@@ -184,7 +187,9 @@ void A_IO_L2_in_boundary(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t2
 {
     int p0 = idx; // module id
     A_t4 local_A_ping[2][1];
+    #pragma HLS RESOURCE variable=local_A_ping core=RAM_2P_BRAM
     A_t4 local_A_pong[2][1];
+    #pragma HLS RESOURCE variable=local_A_pong core=RAM_2P_BRAM
     bool arb = 0;
     bool inter_trans_en = 1;
     bool intra_trans_en = 0;
@@ -227,6 +232,7 @@ void A_IO_L2_in_boundary(int idx, hls::stream<A_t4> &fifo_A_in, hls::stream<A_t2
 void B_IO_L3_in(B_t16 *B, hls::stream<B_t4> &fifo_B_local_out)
 {
     B_t16 local_B[4][1];
+    #pragma HLS RESOURCE variable=local_B core=RAM_2P_BRAM
 
     // array_L2
     for (int c3 = 0; c3 <= 3; c3 += 1)
@@ -364,7 +370,9 @@ void B_IO_L2_in(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t4> &fifo_B
 {
     int p0 = idx; // module id
     B_t4 local_B_ping[2][1];
+    #pragma HLS RESOURCE variable=local_B_ping core=RAM_2P_BRAM
     B_t4 local_B_pong[2][1];
+    #pragma HLS RESOURCE variable=local_B_pong core=RAM_2P_BRAM
     bool arb = 0;
     bool inter_trans_en = 1;
     bool intra_trans_en = 0;
@@ -408,7 +416,9 @@ void B_IO_L2_in_boundary(int idx, hls::stream<B_t4> &fifo_B_in, hls::stream<B_t2
 {
     int p0 = idx; // module id
     B_t4 local_B_ping[2][1];
+    #pragma HLS RESOURCE variable=local_B_ping core=RAM_2P_BRAM
     B_t4 local_B_pong[2][1];
+    #pragma HLS RESOURCE variable=local_B_pong core=RAM_2P_BRAM
     bool arb = 0;
     bool inter_trans_en = 1;
     bool intra_trans_en = 0;
@@ -453,9 +463,12 @@ void PE(int idx, int idy, hls::stream<A_t2> &fifo_A_in, hls::stream<A_t2> &fifo_
     int p0 = idx, p1 = idy; // module id
     int local_A[1][2];
     #pragma HLS ARRAY_PARTITION variable=local_A dim=2 factor=2 cyclic
+    #pragma HLS RESOURCE variable=local_A core=RAM_2P_BRAM
     int local_B[1][2];
     #pragma HLS ARRAY_PARTITION variable=local_B dim=2 factor=2 cyclic
+    #pragma HLS RESOURCE variable=local_B core=RAM_2P_BRAM
     int local_C[2][2];
+    #pragma HLS RESOURCE variable=local_C core=RAM_2P_BRAM
 
     // array_L2
     for (int c3 = 0; c3 <= 3; c3 += 1)
@@ -686,7 +699,9 @@ void C_drain_IO_L1_out(int idx, int idy, hls::stream<C_t2> &fifo_C_drain_in, hls
 {
     int p0 = idx, p1 = idy; // module id
     C_t2 local_C_ping[2][1];
+    #pragma HLS RESOURCE variable=local_C_ping core=RAM_2P_BRAM
     C_t2 local_C_pong[2][1];
+    #pragma HLS RESOURCE variable=local_C_pong core=RAM_2P_BRAM
     bool arb = 0;
     bool inter_trans_en = 0;
     bool intra_trans_en = 1;
@@ -728,7 +743,9 @@ void C_drain_IO_L1_out_boundary(int idx, int idy, hls::stream<C_t2> &fifo_C_drai
 {
     int p0 = idx, p1 = idy; // module id
     C_t2 local_C_ping[2][1];
+    #pragma HLS RESOURCE variable=local_C_ping core=RAM_2P_BRAM
     C_t2 local_C_pong[2][1];
+    #pragma HLS RESOURCE variable=local_C_pong core=RAM_2P_BRAM
     bool arb = 0;
     bool inter_trans_en = 0;
     bool intra_trans_en = 1;
@@ -833,6 +850,7 @@ void C_drain_IO_L2_out_boundary(int idx, hls::stream<C_t2> &fifo_C_drain_out, hl
 void C_drain_IO_L3_out(C_t4 *C, hls::stream<C_t2> &fifo_C_drain_local_in)
 {
     C_t4 local_C[4][1];
+    #pragma HLS RESOURCE variable=local_C core=RAM_2P_BRAM
 
     // array_L2
     for (int c3 = 0; c3 <= 3; c3 += 1)

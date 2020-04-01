@@ -2457,6 +2457,7 @@ struct polysa_hw_top_module *polysa_hw_top_module_alloc()
   module->fifo_decl_scheds = NULL;
   module->module_call_trees = NULL;
   module->fifo_decl_trees = NULL;
+  module->fifo_decl_names = NULL;
 
   module->n_module_call_wrapped = 0;
   module->n_fifo_decl_wrapped = 0;
@@ -2521,6 +2522,7 @@ void *polysa_hw_top_module_free(struct polysa_hw_top_module *module)
   if (module->fifo_decl_trees) {
     for (int i = 0; i < module->n_fifo_decls; i++) {
       isl_ast_node_free(module->fifo_decl_trees[i]);
+      free(module->fifo_decl_names[i]);
     }
   }
 
@@ -2546,6 +2548,7 @@ void *polysa_hw_top_module_free(struct polysa_hw_top_module *module)
   free(module->fifo_decl_trees);
   free(module->module_call_wrapped_trees);
   free(module->fifo_decl_wrapped_trees);
+  free(module->fifo_decl_names);
   free(module);
 
   return NULL;
@@ -3106,6 +3109,205 @@ static char *extract_loop_info_from_module(
 
 }
 
+static cJSON *extract_buffer_info_from_module(struct polysa_gen *gen,
+  struct polysa_kernel_var *var, char *suffix)
+{
+  cJSON *buffer = cJSON_CreateObject();
+  
+  /* Generate buffer name */
+  char *buffer_name = var->name;
+  if (suffix)
+    buffer_name = concat(gen->ctx, buffer_name, suffix);
+  cJSON_AddStringToObject(buffer, "buffer_name", buffer_name);
+  if (suffix)
+    free(buffer_name);
+
+  /* Generate buffer port width */
+  int n_lane = var->n_lane;
+  int ele_size = var->array->size;
+  int port_w = n_lane * ele_size; // in bytes
+  cJSON *port_width = cJSON_CreateNumber(port_w);
+  cJSON_AddItemToObject(buffer, "port_width", port_width);
+
+  /* Generate buffer size */
+  int size = 1;
+  for (int j = 0; j < isl_vec_size(var->size); j++) {
+    isl_val *v;
+    int v_int;
+    v = isl_vec_get_element_val(var->size, j);
+    v_int = isl_val_get_num_si(v);
+    isl_val_free(v);
+    size *= v_int;
+  }
+  cJSON *buffer_size = cJSON_CreateNumber(size);
+  cJSON_AddItemToObject(buffer, "buffer_depth", buffer_size);
+
+  /* Partition number */
+  cJSON *n_part = cJSON_CreateNumber(var->n_part);
+  cJSON_AddItemToObject(buffer, "partition_number", n_part);
+
+  return buffer;
+}
+
+/* If "buffer" is set 1, extract local buffer information. */
+static cJSON *extract_design_info_from_module(struct polysa_gen *gen, 
+  struct polysa_hw_module *module, char *module_name, int buffer)
+{
+  cJSON *info = cJSON_CreateObject();
+  int double_buffer = module->double_buffer;
+
+  if (module->type == PE_MODULE) {
+    /* Extract the SIMD factor */
+    cJSON *unroll = cJSON_CreateNumber(gen->kernel->simd_w);
+    cJSON_AddItemToObject(info, "unroll", unroll);
+  } else {
+    /* Extract the input and output data lanes and width */
+    cJSON *data_pack_inter = cJSON_CreateNumber(module->data_pack_inter);
+    cJSON *data_pack_intra = cJSON_CreateNumber(module->data_pack_intra);
+    cJSON_AddItemToObject(info, "data_pack_inter", data_pack_inter);
+    cJSON_AddItemToObject(info, "data_pack_intra", data_pack_intra);
+
+    struct polysa_array_ref_group *group = module->io_groups[0];
+    struct polysa_array_info *array = group->array;
+    cJSON_AddStringToObject(info, "ele_type", array->type);
+    cJSON *data_size = cJSON_CreateNumber(array->size);
+    cJSON_AddItemToObject(info, "ele_size", data_size);
+  }
+  /* Extract the local buffer */
+  if (buffer) {
+    cJSON *buffers = cJSON_CreateArray();
+    for (int i = 0; i < module->n_var; ++i) {
+      cJSON *buffer = NULL;
+      struct polysa_kernel_var *var = &module->var[i];
+      if (double_buffer) {
+        buffer = extract_buffer_info_from_module(gen, var, "ping");
+        cJSON_AddItemToArray(buffers, buffer);
+        buffer = extract_buffer_info_from_module(gen, var, "pong");
+        cJSON_AddItemToArray(buffers, buffer);
+      } else {
+        buffer = extract_buffer_info_from_module(gen, var, NULL);
+        cJSON_AddItemToArray(buffers, buffer);
+      }
+    }
+    cJSON_AddItemToObject(info, "local_buffers", buffers);
+  }
+
+  return info;
+}
+
+static cJSON *extract_design_info_from_pe_dummy_module(struct polysa_gen *gen,
+  struct polysa_pe_dummy_module *module, char *module_name)
+{
+  cJSON *info = cJSON_CreateObject();
+  struct polysa_array_ref_group *group = module->io_group;
+  int n_lane = (group->local_array->array_type == POLYSA_EXT_ARRAY)? group->n_lane:
+    ((group->group_type == POLYSA_DRAIN_GROUP)? group->n_lane:
+     (group->group_type == POLYSA_EXT_IO)? group->n_lane : group->io_buffers[0]->n_lane);
+  cJSON *data_pack = cJSON_CreateNumber(n_lane);
+  cJSON_AddItemToObject(info, "data_pack", data_pack);
+
+  return info;
+}
+
+/* Exatract the design information into a JSON struct for resource estimation.
+ * If the module contains buffers, extract the buffer information.
+ * For I/O modules, extract:
+ * - input and output data lanes and width
+ * For PE modules, extract:
+ * - simd factor if any
+ */
+isl_stat sa_extract_design_info(struct polysa_gen *gen) 
+{
+  cJSON *design_info = cJSON_CreateObject();
+  char *json_str = NULL;
+  FILE *fp;
+  struct polysa_hw_top_module *top = gen->hw_top_module;
+  isl_ctx *ctx = gen->ctx;
+
+//  /* fifo */
+//  cJSON *fifos = cJSON_CreateObject();
+//  cJSON_AddItemToObject(design_info, "fifos", fifos);
+//  for (int i = 0; i < top->n_fifo_decls; i++) {
+//    
+//  }
+
+  /* module */
+  cJSON *modules = cJSON_CreateObject();
+  cJSON_AddItemToObject(design_info, "modules", modules);
+  for (int i = 0; i < gen->n_hw_modules; i++) {
+    struct polysa_hw_module *module = gen->hw_modules[i];
+    char *module_name;
+    cJSON *info;
+
+    if (module->is_filter && module->is_buffer) {
+      /* intra_trans */
+      module_name = concat(ctx, module->name, "intra_trans");
+      info = extract_design_info_from_module(gen, module, module_name, 0); 
+      cJSON_AddItemToObject(modules, module_name, info); 
+      free(module_name);
+
+      /* inter_trans */
+      module_name = concat(ctx, module->name, "inter_trans");
+      info = extract_design_info_from_module(gen, module, module_name, 0);
+      cJSON_AddItemToObject(modules, module_name, info);
+      free(module_name);
+
+      if (module->boundary) {
+        module_name = concat(ctx, module->name, "inter_trans_boundary");
+        info = extract_design_info_from_module(gen, module, module_name, 0);
+        cJSON_AddItemToObject(modules, module_name, info);
+        free(module_name);
+      }
+    }
+
+    /* default module */
+    info = extract_design_info_from_module(gen, module, module_name, 1);
+    cJSON_AddItemToObject(modules, module->name, info);
+
+    /* boundary module */
+    if (module->boundary) {
+      module_name = concat(ctx, module->name, "boundary");
+      info = extract_design_info_from_module(gen, module, module_name, 1);
+      cJSON_AddItemToObject(modules, module_name, info);
+      free(module_name);
+    }
+
+    if (module->n_pe_dummy_modules > 0) {
+      for (int i = 0; i < module->n_pe_dummy_modules; i++) {
+        struct polysa_pe_dummy_module *dummy_module = module->pe_dummy_modules[i];
+        struct polysa_array_ref_group *group = dummy_module->io_group;
+        char *module_name;
+        /* Generate module name */
+        isl_printer *p_str = isl_printer_to_str(ctx);
+        p_str = isl_printer_print_str(p_str, group->array->name);
+        if (group->group_type == POLYSA_IO_GROUP) {
+          if (group->local_array->n_io_group > 1) {
+            p_str = isl_printer_print_str(p_str, "_");
+            p_str = isl_printer_print_int(p_str, group->nr);            
+          }
+        } else if (group->group_type == POLYSA_DRAIN_GROUP) {
+          p_str = isl_printer_print_str(p_str, "_");
+          p_str = isl_printer_print_str(p_str, "drain");
+        }
+        p_str = isl_printer_print_str(p_str, "_PE_dummy");
+        module_name = isl_printer_get_str(p_str);
+        isl_printer_free(p_str);
+        info = extract_design_info_from_pe_dummy_module(gen, dummy_module, module_name);
+        cJSON_AddItemToObject(modules, module_name, info);
+        free(module_name);
+      }
+    }
+  }
+
+  json_str = cJSON_Print(design_info);
+  fp = fopen("resource_est/design_info.json", "w");
+  fprintf(fp, "%s", json_str);
+  fclose(fp);
+  cJSON_Delete(design_info);
+
+  return isl_stat_ok;
+}
+
 /* Extract the loop structure and detailed information of the hardware module into 
  * a JSON struct.
  */
@@ -3151,16 +3353,7 @@ isl_stat sa_extract_loop_info(struct polysa_gen *gen, struct polysa_hw_module *m
 
       /* Generate module name */
       isl_printer *p_str = isl_printer_to_str(gen->ctx);
-      p_str = isl_printer_print_str(p_str, group->array->name);
-      if (group->group_type == POLYSA_IO_GROUP) {
-        if (group->local_array->n_io_group > 1) {
-          p_str = isl_printer_print_str(p_str, "_");
-          p_str = isl_printer_print_int(p_str, group->nr);
-        }          
-      } else if (group->group_type == POLYSA_DRAIN_GROUP) {
-        p_str = isl_printer_print_str(p_str, "_");
-        p_str = isl_printer_print_str(p_str, "drain");
-      }
+      p_str = polysa_array_ref_group_print_prefix(group, p_str);
       p_str = isl_printer_print_str(p_str, "_PE_dummy");
       module_name = isl_printer_get_str(p_str);
       isl_printer_free(p_str);

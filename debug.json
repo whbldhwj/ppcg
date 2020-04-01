@@ -1,0 +1,149 @@
+{
+    "fifo_A_A_IO_L2_in": {
+        "FF": 5,
+        "LUT": 140,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 3
+    },
+    "fifo_B_B_IO_L2_in": {
+        "FF": 5,
+        "LUT": 140,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 3
+    },
+    "fifo_A_PE": {
+        "FF": 5,
+        "LUT": 76,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 6
+    },
+    "fifo_B_PE": {
+        "FF": 5,
+        "LUT": 76,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 6
+    },
+    "fifo_C_drain_PE": {
+        "FF": 5,
+        "LUT": 44,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 4
+    },
+    "fifo_C_drain_C_drain_IO_L1_out": {
+        "FF": 5,
+        "LUT": 76,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 6
+    },
+    "fifo_C_drain_C_drain_IO_L2_out": {
+        "FF": 5,
+        "LUT": 76,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 3
+    },
+    "A_IO_L3_in": {
+        "FF": 602,
+        "LUT": 423,
+        "BRAM": 15,
+        "DSP": 0,
+        "n": 1
+    },
+    "A_IO_L2_in": {
+        "FF": 581,
+        "LUT": 641,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 1
+    },
+    "A_IO_L2_in_boundary": {
+        "FF": 575,
+        "LUT": 576,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 1
+    },
+    "B_IO_L3_in": {
+        "FF": 634,
+        "LUT": 436,
+        "BRAM": 15,
+        "DSP": 0,
+        "n": 1
+    },
+    "B_IO_L2_in": {
+        "FF": 585,
+        "LUT": 666,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 1
+    },
+    "B_IO_L2_in_boundary": {
+        "FF": 579,
+        "LUT": 601,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 1
+    },
+    "PE": {
+        "FF": 383,
+        "LUT": 638,
+        "BRAM": 2,
+        "DSP": 6,
+        "n": 4
+    },
+    "A_PE_dummy": {
+        "FF": 17,
+        "LUT": 96,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 2
+    },
+    "B_PE_dummy": {
+        "FF": 17,
+        "LUT": 96,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 2
+    },
+    "C_drain_IO_L1_out": {
+        "FF": 312,
+        "LUT": 623,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 2
+    },
+    "C_drain_IO_L1_out_boundary": {
+        "FF": 305,
+        "LUT": 523,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 2
+    },
+    "C_drain_IO_L2_out": {
+        "FF": 34,
+        "LUT": 280,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 1
+    },
+    "C_drain_IO_L2_out_boundary": {
+        "FF": 14,
+        "LUT": 100,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 1
+    },
+    "C_drain_IO_L3_out": {
+        "FF": 573,
+        "LUT": 591,
+        "BRAM": 0,
+        "DSP": 0,
+        "n": 1
+    }
+}

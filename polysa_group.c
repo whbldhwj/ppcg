@@ -2920,6 +2920,25 @@ __isl_give isl_printer *polysa_array_ref_group_print_fifo_name(
 	return p;
 }
 
+__isl_give isl_printer *polysa_array_ref_group_print_prefix(
+  struct polysa_array_ref_group *group, __isl_take isl_printer *p)
+{
+  p = isl_printer_print_str(p, group->array->name);
+  if (group->group_type == POLYSA_DRAIN_GROUP) {
+    p = isl_printer_print_str(p, "_drain");
+  } else {
+    if (group->group_type == POLYSA_IO_GROUP && group->local_array->n_io_group > 1) {
+      p = isl_printer_print_str(p, "_");
+      p = isl_printer_print_int(p, group->nr);
+    } else if (group->group_type == POLYSA_PE_GROUP && group->local_array->n_pe_group > 1) {
+      p = isl_printer_print_str(p, "_");
+      p = isl_printer_print_int(p, group->nr);
+    }
+  }
+  
+  return p;
+}
+
 /* Given a description of an array tile "tile" and the "space"
  *
  *	{ D -> A }
@@ -3497,4 +3516,19 @@ __isl_give isl_union_map *polysa_drain_group_ref_access_relation(
     isl_union_map_from_map(isl_map_intersect_domain(isl_map_copy(ref->access), acc_domain)));
 
   return access;
+}
+
+int get_io_group_n_lane(struct polysa_hw_module *module, struct polysa_array_ref_group *group)
+{
+  int n_lane;
+
+  if (module->type == PE_MODULE) {
+    n_lane = (group->local_array->array_type == POLYSA_EXT_ARRAY)? group->n_lane : 
+      ((group->group_type == POLYSA_DRAIN_GROUP)? group->n_lane: 
+      ((group->io_type == POLYSA_EXT_IO)? group->n_lane : group->io_buffers[0]->n_lane));
+  } else {
+    n_lane = module->data_pack_inter;
+  }
+
+  return n_lane;
 }
