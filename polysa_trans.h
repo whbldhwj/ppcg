@@ -29,10 +29,10 @@ struct polysa_kernel **sa_space_time_transform_at_dim(__isl_keep isl_schedule *s
 isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop);
 
 /* PE Optimization */
-isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en);
-isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa);
-isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa);
-isl_stat sa_pe_optimize(struct polysa_kernel *sa, bool pass_en[]);
+isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en, char *mode);
+isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa, char *mode);
+isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa, char *mode);
+isl_stat sa_pe_optimize(struct polysa_kernel *sa, bool pass_en[], char *pass_mode[]);
 isl_stat sa_loop_init(struct polysa_kernel *sa);
 isl_stat sa_space_time_loop_setup(struct polysa_kernel *sa);
 struct polysa_kernel **sa_space_time_transform(__isl_take isl_schedule *schedule, struct ppcg_scop *scop,
@@ -49,5 +49,6 @@ int generate_sa(isl_ctx *ctx, const char *input, FILE *out,
 __isl_give isl_schedule *sa_map_to_device(struct polysa_gen *gen,
     __isl_take isl_schedule *schedule);
 struct polysa_kernel *sa_candidates_smart_pick(struct polysa_kernel **sa_list, __isl_keep isl_size num_sa);
+struct polysa_kernel *sa_candidates_manual_pick(struct polysa_kernel **sa_list, isl_size num_sa, int sa_id);
 
 #endif

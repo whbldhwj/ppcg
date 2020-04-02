@@ -11,7 +11,7 @@ void top_generate(FILE *f)
     p = isl_printer_print_str(p, "extern \"C\" {");
     p = isl_printer_end_line(p);
     p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "void kernel0(A_t16 *A, B_t16 *B, C_t4 *C)");
+    p = isl_printer_print_str(p, "void kernel0(A_t16 *A, B_t16 *B, C_t8 *C)");
     p = isl_printer_end_line(p);
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "{");
@@ -56,7 +56,7 @@ void top_generate(FILE *f)
         fifo_cnt++;
         // Print channel declarations of module: A_IO_L2_in
         p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* A_IO_L2_in fifo */ hls::stream<A_t4> fifo_A_A_IO_L2_in");
+        p = isl_printer_print_str(p, "/* A_IO_L2_in fifo */ hls::stream<A_t8> fifo_A_A_IO_L2_in");
         p = isl_printer_print_str(p, "_");
         p = isl_printer_print_int(p, c0);
         p = isl_printer_print_str(p, ";");
@@ -74,7 +74,7 @@ void top_generate(FILE *f)
           fifo_cnt++;
           // Print channel declarations of module: A_IO_L2_in
           p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* A_IO_L2_in fifo */ hls::stream<A_t4> fifo_A_A_IO_L2_in");
+          p = isl_printer_print_str(p, "/* A_IO_L2_in fifo */ hls::stream<A_t8> fifo_A_A_IO_L2_in");
           p = isl_printer_print_str(p, "_");
           p = isl_printer_print_int(p, c0 + 1);
           p = isl_printer_print_str(p, ";");
@@ -87,7 +87,7 @@ void top_generate(FILE *f)
           p = isl_printer_end_line(p);
         }
     }
-    fprintf(fd, "fifo:fifo_A_A_IO_L2_in:%d:16\n", fifo_cnt);
+    fprintf(fd, "fifo:fifo_A_A_IO_L2_in:%d:32\n", fifo_cnt);
 
     fifo_cnt = 0;
     // array
@@ -98,7 +98,7 @@ void top_generate(FILE *f)
         fifo_cnt++;
         // Print channel declarations of module: B_IO_L2_in
         p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* B_IO_L2_in fifo */ hls::stream<B_t4> fifo_B_B_IO_L2_in");
+        p = isl_printer_print_str(p, "/* B_IO_L2_in fifo */ hls::stream<B_t8> fifo_B_B_IO_L2_in");
         p = isl_printer_print_str(p, "_");
         p = isl_printer_print_int(p, c0);
         p = isl_printer_print_str(p, ";");
@@ -116,7 +116,7 @@ void top_generate(FILE *f)
           fifo_cnt++;
           // Print channel declarations of module: B_IO_L2_in
           p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* B_IO_L2_in fifo */ hls::stream<B_t4> fifo_B_B_IO_L2_in");
+          p = isl_printer_print_str(p, "/* B_IO_L2_in fifo */ hls::stream<B_t8> fifo_B_B_IO_L2_in");
           p = isl_printer_print_str(p, "_");
           p = isl_printer_print_int(p, c0 + 1);
           p = isl_printer_print_str(p, ";");
@@ -129,7 +129,7 @@ void top_generate(FILE *f)
           p = isl_printer_end_line(p);
         }
     }
-    fprintf(fd, "fifo:fifo_B_B_IO_L2_in:%d:16\n", fifo_cnt);
+    fprintf(fd, "fifo:fifo_B_B_IO_L2_in:%d:32\n", fifo_cnt);
 
     fifo_cnt = 0;
     // array
@@ -277,7 +277,7 @@ void top_generate(FILE *f)
           fifo_cnt++;
           // Print channel declarations of module: C_drain_IO_L1_out
           p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* C_drain_IO_L1_out fifo */ hls::stream<C_t2> fifo_C_drain_C_drain_IO_L1_out");
+          p = isl_printer_print_str(p, "/* C_drain_IO_L1_out fifo */ hls::stream<C_t4> fifo_C_drain_C_drain_IO_L1_out");
           p = isl_printer_print_str(p, "_");
           p = isl_printer_print_int(p, c0);
           p = isl_printer_print_str(p, "_");
@@ -299,7 +299,7 @@ void top_generate(FILE *f)
             fifo_cnt++;
             // Print channel declarations of module: C_drain_IO_L1_out
             p = isl_printer_start_line(p);
-            p = isl_printer_print_str(p, "/* C_drain_IO_L1_out fifo */ hls::stream<C_t2> fifo_C_drain_C_drain_IO_L1_out");
+            p = isl_printer_print_str(p, "/* C_drain_IO_L1_out fifo */ hls::stream<C_t4> fifo_C_drain_C_drain_IO_L1_out");
             p = isl_printer_print_str(p, "_");
             p = isl_printer_print_int(p, c0);
             p = isl_printer_print_str(p, "_");
@@ -317,7 +317,7 @@ void top_generate(FILE *f)
           }
       }
     }
-    fprintf(fd, "fifo:fifo_C_drain_C_drain_IO_L1_out:%d:8\n", fifo_cnt);
+    fprintf(fd, "fifo:fifo_C_drain_C_drain_IO_L1_out:%d:16\n", fifo_cnt);
 
     fifo_cnt = 0;
     // array
@@ -328,7 +328,7 @@ void top_generate(FILE *f)
         fifo_cnt++;
         // Print channel declarations of module: C_drain_IO_L2_out
         p = isl_printer_start_line(p);
-        p = isl_printer_print_str(p, "/* C_drain_IO_L2_out fifo */ hls::stream<C_t2> fifo_C_drain_C_drain_IO_L2_out");
+        p = isl_printer_print_str(p, "/* C_drain_IO_L2_out fifo */ hls::stream<C_t4> fifo_C_drain_C_drain_IO_L2_out");
         p = isl_printer_print_str(p, "_");
         p = isl_printer_print_int(p, c0);
         p = isl_printer_print_str(p, ";");
@@ -346,7 +346,7 @@ void top_generate(FILE *f)
           fifo_cnt++;
           // Print channel declarations of module: C_drain_IO_L2_out
           p = isl_printer_start_line(p);
-          p = isl_printer_print_str(p, "/* C_drain_IO_L2_out fifo */ hls::stream<C_t2> fifo_C_drain_C_drain_IO_L2_out");
+          p = isl_printer_print_str(p, "/* C_drain_IO_L2_out fifo */ hls::stream<C_t4> fifo_C_drain_C_drain_IO_L2_out");
           p = isl_printer_print_str(p, "_");
           p = isl_printer_print_int(p, c0 + 1);
           p = isl_printer_print_str(p, ";");
@@ -359,7 +359,7 @@ void top_generate(FILE *f)
           p = isl_printer_end_line(p);
         }
     }
-    fprintf(fd, "fifo:fifo_C_drain_C_drain_IO_L2_out:%d:8\n", fifo_cnt);
+    fprintf(fd, "fifo:fifo_C_drain_C_drain_IO_L2_out:%d:16\n", fifo_cnt);
 
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "/* FIFO Declaration */");

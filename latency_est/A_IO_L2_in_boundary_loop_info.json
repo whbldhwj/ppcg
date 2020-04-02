@@ -9,7 +9,7 @@
 							"loop_info":	{
 								"iter":	"c3",
 								"lb":	"0",
-								"ub":	"3",
+								"ub":	"1",
 								"stride":	"1"
 							},
 							"child":	{
@@ -17,7 +17,7 @@
 									"loop_info":	{
 										"iter":	"c4",
 										"lb":	"0",
-										"ub":	"3",
+										"ub":	"1",
 										"stride":	"1"
 									},
 									"child":	{
@@ -25,7 +25,7 @@
 											"loop_info":	{
 												"iter":	"c5",
 												"lb":	"0",
-												"ub":	"3",
+												"ub":	"1",
 												"stride":	"1"
 											},
 											"child":	{

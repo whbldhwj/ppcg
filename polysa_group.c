@@ -2235,7 +2235,7 @@ static isl_stat compute_io_group_schedule(
       isl_val *val;
       int tile_len = 1;
       int *tile_size = NULL;
-      tile_size = read_hbm_tile_sizes(kernel, &tile_len);
+      tile_size = read_hbm_tile_sizes(kernel, tile_len);
       printf("[PolySA] HBM port: %d\n", tile_size[0]);
 //      // debug
 //      isl_printer *p = isl_printer_to_file(ctx, stdout);

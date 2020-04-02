@@ -1068,7 +1068,7 @@ static int extract_is_boundary(const char *type)
 }
 
 /* module_call.module_name.boundary */
-static int extract_module_name(isl_ctx *ctx, const char *type)
+static char *extract_module_name(isl_ctx *ctx, const char *type)
 {
   char ch;
   int loc = 0;

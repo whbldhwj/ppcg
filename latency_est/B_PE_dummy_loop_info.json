@@ -7,7 +7,7 @@
 				"loop_info":	{
 					"iter":	"c3",
 					"lb":	"0",
-					"ub":	"3",
+					"ub":	"1",
 					"stride":	"1"
 				},
 				"child":	{
@@ -15,7 +15,7 @@
 						"loop_info":	{
 							"iter":	"c4",
 							"lb":	"0",
-							"ub":	"3",
+							"ub":	"1",
 							"stride":	"1"
 						},
 						"child":	{
@@ -34,7 +34,7 @@
 											"loop_info":	{
 												"iter":	"c5",
 												"lb":	"0",
-												"ub":	"3",
+												"ub":	"1",
 												"stride":	"1"
 											},
 											"child":	{
@@ -48,7 +48,7 @@
 																	"loop_info":	{
 																		"iter":	"c8",
 																		"lb":	"0",
-																		"ub":	"1",
+																		"ub":	"3",
 																		"stride":	"1"
 																	},
 																	"child":	{
@@ -59,7 +59,7 @@
 																					"loop_info":	{
 																						"iter":	"c9",
 																						"lb":	"0",
-																						"ub":	"1",
+																						"ub":	"3",
 																						"stride":	"1"
 																					},
 																					"child":	{
@@ -73,14 +73,14 @@
 																											"loop_info":	{
 																												"iter":	"c10",
 																												"lb":	"0",
-																												"ub":	"1",
+																												"ub":	"3",
 																												"stride":	"1"
 																											},
 																											"child":	{
 																												"block":	{
 																													"child":	[{
 																															"user":	{
-																																"user_expr":	"in_dummy.fifo_B.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 2 * p1 + 4 * c4 + c9, 4 * c5 + 2 * c8)"
+																																"user_expr":	"in_dummy.fifo_B.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 4 * p1 + 8 * c4 + c9, 8 * c5 + 2 * c8)"
 																															}
 																														}, {
 																															"mark":	{

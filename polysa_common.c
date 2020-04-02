@@ -918,6 +918,56 @@ int is_node_under_latency(__isl_keep isl_schedule_node *node)
   return 0;
 }
 
+/* Compute a box hull of the time domain of the schedule node, and return the 
+ * box dimensions in an array.
+ */
+int *extract_band_upper_bounds(struct polysa_kernel *kernel, __isl_keep isl_schedule_node *node)
+{
+  isl_union_map *umap;
+  isl_union_set *uset;
+  isl_map *map;
+  isl_fixed_box *box;
+  int *ubs;
+
+  umap = isl_schedule_node_band_get_partial_schedule_union_map(node);
+  uset = isl_schedule_node_get_domain(node);
+  umap = isl_union_map_intersect_domain(umap, uset);
+  uset = isl_union_map_range(umap);
+  map = isl_map_from_range(isl_set_from_union_set(uset));
+  box = isl_map_get_range_simple_fixed_box_hull(map);
+  isl_map_free(map);
+  if (!isl_fixed_box_is_valid(box)) {
+    isl_fixed_box_free(box);
+    return NULL;
+  } else {
+    /* Assume the loop bound starts with zero */
+    isl_multi_aff *offset = isl_fixed_box_get_offset(box);
+    isl_multi_val *size = isl_fixed_box_get_size(box);
+    int n = isl_multi_aff_dim(offset, isl_dim_out);
+    ubs = (int *)malloc(n * sizeof(int));
+
+    for (int i = 0; i < n; i++)  {
+      isl_aff *aff;
+      isl_val *offset_val, *size_val;
+      aff = isl_multi_aff_get_aff(offset, i);
+      if (!isl_aff_is_cst(aff)) {
+        printf("[PolySA] Error: Loop lower bound is non-constant, exit!\n");
+        exit(1);
+      }
+      offset_val = isl_aff_get_constant_val(aff);
+      size_val = isl_multi_val_get_val(size, i);
+      size_val = isl_val_add(size_val, offset_val);
+      ubs[i] = isl_val_get_num_si(size_val);
+      isl_val_free(size_val);
+      isl_aff_free(aff);
+    }
+    isl_multi_aff_free(offset);
+    isl_multi_val_free(size);
+  }
+  isl_fixed_box_free(box);
+  return ubs;
+}
+
 /***************************************************************
  * PolySA kernel related functions 
  ***************************************************************/
@@ -2606,7 +2656,7 @@ static isl_stat extract_size_of_type(__isl_take isl_set *size, void *user)
  *  
  * If "set" is NULL, then the "sizes" array is not updated.
  */
-static isl_stat read_sa_sizes_from_set(__isl_take isl_set *set, int *sizes, int *len)
+static isl_stat read_sa_sizes_from_set(__isl_take isl_set *set, int *sizes, int len)
 {
   int i;
   int dim;
@@ -2615,11 +2665,11 @@ static isl_stat read_sa_sizes_from_set(__isl_take isl_set *set, int *sizes, int 
     return isl_stat_ok;
 
   dim = isl_set_dim(set, isl_dim_set);
-  if (dim < *len)
+  if (dim < len)
     isl_die(isl_set_get_ctx(set), isl_error_invalid, 
         "fewer sa_sizes than required", return isl_stat_error);
 
-  for (i = 0; i < *len; ++i) {
+  for (i = 0; i < len; ++i) {
     isl_val *v;
 
     v = isl_set_plain_get_val_if_fixed(set, isl_dim_set, i);
@@ -2634,6 +2684,23 @@ static isl_stat read_sa_sizes_from_set(__isl_take isl_set *set, int *sizes, int 
 error:
   isl_set_free(set);
   return isl_stat_error;
+}
+
+int read_space_time_kernel_id(__isl_keep isl_union_map *sizes)
+{
+  isl_set *size;
+  int kernel_id;
+  int dim;
+  size = extract_sa_sizes(sizes, "space_time", 0);
+  if (!size)
+    return -1;
+  dim = isl_set_dim(size, isl_dim_set);
+  if (dim == 0) 
+    return -1;
+  else {
+    read_sa_sizes_from_set(size, &kernel_id, 1);
+    return kernel_id;
+  }
 }
 
 /* Add the map { kernel[id] -> type[sizes] } to gen->used-sizes 
@@ -2652,22 +2719,22 @@ static void set_sa_used_sizes(struct polysa_kernel *sa, const char *type, int id
  * return a pointer to the tile sizes (or NULL on error).
  * And the effectively used sizes to sa->used_sizes.
  */
-int *read_hbm_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+int *read_hbm_tile_sizes(struct polysa_kernel *sa, int tile_len)
 {
   int n;
   int *tile_size;
   isl_set *size;
 
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  tile_size = isl_alloc_array(sa->ctx, int, tile_len);
   if (!tile_size)
     return NULL;
-  for (n = 0; n < *tile_len; ++n) 
+  for (n = 0; n < tile_len; ++n) 
     tile_size[n] = sa->scop->options->n_hbm_port;
 
   size = extract_sa_sizes(sa->sizes, "hbm", sa->id);
   if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
     goto error;
-  set_sa_used_sizes(sa, "hbm", sa->id, tile_size, *tile_len);
+  set_sa_used_sizes(sa, "hbm", sa->id, tile_size, tile_len);
 
   return tile_size;
 error:
@@ -2711,22 +2778,25 @@ __isl_give isl_set *extract_sa_sizes(__isl_keep isl_union_map *sizes,
  * return a pointer to the tile sizes (or NULL on error).
  * And the effectively used sizes to sa->used_sizes.
  */
-int *read_array_part_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+int *read_array_part_tile_sizes(struct polysa_kernel *sa, int tile_len)
 {
   int n;
   int *tile_size;
   isl_set *size;
 
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  tile_size = isl_alloc_array(sa->ctx, int, tile_len);
   if (!tile_size)
     return NULL;
-  for (n = 0; n < *tile_len; ++n)
-    tile_size[n] = sa->scop->options->sa_tile_size;
   
   size = extract_sa_sizes(sa->sizes, "array_part", sa->id);
+  if (isl_set_dim(size, isl_dim_set) < tile_len)  {
+    free(tile_size);
+    isl_set_free(size);
+    return NULL;
+  }
   if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
     goto error;
-  set_sa_used_sizes(sa, "array_part", sa->id, tile_size, *tile_len);
+  set_sa_used_sizes(sa, "array_part", sa->id, tile_size, tile_len); 
 
   return tile_size;
 error:
@@ -2734,22 +2804,36 @@ error:
   return NULL;
 }
 
-int *read_array_part_L2_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+int *read_default_array_part_tile_sizes(struct polysa_kernel *sa, int tile_len)
+{
+  int n;
+  int *tile_size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < tile_len; ++n)
+    tile_size[n] = sa->scop->options->sa_tile_size;
+
+  return tile_size;
+}
+
+int *read_array_part_L2_tile_sizes(struct polysa_kernel *sa, int tile_len)
 {
   int n;
   int *tile_size;
   isl_set *size;
 
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  tile_size = isl_alloc_array(sa->ctx, int, tile_len);
   if (!tile_size)
     return NULL;
-  for (n = 0; n < *tile_len; ++n) 
+  for (n = 0; n < tile_len; ++n) 
     tile_size[n] = sa->scop->options->sa_tile_size;
   
   size = extract_sa_sizes(sa->sizes, "array_part_L2", sa->id);
   if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
     goto error;
-  set_sa_used_sizes(sa, "array_part_L2", sa->id, tile_size, *tile_len);
+  set_sa_used_sizes(sa, "array_part_L2", sa->id, tile_size, tile_len);
 
   return tile_size;
 error:
@@ -2764,22 +2848,25 @@ error:
  * return a pointer to the tile sizes (or NULL on error).
  * And store the effectively used sizes to sa->used_sizes.
  */
-int *read_latency_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+int *read_latency_tile_sizes(struct polysa_kernel *sa, int tile_len)
 {
   int n;
   int *tile_size;
   isl_set *size;
 
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  tile_size = isl_alloc_array(sa->ctx, int, tile_len);
   if (!tile_size)
     return NULL;
-  for (n = 0; n < *tile_len; n++)
-    tile_size[n] = sa->scop->options->sa_tile_size / 2;
 
   size = extract_sa_sizes(sa->sizes, "latency", sa->id);
+  if (isl_set_dim(size, isl_dim_set) < tile_len) {
+    free(tile_size);
+    isl_set_free(size);
+    return NULL;
+  }
   if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
     goto error;
-  set_sa_used_sizes(sa, "latency", sa->id, tile_size, *tile_len);
+  set_sa_used_sizes(sa, "latency", sa->id, tile_size, tile_len); 
 
   return tile_size;
 error:
@@ -2787,27 +2874,58 @@ error:
   return NULL;
 }
 
-int *read_simd_tile_sizes(struct polysa_kernel *sa, int *tile_len)
+int *read_default_latency_tile_sizes(struct polysa_kernel *sa, int tile_len)
+{
+  int n;
+  int *tile_size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < tile_len; ++n)
+    tile_size[n] = sa->scop->options->sa_tile_size / 2;
+
+  return tile_size;
+}
+
+int *read_simd_tile_sizes(struct polysa_kernel *sa, int tile_len)
 {
   int n;
   int *tile_size;
   isl_set *size;
 
-  tile_size = isl_alloc_array(sa->ctx, int, *tile_len);
+  tile_size = isl_alloc_array(sa->ctx, int, tile_len);
   if (!tile_size)
     return NULL;
-  for (n = 0; n < *tile_len; n++)
-    tile_size[n] = sa->scop->options->sa_tile_size / 2;
   
   size = extract_sa_sizes(sa->sizes, "simd", sa->id);
+  if (isl_set_dim(size, isl_dim_set) < tile_len) {
+    free(tile_size);
+    isl_set_free(size);
+    return NULL;
+  }
   if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
     goto error;
-  set_sa_used_sizes(sa, "simd", sa->id, tile_size, *tile_len);
+  set_sa_used_sizes(sa, "simd", sa->id, tile_size, tile_len); 
 
   return tile_size;
 error:
   free(tile_size);
   return NULL;
+}
+
+int *read_default_simd_tile_sizes(struct polysa_kernel *sa, int tile_len)
+{
+  int n;
+  int *tile_size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < tile_len; ++n) 
+    tile_size[n] = sa->scop->options->sa_tile_size / 2;
+
+  return tile_size;
 }
 
 /*****************************************************************
@@ -3304,6 +3422,7 @@ isl_stat sa_extract_design_info(struct polysa_gen *gen)
   fprintf(fp, "%s", json_str);
   fclose(fp);
   cJSON_Delete(design_info);
+  free(json_str);
 
   return isl_stat_ok;
 }

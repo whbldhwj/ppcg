@@ -728,6 +728,9 @@ struct polysa_gen {
 
   /* Identifier of the next kernel. */
   int kernel_id;
+
+  /* Tuning configuration */
+  cJSON *tuning_config;
 };
 
 /* Representation of special statements, in particular copy statements
@@ -872,6 +875,7 @@ isl_bool all_parallel_node(__isl_keep isl_schedule_node *node, void *user);
 isl_bool isl_schedule_node_is_io_mark(__isl_keep isl_schedule_node *node, int io_level);
 int is_node_under_simd(__isl_keep isl_schedule_node *node);
 int is_node_under_latency(__isl_keep isl_schedule_node *node);
+int *extract_band_upper_bounds(struct polysa_kernel *kernel, __isl_keep isl_schedule_node *node);
 
 /* PolySA kernel related functions */
 void *polysa_kernel_free(struct polysa_kernel *sa);
@@ -915,17 +919,23 @@ struct polysa_hw_module *polysa_hw_module_alloc();
 void *polysa_hw_module_free(struct polysa_hw_module *module);
 struct polysa_hw_top_module *polysa_hw_top_module_alloc();
 void *polysa_hw_top_module_free(struct polysa_hw_top_module *module);
+struct polysa_pe_dummy_module *polysa_pe_dummy_module_alloc();
 
 /* PolySA ast node related functions */
 struct polysa_ast_node_userinfo *alloc_ast_node_userinfo();
 
 /* PolySA MISC */
-int *read_hbm_tile_sizes(struct polysa_kernel *sa, int *tile_len);
+int *read_hbm_tile_sizes(struct polysa_kernel *sa, int tile_len);
 __isl_give isl_set *extract_sa_sizes(__isl_keep isl_union_map *sizes,
     const char *type, int id);
-int *read_array_part_tile_sizes(struct polysa_kernel *sa, int *tile_len);
-int *read_latency_tile_sizes(struct polysa_kernel *sa, int *tile_len);
-int *read_simd_tile_sizes(struct polysa_kernel *sa, int *tile_len);
+int *read_array_part_tile_sizes(struct polysa_kernel *sa, int tile_len);
+int *read_default_array_part_tile_sizes(struct polysa_kernel *sa, int tile_len);
+int *read_latency_tile_sizes(struct polysa_kernel *sa, int tile_len);
+int *read_default_latency_tile_sizes(struct polysa_kernel *sa, int tile_len);
+int *read_simd_tile_sizes(struct polysa_kernel *sa, int tile_len);
+int *read_default_simd_tile_sizes(struct polysa_kernel *sa, int tile_len);
+int read_space_time_kernel_id(__isl_keep isl_union_map *sizes);
+int *read_array_part_L2_tile_sizes(struct polysa_kernel *sa, int tile_len);
 
 /* PolySA latency and resource estimation */
 isl_stat sa_extract_loop_info(struct polysa_gen *gen, struct polysa_hw_module *module); 

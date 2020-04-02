@@ -42,7 +42,7 @@ static struct polysa_array_ref_group *polysa_find_pe_group(
  * Reorganize the array partitioning loops and place them following the
  * ascending order of the dependence distances. 
  */
-isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en)
+isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en, char *mode)
 {
   int tile_len;
   isl_schedule *schedule;
@@ -93,10 +93,38 @@ isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en)
     isl_printer_free(p);
   }
   isl_schedule_free(schedule);
-  
-  /* Tile the band. */
+ 
   tile_len = isl_schedule_node_band_n_member(node);
-  tile_size = read_array_part_tile_sizes(sa, &tile_len);
+  if (!strcmp(mode, "manual")) {
+    tile_size = read_array_part_tile_sizes(sa, tile_len) ;
+    if (!tile_size) {
+      /* Dump out the number and upper bounds of array_part loops and exit the program */
+      int *ubs = extract_band_upper_bounds(sa, node);
+      FILE *fp;
+      char *content;
+      cJSON *tuning, *array_part_json, *loops_json;
+
+      tuning = cJSON_CreateObject();
+      array_part_json = cJSON_CreateObject();      
+      cJSON_AddItemToObject(tuning, "array_part", array_part_json);
+      loops_json = cJSON_CreateArray();
+      cJSON_AddItemToObject(array_part_json, "tilable_loops", loops_json);
+      for (int i = 0; i < tile_len; i++) {
+        cJSON *loop = cJSON_CreateNumber(ubs[i]);
+        cJSON_AddItemToArray(loops_json, loop);
+      }
+      fp = fopen("tuning.json", "w");
+      content = cJSON_Print(tuning);
+      fprintf(fp, "%s", content);
+      cJSON_Delete(tuning);
+      exit(0);
+    }   
+  } else {
+    /* Perform the array partitioning following the default policy */
+    tile_size = read_default_array_part_tile_sizes(sa, tile_len);
+  }
+
+  /* Tile the band. */  
   if (!tile_size) {
     isl_schedule_node_free(node);
     return isl_stat_error;
@@ -137,7 +165,7 @@ isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en)
     /* Tile the band again */
     printf("[PolySA] Two-level buffering is set. Apply second-level array partitioning.\n");
     tile_len = isl_schedule_node_band_n_member(node);
-    tile_size = read_array_part_L2_tile_sizes(sa, &tile_len);
+    tile_size = read_array_part_L2_tile_sizes(sa, tile_len);
     if (!tile_size) {
       isl_schedule_node_free(node);
       return isl_stat_error;
@@ -194,14 +222,38 @@ static isl_schedule_node *detect_latency_hiding_loop(__isl_take isl_schedule_nod
   return node;
 }
 
+struct count_latency_hiding_loop_data {
+  int tile_len;
+  int *ubs;
+  struct polysa_kernel *kernel;
+};
+
 static isl_bool count_latency_hiding_loop(__isl_keep isl_schedule_node *node, void *user)
 {
-  int *cnt = user;
+  struct count_latency_hiding_loop_data *data = user;
+  isl_schedule_node *node_copy;
+
   if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
     int n = isl_schedule_node_band_n_member(node);
     for (int i = 0; i < n; i++) {
-      if (isl_schedule_node_band_member_get_pe_opt(node, i) == polysa_loop_latency) 
-        *cnt = *cnt + 1;
+      if (isl_schedule_node_band_member_get_pe_opt(node, i) == polysa_loop_latency) {
+        data->tile_len = data->tile_len + 1; 
+//        *cnt = *cnt + 1;
+        /* Extract the loop upper bound */
+        node_copy = isl_schedule_node_copy(node);
+        if (i > 0) {
+          node_copy = isl_schedule_node_band_split(node_copy, i);
+          node_copy = isl_schedule_node_child(node_copy, 0);          
+        }
+        if (n - i - 1 > 0) {
+          node_copy = isl_schedule_node_band_split(node_copy, 1);
+        }
+        int *ubs = extract_band_upper_bounds(data->kernel, node_copy);
+        data->ubs = (int *)realloc(data->ubs, sizeof(int) * data->tile_len);
+        data->ubs[data->tile_len - 1] = ubs[0];
+        isl_schedule_node_free(node_copy);
+        free(ubs);
+      }
     }
   } 
   
@@ -545,6 +597,9 @@ struct simd_vectorization_data {
   int layout_trans;
   int n_loops;
   int loop_cnt;
+  char *mode;
+  int *ubs;
+  int *tile_size;
 };
 
 /* A loop is identified to be vectorizable if it is a parallel or 
@@ -600,9 +655,11 @@ static isl_schedule_node *detect_simd_vectorization_loop(__isl_take isl_schedule
               no_inner_band = isl_bool_true;
           }
 
-          if (no_inner_band) {
+          if (no_inner_band && !strcmp(data->mode, "manual")) {            
             /* At present, we cannot analyze reduction loop by the PolySA.
              * We will print each node and take the user guidance.
+             * Besides, we only check reduction loop in maunal mode.
+             * In the auto mode, only parallel loops are examined.
              */
             isl_printer *p;
             char c;
@@ -637,6 +694,7 @@ static isl_schedule_node *detect_simd_vectorization_loop(__isl_take isl_schedule
           if (isl_schedule_node_band_n_member(node) - i - 1 > 0) {
             node = isl_schedule_node_band_split(node, 1);
           }
+
           /* Sink the band innermost */
           node = isl_schedule_node_band_sink(node);
 //          // debug
@@ -667,6 +725,11 @@ static isl_schedule_node *detect_simd_vectorization_loop(__isl_take isl_schedule
             data->n_loops = data->n_loops + 1;
             data->scores = (int *)realloc(data->scores, sizeof(int) * data->n_loops);
             data->scores[data->n_loops - 1] = score;
+            /* Extract the loop upper bounds */
+            int *ubs = extract_band_upper_bounds(sa, node);
+            data->ubs = (int *)realloc(data->ubs, sizeof(int) * data->n_loops);
+            data->ubs[data->n_loops - 1] = ubs[0];
+            free(ubs);
           }
         }
       }
@@ -1027,17 +1090,55 @@ static __isl_give isl_schedule_node *polysa_latency_tile_band_loop(
   return node;
 }
 
-static __isl_give isl_schedule_node *polysa_latency_tile_loop(__isl_take isl_schedule_node *node, struct polysa_kernel *sa)
+static __isl_give isl_schedule_node *polysa_latency_tile_loop(__isl_take isl_schedule_node *node, struct polysa_kernel *sa, char *mode)
 {
-  /* Count the candidate loop number. */
-  int tile_len = 0;
-  isl_schedule_node_foreach_descendant_top_down(
-      node, &count_latency_hiding_loop, &tile_len);
-  // printf("%d\n", tile_len);
-
-  /* Read the tile sizes. */
+  int tile_len;
   int *tile_size;
-  tile_size = read_latency_tile_sizes(sa, &tile_len);
+  struct count_latency_hiding_loop_data data;
+  data.tile_len = 0;
+  data.ubs = NULL;
+  data.kernel = sa;
+  
+  /* Count the candidate loop number. */
+  isl_schedule_node_foreach_descendant_top_down(
+      node, &count_latency_hiding_loop, &data);
+  // printf("%d\n", tile_len);
+  tile_len = data.tile_len;
+
+  if (!strcmp(mode, "manual")) {
+    tile_size = read_latency_tile_sizes(sa, tile_len);
+    if (!tile_size) {
+      /* Dump out the number and upper bounds of latency loops and exit the program */
+      int *ubs = data.ubs;
+      FILE *fp;
+      char *content;
+      cJSON *tuning, *latency_json, *loops_json;
+
+      tuning = cJSON_CreateObject();
+      latency_json = cJSON_CreateObject();
+      cJSON_AddItemToObject(tuning, "latency", latency_json);
+      loops_json = cJSON_CreateArray();
+      cJSON_AddItemToObject(latency_json, "tilable_loops", loops_json);
+      for (int i = 0; i < tile_len; i++) {
+        cJSON *loop = cJSON_CreateNumber(ubs[i]);
+        cJSON_AddItemToArray(loops_json, loop);
+      }
+      fp = fopen("tuning.json", "w");
+      content = cJSON_Print(tuning);
+      fprintf(fp, "%s", content);
+      cJSON_Delete(tuning);
+      exit(0);
+    }
+  } else {
+    /* Perform the latency hiding following the default policy */
+    tile_size = read_default_latency_tile_sizes(sa, tile_len);
+  }
+
+  free(data.ubs);
+  if (!tile_size) {
+    isl_schedule_node_free(node);
+    return NULL;
+  }
 
   /* Tile the loop. */
   struct polysa_pe_opt_tile_data tile_data = {0, 0, tile_len, tile_size, sa};
@@ -1050,7 +1151,6 @@ static __isl_give isl_schedule_node *polysa_latency_tile_loop(__isl_take isl_sch
   return node;
 }
 
-// TODO
 isl_bool is_innermost_time_loop_parallel(__isl_keep isl_schedule_node *node, void *user)
 {
   if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
@@ -1246,7 +1346,7 @@ static __isl_give isl_schedule_node *insert_unroll_mark(
  * such a loop will be identified as latency hiding loop candidate. Such loops will be
  * tiled. The point loops will be permuted as the innermost time loops.
  */
-isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa)
+isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa, char *mode)
 {
   isl_bool opt_required;
   isl_schedule *schedule = sa->schedule;
@@ -1299,7 +1399,7 @@ isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa)
    * For each candidate loop, if the loop is used for latency hiding,
    * it is tiled and permuted to the innermost of the time loop band. 
    * A latency hiding marker is added. */
-  node = polysa_latency_tile_loop(node, sa);
+  node = polysa_latency_tile_loop(node, sa, mode);
  
 //  /* Insert the "hls_pipeline" at the innermost latency loop */
 //  node = isl_schedule_node_map_descendant_bottom_up(node,
@@ -1562,7 +1662,7 @@ isl_stat sa_data_transfer_optimize(struct polysa_kernel *sa, struct polysa_gen *
  * - SIMD vectorization
  * - array partitioning
  */
-isl_stat sa_pe_optimize(struct polysa_kernel *sa, bool pass_en[])
+isl_stat sa_pe_optimize(struct polysa_kernel *sa, bool pass_en[], char *pass_mode[])
 {
   /* Prepartion before starting the optimization. */
   /* Initialize the polysa_loop_types. */
@@ -1587,13 +1687,13 @@ isl_stat sa_pe_optimize(struct polysa_kernel *sa, bool pass_en[])
 //  // debug
 
   /* Array partitioning. */
-  sa_array_partitioning_optimize(sa, pass_en[0]);
+  sa_array_partitioning_optimize(sa, pass_en[0], pass_mode[0]);
   /* Latency hiding. */
   if (pass_en[1])
-    sa_latency_hiding_optimize(sa);
+    sa_latency_hiding_optimize(sa, pass_mode[1]);
   /* SIMD vectorization. */
   if (pass_en[2])
-    sa_simd_vectorization_optimize(sa);
+    sa_simd_vectorization_optimize(sa, pass_mode[2]);
 
   return isl_stat_ok;
 }
@@ -1683,43 +1783,41 @@ static __isl_give isl_schedule_node *polysa_simd_tile_loop(__isl_take isl_schedu
   if (isl_schedule_node_get_type(node) == isl_schedule_node_band) {
     for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
       if (isl_schedule_node_band_member_get_pe_opt(node, i) == polysa_loop_simd) {
-        if (data->scores[data->loop_cnt] == data->best_score) {
-          int *tile_size;
-          int tile_len = 1;
-//          // debug
-//          p = isl_printer_print_schedule_node(p, node);
-//          p = isl_printer_flush(p);
-//          // debug
-
-          /* Read the tile sizes */
-          tile_size = read_simd_tile_sizes(kernel, &tile_len);
-          /* Tile the loop */
-          node = polysa_node_band_tile_loop(node, tile_size[0], i);
-          /* Reset the candidate loop in the tile loop the pe_opt property to default */
-          node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_default);
-          /* Reset the point loop space_time property to time loop. */
-          node = isl_schedule_node_child(node, 0);
-          node = isl_schedule_node_band_member_set_space_time(node, 0, polysa_loop_time);
-          /* Reset the point loop pe_opt property to default. */
-          node = isl_schedule_node_band_member_set_pe_opt(node, 0, polysa_loop_default);
+        if (!strcmp(data->mode, "auto")) {
+          /* Perform tiling on the loop with the highest score. */
+          if (data->scores[data->loop_cnt] != data->best_score) 
+            continue;
+        } else {
+          /* Peform tiling on the loop with positive tiling factor */
+          if (data->tile_size[data->loop_cnt] <= 0)          
+            continue;
+        }
+        int tile_size = data->tile_size[data->loop_cnt];
+        /* Tile the loop */
+        node = polysa_node_band_tile_loop(node, tile_size, i);
+        /* Reset the candidate loop in the tile loop the pe_opt property to default */
+        node = isl_schedule_node_band_member_set_pe_opt(node, i, polysa_loop_default);
+        /* Reset the point loop space_time property to time loop. */
+        node = isl_schedule_node_child(node, 0);
+        node = isl_schedule_node_band_member_set_space_time(node, 0, polysa_loop_time);
+        /* Reset the point loop pe_opt property to default. */
+        node = isl_schedule_node_band_member_set_pe_opt(node, 0, polysa_loop_default);
           
-          /* Sink the point loop innermost */
-          node = isl_schedule_node_band_sink(node);
-          /* Add the simd marker */
-          node = isl_schedule_node_map_descendant_bottom_up(node, &add_simd_mark, NULL);
-          /* Update the array references */
-          isl_schedule_node_every_descendant(node, &update_simd_acc, &stride_data); 
+        /* Sink the point loop innermost */
+        node = isl_schedule_node_band_sink(node);
+        /* Add the simd marker */
+        node = isl_schedule_node_map_descendant_bottom_up(node, &add_simd_mark, NULL);
+        /* Update the array references */
+        isl_schedule_node_every_descendant(node, &update_simd_acc, &stride_data); 
 
-          node = isl_schedule_node_parent(node);
+        node = isl_schedule_node_parent(node);
 
 //          // debug
 //          p = isl_printer_print_schedule_node(p, node);
 //          p = isl_printer_flush(p);
 //          // debug
            
-          kernel->simd_w = tile_size[0];
-          free(tile_size);
-        }
+        kernel->simd_w = tile_size;
         data->loop_cnt++;
       }
     }
@@ -1734,12 +1832,15 @@ static __isl_give isl_schedule_node *polysa_simd_tile_loop(__isl_take isl_schedu
  * the loops by heuristics and pick up one loop to be tiled. The point loops will be permuated 
  * as the innermost loops to be unrolled.
  */
-isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa)
+isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa, char *mode)
 {
   int *scores = NULL;
   int n_loops = 0;
   struct simd_vectorization_data data;
   data.best_score = 0;
+  data.mode = mode;
+  data.ubs = NULL;
+  int *tile_size;
 
   printf("[PolySA] Apply SIMD vectorization.\n");
   isl_schedule *schedule = sa->schedule; 
@@ -1774,11 +1875,47 @@ isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa)
     /* Select the candidate loop with the highest score.
     * Tile the candidate loop and permute the point loop innermost. 
     * A SIMD vectorization marker is added. */
-    data.loop_cnt = 0; 
-    node = isl_schedule_node_map_descendant_bottom_up(node, 
-        &polysa_simd_tile_loop, &data);
-  }
+    if (!strcmp(mode, "manual")) {
+      tile_size = read_simd_tile_sizes(sa, data.n_loops); 
+      if (!tile_size) {
+        /* Dump out the number, score and upper bounds of simd loops and exit the program. */
+        int *ubs = data.ubs;
+        FILE *fp;
+        char *content;
+        cJSON *tuning, *simd_json, *loops_json, *scores_json;
+        
+        tuning = cJSON_CreateObject();
+        simd_json = cJSON_CreateObject();
+        cJSON_AddItemToObject(tuning, "simd", simd_json);
+        loops_json = cJSON_CreateArray();
+        cJSON_AddItemToObject(simd_json, "tilable_loops", loops_json);
+        for (int i = 0; i < data.n_loops; i++) {
+          cJSON *loop = cJSON_CreateNumber(ubs[i]);
+          cJSON_AddItemToArray(loops_json, loop);
+        }
+        scores_json = cJSON_CreateArray();
+        cJSON_AddItemToObject(simd_json, "scores", scores_json);
+        for (int i = 0; i < data.n_loops; i++) {
+          cJSON *loop = cJSON_CreateNumber(data.scores[i]);
+          cJSON_AddItemToArray(scores_json, loop);
+        }
+        fp = fopen("tuning.json", "w");
+        content = cJSON_Print(tuning);
+        fprintf(fp, "%s", content);
+        cJSON_Delete(tuning);
+        exit(0);
+      }  
+    }
 
+    /* Perform the simd vectorization */
+    data.loop_cnt = 0;
+    data.tile_size = tile_size;
+    node = isl_schedule_node_map_descendant_bottom_up(node, 
+          &polysa_simd_tile_loop, &data);
+  }
+  
+  free(data.ubs);
+  free(tile_size);
   /* Clean up the band pe_opt properties. */
   schedule = isl_schedule_node_get_schedule(node);
   isl_schedule_node_free(node);
@@ -1919,12 +2056,29 @@ struct polysa_kernel **sa_space_time_transform(__isl_take isl_schedule *schedule
   return sa_list;
 }
 
-/* Select one systolic array design based on heuristics. */
+/* Select one systolic array design based on heuristics. 
+ * TODO
+ * Heuristic:
+ * - RAR carried by space loop. 
+ * - RAW carried by time loop. 
+ */
 struct polysa_kernel *sa_candidates_smart_pick(struct polysa_kernel **sa_list, __isl_keep isl_size num_sa)
 {
   assert(num_sa > 0);
   struct polysa_kernel *sa_opt = polysa_kernel_copy(sa_list[3]);
     
+  for (int i = 0; i < num_sa; i++)
+    polysa_kernel_free(sa_list[i]);
+  free(sa_list);
+
+  return sa_opt;
+}
+
+/* Return the selected systolic array design and free the rest. */
+struct polysa_kernel *sa_candidates_manual_pick(struct polysa_kernel **sa_list, isl_size num_sa, int sa_id)
+{
+  struct polysa_kernel *sa_opt = polysa_kernel_copy(sa_list[sa_id]);
+
   for (int i = 0; i < num_sa; i++)
     polysa_kernel_free(sa_list[i]);
   free(sa_list);
@@ -3358,7 +3512,8 @@ static __isl_give isl_schedule_node *mark_kernels(
   struct polysa_kernel *sa_opt, *kernel;
   isl_schedule *schedule;
   /* Enable for array partitioning, latency hiding, SIMD */
-  bool pe_opt_en[3] = {1, 1, 1}; 
+  bool pe_opt_en[3];
+  char *pe_opt_mode[3];
   isl_union_set *domain, *expanded;
   int single_statement;
   isl_union_map *host_schedule;
@@ -3366,6 +3521,11 @@ static __isl_give isl_schedule_node *mark_kernels(
   isl_id *id;
   isl_union_pw_multi_aff *contraction;
   int n_space_dim;
+  char *space_time_mode;
+  cJSON *space_time_json, *space_time_mode_json, *n_sa_json, *tuning;
+  cJSON *array_part_json, *array_part_en_json, *array_part_mode_json;
+  cJSON *latency_json, *latency_en_json, *latency_mode_json;
+  cJSON *simd_json, *simd_en_json, *simd_mode_json;
 
   /* Generate systolic arrays using space-time mapping. */
   schedule = isl_schedule_node_get_schedule(node);
@@ -3373,19 +3533,61 @@ static __isl_give isl_schedule_node *mark_kernels(
   sa_candidates = sa_space_time_transform(schedule, gen->prog->scop, &num_sa);
   if (num_sa > 0)
     printf("[PolySA] %d systolic arrays generated.\n", num_sa);
-
-  /* Pick up one systolic array to proceed based on heuristics. */
-  kernel = sa_candidates_smart_pick(sa_candidates, num_sa);
+  space_time_json = cJSON_GetObjectItemCaseSensitive(gen->tuning_config, "space_time");
+  space_time_mode_json = cJSON_GetObjectItemCaseSensitive(space_time_json, "mode");
+  space_time_mode = space_time_mode_json->valuestring;
+  if (!strcmp(space_time_mode, "auto")) {
+    /* Pick up one systolic array to proceed based on heuristics. */
+    kernel = sa_candidates_smart_pick(sa_candidates, num_sa);
+  } else {
+    isl_union_map *sizes = extract_sizes_from_str(gen->ctx, gen->options->sa_sizes);
+    int kernel_id = read_space_time_kernel_id(sizes); 
+    isl_union_map_free(sizes);
+    if (kernel_id < 0) {
+      /* Dump out the number of systolic array designs and exit the program*/
+      FILE *fp;
+      char *content;
+      tuning = cJSON_CreateObject();
+      space_time_json = cJSON_CreateObject();
+      n_sa_json = cJSON_CreateNumber(num_sa);
+      cJSON_AddItemToObject(space_time_json, "n_kernel", n_sa_json);
+      cJSON_AddItemToObject(tuning, "space_time", space_time_json);
+      fp = fopen("tuning.json", "w");
+      content = cJSON_Print(tuning);
+      fprintf(fp, "%s", content);
+      cJSON_Delete(tuning);
+      exit(0);
+    } else {
+      kernel = sa_candidates_manual_pick(sa_candidates, num_sa, kernel_id); 
+    }
+  }
   kernel->prog = gen->prog;
   kernel->options = gen->options;
   /* Create local arrays. */
   kernel = polysa_kernel_create_local_arrays(kernel, gen->prog);
 
   /* Apply PE optimization. */
-  pe_opt_en[0] = 1;
-  pe_opt_en[1] = 1;
-  pe_opt_en[2] = 1;
-  sa_pe_optimize(kernel, pe_opt_en);
+  array_part_json = cJSON_GetObjectItemCaseSensitive(gen->tuning_config, "array_part");
+  array_part_en_json = cJSON_GetObjectItemCaseSensitive(array_part_json, "enable");
+  array_part_mode_json = cJSON_GetObjectItemCaseSensitive(array_part_json, "mode");
+  
+  latency_json = cJSON_GetObjectItemCaseSensitive(gen->tuning_config, "latency");
+  latency_en_json = cJSON_GetObjectItemCaseSensitive(latency_json, "enable");
+  latency_mode_json = cJSON_GetObjectItemCaseSensitive(latency_json, "mode");
+  
+  simd_json = cJSON_GetObjectItemCaseSensitive(gen->tuning_config, "simd");
+  simd_en_json = cJSON_GetObjectItemCaseSensitive(simd_json, "enable");
+  simd_mode_json = cJSON_GetObjectItemCaseSensitive(simd_json, "mode");
+
+  pe_opt_en[0] = array_part_en_json->valueint;
+  pe_opt_en[1] = latency_en_json->valueint;
+  pe_opt_en[2] = simd_en_json->valueint;
+
+  pe_opt_mode[0] = array_part_mode_json->valuestring;
+  pe_opt_mode[1] = latency_mode_json->valuestring;
+  pe_opt_mode[2] = simd_mode_json->valuestring;
+
+  sa_pe_optimize(kernel, pe_opt_en, pe_opt_mode);
 
   /* Create the polysa_kernel object and attach to the schedule. */
   if (!kernel) {
@@ -8882,6 +9084,33 @@ static __isl_give struct polysa_hw_module **hw_module_reorder(
   return modules_new;
 }
 
+static cJSON *load_tuning_config(char *config_file)
+{
+  FILE *f;
+  char *buffer = NULL;
+  cJSON *config = NULL;
+  long length;
+
+  f = fopen(config_file, "rb");
+  if (f) {
+    fseek(f, 0, SEEK_END);
+    length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    buffer = malloc(length);
+    if (buffer) {
+      fread(buffer, 1, length, f);
+    }
+    fclose(f);
+  }
+
+  if (buffer) {
+    config = cJSON_Parse(buffer);
+    free(buffer);
+  }
+
+  return config;
+}
+
 /* Select the best "schedule" for mapping to FPGA.
  *
  * Unlike PPCG, in PolySA, only one SA kernel is created out of the 
@@ -8907,7 +9136,17 @@ __isl_give isl_schedule *sa_map_to_device(struct polysa_gen *gen,
   isl_schedule *hw_schedule;
   struct polysa_kernel *kernel;
   isl_id *id;
+  cJSON *tuning_config = NULL;
 
+  /* Load the tuning configuration file */
+  tuning_config = load_tuning_config(gen->options->config);
+  if (!tuning_config) {
+    isl_schedule_free(schedule);
+    printf("[PolySA] Error: PolySA configuration file not found!\n");
+    exit(1);
+  }
+  gen->tuning_config = tuning_config;
+    
   context = isl_set_copy(gen->prog->context);
   context = isl_set_from_params(context);
   schedule = isl_schedule_insert_context(schedule, context);
@@ -9013,6 +9252,7 @@ __isl_give isl_schedule *sa_map_to_device(struct polysa_gen *gen,
   isl_schedule_free(gen->schedule);
   gen->schedule = isl_schedule_node_get_schedule(node);
   isl_schedule_node_free(node);
+  cJSON_Delete(gen->tuning_config);
 
   return gen->schedule;
 }
@@ -9205,6 +9445,7 @@ int generate_sa(isl_ctx *ctx, const char *input, FILE *out,
   gen.hw_top_module = NULL;
   gen.schedule = NULL;
   gen.kernel = NULL;
+  gen.tuning_config = NULL;
 
   if (options->debug->dump_sizes) {
     isl_space *space = isl_space_params_alloc(ctx, 0);

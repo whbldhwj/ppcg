@@ -7,7 +7,7 @@
 				"loop_info":	{
 					"iter":	"c3",
 					"lb":	"0",
-					"ub":	"3",
+					"ub":	"1",
 					"stride":	"1"
 				},
 				"child":	{
@@ -15,7 +15,7 @@
 						"loop_info":	{
 							"iter":	"c4",
 							"lb":	"0",
-							"ub":	"3",
+							"ub":	"1",
 							"stride":	"1"
 						},
 						"child":	{
@@ -53,7 +53,7 @@
 																							"loop_info":	{
 																								"iter":	"c8",
 																								"lb":	"0",
-																								"ub":	"1",
+																								"ub":	"3",
 																								"stride":	"1"
 																							},
 																							"child":	{
@@ -67,7 +67,7 @@
 																													"mark_name":	"hls_pipeline",
 																													"child":	{
 																														"user":	{
-																															"user_expr":	"in_trans.fifo_C_drain_local.0.1.-1.-1.4.2(0, 0, 0, c3, c4, 3, c6, c7, 4 * c3 + 2 * c7 + c8, 4 * c4 + 2 * c6)"
+																															"user_expr":	"in_trans.fifo_C_drain_local.0.1.-1.-1.8.4(0, 0, 0, c3, c4, 1, c6, c7, 8 * c3 + 4 * c7 + c8, 8 * c4 + 4 * c6)"
 																														}
 																													}
 																												}
@@ -94,7 +94,7 @@
 											"loop_info":	{
 												"iter":	"c6",
 												"lb":	"0",
-												"ub":	"3",
+												"ub":	"7",
 												"stride":	"1"
 											},
 											"child":	{
@@ -108,7 +108,7 @@
 																	"mark_name":	"hls_pipeline",
 																	"child":	{
 																		"user":	{
-																			"user_expr":	"out_trans_dram.fifo_C_drain_local.0.1.5.-1.4.4(0, 0, 0, c3, c4, 3, 4 * c3 + c6, 4 * c4)"
+																			"user_expr":	"out_trans_dram.fifo_C_drain_local.0.1.5.-1.8.8(0, 0, 0, c3, c4, 1, 8 * c3 + c6, 8 * c4)"
 																		}
 																	}
 																}

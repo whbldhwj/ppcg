@@ -3930,8 +3930,9 @@ static __isl_give isl_printer *generate(__isl_take isl_printer *p,
   
       if (t2s_tile_first_phase) {
         bool opt_en[3] = {1, 1, 1};
+        char *opt_mode[3] = {"auto", "auto", "auto"};
         /* Apply PE optimization. */
-        sa_pe_optimize(sa_opt, opt_en);
+        sa_pe_optimize(sa_opt, opt_en, opt_mode);
       }
   
   //    // debug

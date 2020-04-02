@@ -7,7 +7,7 @@
 				"loop_info":	{
 					"iter":	"c3",
 					"lb":	"0",
-					"ub":	"3",
+					"ub":	"1",
 					"stride":	"1"
 				},
 				"child":	{
@@ -15,7 +15,7 @@
 						"loop_info":	{
 							"iter":	"c4",
 							"lb":	"0",
-							"ub":	"3",
+							"ub":	"1",
 							"stride":	"1"
 						},
 						"child":	{
@@ -34,7 +34,7 @@
 																	"loop_info":	{
 																		"iter":	"c9",
 																		"lb":	"0",
-																		"ub":	"1",
+																		"ub":	"3",
 																		"stride":	"1"
 																	},
 																	"child":	{
@@ -48,7 +48,7 @@
 																							"loop_info":	{
 																								"iter":	"c10",
 																								"lb":	"0",
-																								"ub":	"1",
+																								"ub":	"3",
 																								"stride":	"1"
 																							},
 																							"child":	{
@@ -59,7 +59,7 @@
 																											"mark_name":	"hls_unroll",
 																											"child":	{
 																												"user":	{
-																													"user_expr":	"S_0(2 * p0 + 4 * c3 + c10, 2 * p1 + 4 * c4 + c9)"
+																													"user_expr":	"S_0(4 * p0 + 8 * c3 + c10, 4 * p1 + 8 * c4 + c9)"
 																												}
 																											}
 																										}
@@ -84,7 +84,7 @@
 											"loop_info":	{
 												"iter":	"c5",
 												"lb":	"0",
-												"ub":	"3",
+												"ub":	"1",
 												"stride":	"1"
 											},
 											"child":	{
@@ -98,7 +98,7 @@
 																	"loop_info":	{
 																		"iter":	"c8",
 																		"lb":	"0",
-																		"ub":	"1",
+																		"ub":	"3",
 																		"stride":	"1"
 																	},
 																	"child":	{
@@ -109,7 +109,7 @@
 																					"loop_info":	{
 																						"iter":	"c9",
 																						"lb":	"0",
-																						"ub":	"1",
+																						"ub":	"3",
 																						"stride":	"1"
 																					},
 																					"child":	{
@@ -123,18 +123,18 @@
 																											"loop_info":	{
 																												"iter":	"c10",
 																												"lb":	"0",
-																												"ub":	"1",
+																												"ub":	"3",
 																												"stride":	"1"
 																											},
 																											"child":	{
 																												"block":	{
 																													"child":	[{
 																															"user":	{
-																																"user_expr":	"in.fifo_A.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 2 * p0 + 4 * c3 + c10, 4 * c5 + 2 * c8)"
+																																"user_expr":	"in.fifo_A.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 4 * p0 + 8 * c3 + c10, 8 * c5 + 2 * c8)"
 																															}
 																														}, {
 																															"user":	{
-																																"user_expr":	"in.fifo_B.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 2 * p1 + 4 * c4 + c9, 4 * c5 + 2 * c8)"
+																																"user_expr":	"in.fifo_B.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 4 * p1 + 8 * c4 + c9, 8 * c5 + 2 * c8)"
 																															}
 																														}, {
 																															"mark":	{
@@ -152,7 +152,7 @@
 																																				},
 																																				"child":	{
 																																					"user":	{
-																																						"user_expr":	"S_1(2 * p0 + 4 * c3 + c10, 2 * p1 + 4 * c4 + c9, 4 * c5 + 2 * c8 + c11)"
+																																						"user_expr":	"S_1(4 * p0 + 8 * c3 + c10, 4 * p1 + 8 * c4 + c9, 8 * c5 + 2 * c8 + c11)"
 																																					}
 																																				}
 																																			}
@@ -164,17 +164,17 @@
 																															"if":	{
 																																"then":	{
 																																	"user":	{
-																																		"user_expr":	"out.fifo_C_drain.1.1(0, 0, 0, c3, c4, 3, p0, p1, 1, c9, c10, 2 * p0 + 4 * c3 + c10, 2 * p1 + 4 * c4 + c9)"
+																																		"user_expr":	"out.fifo_C_drain.1.1(0, 0, 0, c3, c4, 1, p0, p1, 3, c9, c10, 4 * p0 + 8 * c3 + c10, 4 * p1 + 8 * c4 + c9)"
 																																	}
 																																}
 																															}
 																														}, {
 																															"user":	{
-																																"user_expr":	"out.fifo_B.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 2 * p1 + 4 * c4 + c9, 4 * c5 + 2 * c8)"
+																																"user_expr":	"out.fifo_B.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 4 * p1 + 8 * c4 + c9, 8 * c5 + 2 * c8)"
 																															}
 																														}, {
 																															"user":	{
-																																"user_expr":	"out.fifo_A.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 2 * p0 + 4 * c3 + c10, 4 * c5 + 2 * c8)"
+																																"user_expr":	"out.fifo_A.2.1(0, 0, 0, c3, c4, c5, p0, p1, c8, c9, c10, 4 * p0 + 8 * c3 + c10, 8 * c5 + 2 * c8)"
 																															}
 																														}]
 																												}

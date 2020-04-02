@@ -86,9 +86,6 @@ struct ppcg_options {
   /* Maximal amount of local memory. */
   int max_local_memory;
 
-  /* Unroll the code for copying to/from local memory */
-  int unroll_copy_local;
-
   /* Enable data pack for transferring data */
   int data_pack;
 
@@ -98,7 +95,12 @@ struct ppcg_options {
   /* Enable two-level buffering in I/O modules */
   int two_level_buffer;
 
+  /* Configuration file */
+  char *config;
   /* PolySA Extended */
+
+  /* Unroll the code for copying to/from local memory */
+  int unroll_copy_local;
 
 	/* Generate OpenMP macros (C target only). */
 	int openmp;

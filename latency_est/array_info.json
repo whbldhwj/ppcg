@@ -10,7 +10,7 @@
 		"ele_size":	4
 	},
 	"C":	{
-		"n_lane":	4,
+		"n_lane":	8,
 		"ele_type":	"int",
 		"ele_size":	4
 	}

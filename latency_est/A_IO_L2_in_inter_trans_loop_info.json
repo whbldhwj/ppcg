@@ -15,7 +15,7 @@
 						"loop_info":	{
 							"iter":	"c7",
 							"lb":	"0",
-							"ub":	"1",
+							"ub":	"3",
 							"stride":	"1"
 						},
 						"child":	{
@@ -26,7 +26,7 @@
 										"mark_name":	"hls_pipeline",
 										"child":	{
 											"user":	{
-												"user_expr":	"in_trans.fifo_A.1.1.6.0.4.4(0, 0, 0, c3, c4, c5, c6, 4 * c3 + 2 * c6 + c7, 4 * c5)"
+												"user_expr":	"in_trans.fifo_A.1.1.6.0.8.8(0, 0, 0, c3, c4, c5, c6, 8 * c3 + 4 * c6 + c7, 8 * c5)"
 											}
 										}
 									}

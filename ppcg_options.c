@@ -123,6 +123,8 @@ ISL_ARG_USER_OPT_CHOICE(struct ppcg_options, target, 0, "target", target,
 	"the target to generate code for")
 ISL_ARG_BOOL(struct ppcg_options, unroll_copy_local, 0, "unroll-copy-local",
 	0, "unroll code for copying to/from local memory")
+ISL_ARG_STR(struct ppcg_options, config, 0, "config", "config", NULL, 
+  "PolySA Configuration file")
 /* PolySA Extended */
 ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
   "Generate systolic arrays using PolySA")
