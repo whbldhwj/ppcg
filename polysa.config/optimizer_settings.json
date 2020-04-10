@@ -1,0 +1,9 @@
+{
+  "training": {
+    "n_sample": 2
+  },
+  "search": {
+    "n_sample": -1,
+    "cycle": 5
+  }
+}

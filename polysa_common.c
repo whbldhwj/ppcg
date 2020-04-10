@@ -1526,10 +1526,12 @@ struct polysa_array_ref_group *polysa_array_ref_group_free(
 	if (!group)
 		return NULL;
   polysa_array_tile_free(group->local_tile);
+  polysa_array_tile_free(group->pe_tile);
 	isl_map_free(group->access);
 	if (group->n_ref > 1)
 		free(group->refs);
   isl_vec_free(group->dir);
+  isl_vec_free(group->old_dir);
   isl_multi_aff_free(group->io_trans);
   isl_multi_aff_free(group->io_L1_trans);
 //  isl_mat_free(group->io_trans_mat);
@@ -2470,6 +2472,7 @@ struct polysa_hw_module *polysa_hw_module_alloc()
   module->boundary_inter_tree = NULL;
   module->n_pe_dummy_modules = 0;
   module->pe_dummy_modules = NULL;
+  module->n_array_ref = 0;
 
   return module;
 }
@@ -2827,10 +2830,13 @@ int *read_array_part_L2_tile_sizes(struct polysa_kernel *sa, int tile_len)
   tile_size = isl_alloc_array(sa->ctx, int, tile_len);
   if (!tile_size)
     return NULL;
-  for (n = 0; n < tile_len; ++n) 
-    tile_size[n] = sa->scop->options->sa_tile_size;
   
   size = extract_sa_sizes(sa->sizes, "array_part_L2", sa->id);
+  if (isl_set_dim(size, isl_dim_set) < tile_len) {
+    free(tile_size);
+    isl_set_free(size);
+    return NULL;
+  }
   if (read_sa_sizes_from_set(size, tile_size, tile_len) < 0)
     goto error;
   set_sa_used_sizes(sa, "array_part_L2", sa->id, tile_size, tile_len);
@@ -2839,6 +2845,20 @@ int *read_array_part_L2_tile_sizes(struct polysa_kernel *sa, int tile_len)
 error:
   free(tile_size);
   return NULL;
+}
+
+int *read_default_array_part_L2_tile_sizes(struct polysa_kernel *sa, int tile_len)
+{
+  int n;
+  int *tile_size;
+
+  tile_size = isl_alloc_array(sa->ctx, int, tile_len);
+  if (!tile_size)
+    return NULL;
+  for (n = 0; n < tile_len; ++n)
+    tile_size[n] = sa->scop->options->sa_tile_size;
+
+  return tile_size;
 }
 
 /* Extract user specified "sa_tile" sizes from the "sa_sizes" command line option,
@@ -3209,7 +3229,7 @@ static char *extract_loop_info_from_module(
 
     module_name = cJSON_GetObjectItemCaseSensitive(loop_struct, "module_name");
     p_str = isl_printer_to_str(gen->ctx);
-    p_str = isl_printer_print_str(p_str, "latency_est/");
+    p_str = isl_printer_print_str(p_str, "polysa.tmp/latency_est/");
     p_str = isl_printer_print_str(p_str, module_name->valuestring);
     p_str = isl_printer_print_str(p_str, "_loop_info.json");
     file_name = isl_printer_get_str(p_str);
@@ -3217,6 +3237,10 @@ static char *extract_loop_info_from_module(
     cJSON_Delete(loop_struct);
     
     fp = fopen(file_name, "w");
+    if (!fp) {
+      printf("[PolySA] Error! Cannot open file: %s\n", file_name);
+      exit(1);
+    }
     free(file_name);
     fprintf(fp, "%s", json_str);
     fclose(fp);
@@ -3322,7 +3346,7 @@ static cJSON *extract_design_info_from_pe_dummy_module(struct polysa_gen *gen,
     ((group->group_type == POLYSA_DRAIN_GROUP)? group->n_lane:
      (group->group_type == POLYSA_EXT_IO)? group->n_lane : group->io_buffers[0]->n_lane);
   cJSON *data_pack = cJSON_CreateNumber(n_lane);
-  cJSON_AddItemToObject(info, "data_pack", data_pack);
+  cJSON_AddItemToObject(info, "unroll", data_pack);
 
   return info;
 }
@@ -3418,7 +3442,10 @@ isl_stat sa_extract_design_info(struct polysa_gen *gen)
   }
 
   json_str = cJSON_Print(design_info);
-  fp = fopen("resource_est/design_info.json", "w");
+  fp = fopen("polysa.tmp/resource_est/design_info.json", "w");
+  if (!fp) {
+    printf("[PolySA] Error! Cannot open file: polysa.tmp/resource_est/design_info.json\n");
+  }
   fprintf(fp, "%s", json_str);
   fclose(fp);
   cJSON_Delete(design_info);
@@ -3508,7 +3535,10 @@ isl_stat sa_extract_array_info(struct polysa_kernel *kernel)
   
   /* Print out the JSON */
   json_str = cJSON_Print(array_info);
-  fp = fopen("latency_est/array_info.json", "w");
+  fp = fopen("polysa.tmp/latency_est/array_info.json", "w");
+  if (!fp) {
+    printf("[PolySA] Error! Cannot open file: polysa.tmp/latency_est/array_info.json\n");
+  }
   fprintf(fp, "%s", json_str);
   fclose(fp);
   free(json_str);

@@ -146,7 +146,7 @@ static __isl_give isl_printer *print_non_linearized_declaration_argument(
  */
 __isl_give isl_printer *polysa_array_info_print_declaration_argument(
 	__isl_take isl_printer *p, struct polysa_array_info *array, int n_lane,
-	const char *memory_space)
+	const char *memory_space, int n_ref)
 {
 	if (polysa_array_is_read_only_scalar(array)) {
 		p = isl_printer_print_str(p, array->type);
@@ -173,6 +173,10 @@ __isl_give isl_printer *polysa_array_info_print_declaration_argument(
 	p = isl_printer_print_str(p, " ");
 	p = isl_printer_print_str(p, "*");
 	p = isl_printer_print_str(p, array->name);
+  if (n_ref >= 0) {
+    p = isl_printer_print_str(p, "_");
+    p = isl_printer_print_int(p, n_ref);
+  }
 
 	return p;
 }

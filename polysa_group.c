@@ -117,14 +117,15 @@ static int populate_array_references_pe(struct polysa_local_array_info *local,
 		group->n_ref = 1;
     group->io_type = POLYSA_UNKNOWN_IO;
     group->dir = NULL;
+    group->old_dir = NULL;
     group->group_type = POLYSA_PE_GROUP;
     group->local_tile = NULL;
     group->io_trans = NULL;
-//    group->io_trans_mat = NULL;
     group->io_pe_expr = NULL;
     group->n_io_buffer = 0;
     group->io_buffers = NULL;
     group->copy_schedule = NULL;
+    group->pe_tile = NULL;
 
 		groups[n++] = group;
 	}
@@ -184,16 +185,17 @@ static int populate_array_references_io(struct polysa_local_array_info *local,
 		  group->n_ref = 1;
       group->io_type = access->io_info[j]->io_type;
       group->dir = isl_vec_copy(access->io_info[j]->dir);
+      group->old_dir = isl_vec_copy(group->dir);
       group->group_type = POLYSA_IO_GROUP;
       group->pe_io_dir = IO_NULL;
       group->array_io_dir = IO_NULL;
       group->io_trans = NULL;
-//      group->io_trans_mat = NULL;
       group->io_pe_expr = NULL;
       group->io_L1_pe_expr = NULL;
       group->n_io_buffer = 0;
       group->io_buffers = NULL;
       group->copy_schedule = NULL;
+      group->pe_tile = NULL;
 
 		  groups[n++] = group;
     }
@@ -1035,6 +1037,53 @@ isl_stat compute_group_bounds_io_at_node(struct polysa_kernel *kernel,
   return isl_stat_ok;
 }
 
+isl_stat compute_group_bounds_io_at_node_PE(
+  struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group, __isl_keep isl_schedule_node *node) 
+{
+  isl_ctx *ctx = isl_space_get_ctx(group->array->space);
+  int use_local = kernel->options->use_local_memory;
+  isl_stat r = isl_stat_ok;
+  isl_union_map *access;
+  isl_map *acc;
+  isl_bool ok;
+
+  if (!use_local)
+    return isl_stat_ok;
+  if (polysa_array_is_read_only_scalar(group->array))
+    return isl_stat_ok;
+  if (!group->exact_write)
+    return isl_stat_ok;
+  if (group->slice)
+    return isl_stat_ok;
+ 
+  /* Collect all accesses in the group. */
+  access = polysa_array_ref_group_access_relation(group, 1, 1);
+  /* Create local tile */
+  if (use_local) {
+    /* Create a tile */
+    group->pe_tile = polysa_array_tile_create(ctx, group->array->n_index);
+    /* Map the domain to the outer scheduling dimensions */
+    acc = local_access_io_at_node(kernel, group, access, node);
+    /* Collect the shift and scale factors of the tile */
+    ok = can_tile(acc, group->pe_tile);
+    if (ok < 0)
+      r = isl_stat_error;
+    else if (!ok)
+      group->pe_tile = polysa_array_tile_free(group->pe_tile);
+    isl_map_free(acc);
+  }
+
+  if (r < 0) {
+    isl_union_map_free(access);
+    return r;
+  }
+
+  isl_union_map_free(access);
+  return isl_stat_ok;
+}
+
+
 /* Compute the local memory tiles for the array reference group "group"
  * of array "array". Return isl_stat_ok on success and isl_stat_error on error.
  *
@@ -1075,6 +1124,52 @@ isl_stat compute_group_bounds_drain_at_node(struct polysa_kernel *kernel,
       r = isl_stat_error;
     else if (!ok)
       buffer->tile = polysa_array_tile_free(buffer->tile);
+    isl_map_free(acc);
+  }
+
+  if (r < 0) {
+    isl_union_map_free(access);
+    return r;
+  }
+
+  isl_union_map_free(access);
+  return isl_stat_ok;
+}
+
+static isl_stat compute_group_bounds_drain_at_node_PE(
+  struct polysa_kernel *kernel, struct polysa_array_ref_group *group, 
+  __isl_keep isl_schedule_node *node) 
+{
+  isl_ctx *ctx = isl_space_get_ctx(group->array->space);
+  int use_local = kernel->options->use_local_memory;
+  isl_stat r = isl_stat_ok;
+  isl_union_map *access;
+  isl_map *acc;
+  isl_bool ok;
+
+  if (!use_local)
+    return isl_stat_ok;
+  if (polysa_array_is_read_only_scalar(group->array))
+    return isl_stat_ok;
+  if (!group->exact_write)
+    return isl_stat_ok;
+  if (group->slice)
+    return isl_stat_ok;
+ 
+  /* Collect all accesses in the group. */
+  access = polysa_array_ref_group_access_relation(group, 0, 1);
+  /* Create local tile */
+  if (use_local) {
+    /* Create a tile */
+    group->pe_tile = polysa_array_tile_create(ctx, group->array->n_index);
+    /* Map the domain to the outer scheduling dimensions */
+    acc = local_access_io_at_node(kernel, group, access, node);
+    /* Collect the shift and scale factors of the tile */
+    ok = can_tile(acc, group->pe_tile);
+    if (ok < 0)
+      r = isl_stat_error;
+    else if (!ok)
+      group->pe_tile = polysa_array_tile_free(group->pe_tile);
     isl_map_free(acc);
   }
 
@@ -2159,6 +2254,8 @@ static isl_stat compute_io_group_schedule(
     if (io_level == 1) {
       sched = isl_schedule_node_get_schedule(node);
       group->io_L1_schedule = isl_schedule_dup(sched);
+      // TODO: if the space schedule is to be degenerated, we 
+      // will need to update the io_trans/io_L1_trans as well
       group->io_L1_trans = isl_multi_aff_copy(io_trans_ma_i);
 
       isl_schedule_free(sched);
@@ -2335,6 +2432,7 @@ static isl_stat hoist_L2_io_buffer(struct polysa_kernel *kernel,
   isl_val *cur_last_dim, *nxt_last_dim;
   isl_schedule_node *node, *node_cp;
   int i, n;
+  int old_depth, new_depth;
 
   cur_buffer = group->io_buffers[io_level - 1];
   for (int i = io_level - 1; i >= 1; i--) {
@@ -2357,46 +2455,103 @@ static isl_stat hoist_L2_io_buffer(struct polysa_kernel *kernel,
 //  printf("\n");
 //  // debug  
   is_last_dim_equal = isl_val_eq(cur_last_dim, nxt_last_dim);
-  if (!is_last_dim_equal)
-    return isl_stat_ok;
-
-  /* Try to hoist the io buffer until the last dimenison is increased */
-  polysa_array_tile_free(cur_buffer->tile);
-  node = isl_schedule_get_root(group->io_schedule);
 //  // debug
 //  p = isl_printer_print_schedule_node(p, node);
 //  p = isl_printer_flush(p);
 //  // debug
-  node = polysa_tree_move_down_to_array(node, kernel->core);
-  node = isl_schedule_node_parent(node);
-  n = isl_schedule_node_band_n_member(node);  
-  for (i = n - 1; i > 0; i--) {
-    node_cp = isl_schedule_node_copy(node);
-    node_cp = isl_schedule_node_band_split(node_cp, i);
-    node_cp = isl_schedule_node_child(node_cp, 0); 
-    if (group->group_type == POLYSA_DRAIN_GROUP)
-      compute_group_bounds_drain_at_node(kernel, group, node_cp, cur_buffer);
-    else if (group->group_type == POLYSA_IO_GROUP)
-      compute_group_bounds_io_at_node(kernel, group, node_cp, cur_buffer);
-    polysa_array_ref_group_compute_tiling(cur_buffer->tile, group);
-    /* Test if the last dim is increased */
-    cur_last_dim = cur_buffer->tile->bound[cur_buffer->tile->n - 1].size;
-    is_last_dim_equal = isl_val_eq(cur_last_dim, nxt_last_dim);    
-    isl_schedule_node_free(node_cp);    
-    if (!is_last_dim_equal) {
-      /* Test if the buffer position could be further hoisted */
-      tile_set_depth(data, cur_buffer->tile);
+
+  if (is_last_dim_equal) {
+    /* Try to hoist the io buffer until the last dimenison is increased */
+    polysa_array_tile_free(cur_buffer->tile);
+    node = isl_schedule_get_root(group->io_schedule);
+    node = polysa_tree_move_down_to_array(node, kernel->core);
+    node = isl_schedule_node_parent(node);
+    n = isl_schedule_node_band_n_member(node);  
+    for (i = n - 1; i > 0; i--) {
+      node_cp = isl_schedule_node_copy(node);
+      node_cp = isl_schedule_node_band_split(node_cp, i);
+      node_cp = isl_schedule_node_child(node_cp, 0); 
+      if (group->group_type == POLYSA_DRAIN_GROUP)
+        compute_group_bounds_drain_at_node(kernel, group, node_cp, cur_buffer);
+      else if (group->group_type == POLYSA_IO_GROUP)
+        compute_group_bounds_io_at_node(kernel, group, node_cp, cur_buffer);
+      polysa_array_ref_group_compute_tiling(cur_buffer->tile, group);
+      /* Test if the last dim is increased */
+      cur_last_dim = cur_buffer->tile->bound[cur_buffer->tile->n - 1].size;
+      is_last_dim_equal = isl_val_eq(cur_last_dim, nxt_last_dim);    
+      isl_schedule_node_free(node_cp);    
+      if (!is_last_dim_equal) {
+        break;
+      }
+      polysa_array_tile_free(cur_buffer->tile);
+    }
+    if (i == 0) {
+      /* In this case, none of the second level array part loops helps 
+       * increase the burst length. We will allocate the buffer again 
+       * at the innermost array_L2 loop and try to hoist up the buffer 
+       * to save the communication. 
+       */
+      int old_depth, new_depth;
+      node = isl_schedule_node_child(node, 0);
+      if (group->group_type == POLYSA_DRAIN_GROUP)
+        compute_group_bounds_drain_at_node(kernel, group, node, cur_buffer);
+      else if (group->group_type == POLYSA_IO_GROUP)
+        compute_group_bounds_io_at_node(kernel, group, node, cur_buffer);
+      polysa_array_ref_group_compute_tiling(cur_buffer->tile, group);
+    }
+    isl_schedule_node_free(node);
+  }
+  /* Test if the buffer position could be further hoisted */
+  old_depth = cur_buffer->tile->depth;
+  tile_set_depth(data, cur_buffer->tile);
+  new_depth = cur_buffer->tile->depth;
+  if (is_last_dim_equal && new_depth == old_depth) {
+    /* In this case, the buffer couldn't be hosited up, and it doesn't 
+     * increase the burst length. There is no benefit to generate
+     * second-level buffer. We will free up the tile.
+     */
+    polysa_array_tile_free(cur_buffer->tile);
+    cur_buffer->tile = NULL;
+  } else {
+    if (new_depth != old_depth) {
       isl_multi_aff_free(cur_buffer->tile->tiling);
       polysa_array_ref_group_compute_tiling(cur_buffer->tile, group);
-      break;  
     }
-    polysa_array_tile_free(cur_buffer->tile);
   }
 
 //  // debug
 //  p = isl_printer_print_multi_aff(p, cur_buffer->tile->tiling);
 //  printf("\n");
 //  // debug
+
+  return isl_stat_ok;
+}
+
+static isl_stat compute_drain_tiling_at_PE(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group)
+{
+  isl_schedule_node *node;
+  struct polysa_array_tile *tile;
+
+  node = isl_schedule_get_root(kernel->schedule);
+  node = polysa_tree_move_down_to_pe(node, kernel->core);
+  compute_group_bounds_drain_at_node_PE(kernel, group, node);
+  polysa_array_ref_group_compute_tiling(group->pe_tile, group);
+  isl_schedule_node_free(node);
+
+  return isl_stat_ok;
+}
+
+static isl_stat compute_io_tiling_at_PE(struct polysa_kernel *kernel,
+  struct polysa_array_ref_group *group)
+{
+  isl_schedule_node *node;
+  struct polysa_array_tile *tile;
+
+  node = isl_schedule_get_root(kernel->schedule);
+  node = polysa_tree_move_down_to_pe(node, kernel->core);
+  compute_group_bounds_io_at_node_PE(kernel, group, node);
+  polysa_array_ref_group_compute_tiling(group->pe_tile, group);
   isl_schedule_node_free(node);
 
   return isl_stat_ok;
@@ -2446,6 +2601,7 @@ static isl_stat compute_io_group_buffer(struct polysa_kernel *kernel,
           /* Compute the group tiling at this level */
           compute_group_bounds_drain_at_node(kernel, group, node, group->io_buffers[group->n_io_buffer - 1]); 
           polysa_array_ref_group_compute_tiling(group->io_buffers[group->n_io_buffer - 1]->tile, group);
+          compute_drain_tiling_at_PE(kernel, group); 
         } else {
           group->io_buffers[group->n_io_buffer - 1]->tile = NULL;
         }
@@ -2455,6 +2611,9 @@ static isl_stat compute_io_group_buffer(struct polysa_kernel *kernel,
           /* Compute the group tiling at this level */
           compute_group_bounds_io_at_node(kernel, group, node, group->io_buffers[group->n_io_buffer - 1]); 
           polysa_array_ref_group_compute_tiling(group->io_buffers[group->n_io_buffer - 1]->tile, group);
+          if (group->io_type == POLYSA_INT_IO && i == 1) {
+            compute_io_tiling_at_PE(kernel, group);  
+          }
         } else {
           group->io_buffers[group->n_io_buffer - 1]->tile = NULL;
         }
@@ -2464,7 +2623,6 @@ static isl_stat compute_io_group_buffer(struct polysa_kernel *kernel,
 
       if (two_level_buffer) {
         if (i == io_level) {
-//          node = hoist_io_buffer(node); // TODO
           /* Compute the group tiling at this level */
           if (group->group_type == POLYSA_DRAIN_GROUP) 
             compute_group_bounds_drain_at_node(kernel, group, node, group->io_buffers[group->n_io_buffer - 1]);
@@ -2651,6 +2809,33 @@ static isl_stat polysa_io_construct(
   return isl_stat_ok;
 }
 
+/* Perform interior I/O elimination.
+ * Find the I/O group with interior I/O, and assign new data tranfer direction 
+ * at the PE level.
+ */
+static isl_stat polysa_interior_io_eliminate(
+  struct polysa_kernel *kernel, struct polysa_array_ref_group *group,
+  struct polysa_gen *gen, struct polysa_group_data *data)
+{
+  if (isl_vec_is_zero(group->dir)) {
+    /* This group will generate interior I/O, which needs to be eliminated. */
+    /* By default, set the first dim to be 1. */
+    group->dir = isl_vec_set_element_si(group->dir, 0, 1);
+    /* Update the array info */
+    for (int i = 0; i < group->n_ref; i++) {
+      struct polysa_stmt_access *ref = group->refs[i];
+      for (int j = 0; j < ref->n_io_info; j++) {
+        struct polysa_io_info *io_info = ref->io_info[j];
+        if (io_info->io_type == group->io_type && isl_vec_is_zero(io_info->dir)) {
+          isl_vec_free(io_info->dir);
+          io_info->dir = isl_vec_copy(group->dir);
+        }
+      }
+    }
+  }
+  return isl_stat_ok;
+}
+
 /* Group array references together if they share the same data transfer chain.
  * Return -1 on error.
  *
@@ -2685,6 +2870,11 @@ static int group_array_references_io(struct polysa_kernel *kernel,
 
   /* Group references that share the same data transfer direction and I/O type. */
   n = group_share_io(kernel, n, groups, data);
+
+  /* Perform interior I/O elimination */
+  for (i = 0; i < n; ++i) {
+    polysa_interior_io_eliminate(kernel, groups[i], data->gen, data);
+  }
 
   /* Construct the I/O and compute the I/O buffers */
   for (i = 0; i < n; ++i) {
@@ -2816,6 +3006,8 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
       group->n_ref = 1;
       group->io_type = POLYSA_INT_IO;
       group->dir = isl_vec_zero(ctx, kernel->n_sa_dim);
+      group->old_dir = isl_vec_zero(ctx, kernel->n_sa_dim);
+      /* Perform interior I/O elimination by default */
       group->dir = isl_vec_set_element_si(group->dir, 0, 1);
       group->group_type = POLYSA_DRAIN_GROUP;
       group->pe_io_dir = IO_OUT;
@@ -2825,6 +3017,7 @@ static int group_array_references_drain(struct polysa_kernel *kernel,
       group->n_io_buffer = 0;
       group->io_buffers = NULL;
       group->copy_schedule = NULL;
+      group->pe_tile = NULL;
 
       groups = (struct polysa_array_ref_group **)realloc(groups, (++n) * sizeof(struct polysa_array_ref_group *));
       groups[n - 1] = group;
@@ -3324,6 +3517,7 @@ isl_stat sa_group_references(struct polysa_kernel *kernel, struct polysa_gen *ge
     }
 
     local_array->n_lane = n_lane;
+    local_array->array->n_lane = n_lane;
   }
 
 //  /* Copy the PE group results to the default groups, to

@@ -172,7 +172,7 @@ static __isl_give isl_printer *print_kernel_arguments(__isl_take isl_printer *p,
 
 		if (types)
 			p = polysa_array_info_print_declaration_argument(p,
-				&prog->array[i], 1, NULL);
+				&prog->array[i], 1, NULL, -1);
 		else
 			p = polysa_array_info_print_call_argument(p,
 				&prog->array[i]);

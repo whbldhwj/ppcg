@@ -97,6 +97,9 @@ struct ppcg_options {
 
   /* Configuration file */
   char *config;
+
+  /* Generate HLS host instead of OpenCL host */
+  int hls;
   /* PolySA Extended */
 
   /* Unroll the code for copying to/from local memory */

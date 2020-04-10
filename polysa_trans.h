@@ -29,8 +29,8 @@ struct polysa_kernel **sa_space_time_transform_at_dim(__isl_keep isl_schedule *s
 isl_bool sa_legality_check(__isl_keep isl_schedule *schedule, struct ppcg_scop *scop);
 
 /* PE Optimization */
-isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en, char *mode);
-isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa, char *mode);
+isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa, bool en, char *mode, bool L2_en, char *L2_mode);
+isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa, bool en, char *mode);
 isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa, char *mode);
 isl_stat sa_pe_optimize(struct polysa_kernel *sa, bool pass_en[], char *pass_mode[]);
 isl_stat sa_loop_init(struct polysa_kernel *sa);

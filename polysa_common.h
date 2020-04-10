@@ -103,6 +103,7 @@ struct hls_info {
                             hardware modules. */
   FILE *top_gen_h;      
   enum platform target;
+  int hls;               /* Generate HLS host instead of OpenCL host */
 };
 
 struct polysa_dep {
@@ -402,6 +403,10 @@ struct polysa_array_info {
 	 * It is set to NULL otherwise.
 	 */
 	isl_union_map *dep_order;
+
+  /* PolySA Extended */
+  int n_lane;
+  /* PolySA Extended */
 };
 
 struct polysa_io_buffer {
@@ -458,14 +463,17 @@ struct polysa_array_ref_group {
 	struct polysa_stmt_access **refs;  
 
   /* PolySA Extended */
-
+  /* The local memory tile inside PEs. This is for internal array with interior I/O */
+  struct polysa_array_tile *pe_tile;
   /* I/O buffers inserted at each IO level */
   struct polysa_io_buffer **io_buffers;   
   int n_io_buffer;
   /* I/O type: interior/exterior I/O */
   enum polysa_io_type io_type;
-  /* I/O direction at the PE level */
+  /* I/O direction at the PE level (after interior I/O elimination) */
   isl_vec *dir;
+  /* I/O direction at the PE level (before interior I/O elimination) */
+  isl_vec *old_dir;
   /* Group type: I/O/drain/PE group */
   enum polysa_group_type group_type;
   /* I/O direction at the PE level */
@@ -528,6 +536,12 @@ struct polysa_local_array_info {
 
   /* Drain groups */
   struct polysa_array_ref_group *drain_group;
+
+  /* Number of different I/O modules that access the array.
+   * Due to the limitation of Xilinx HLS, we will need to 
+   * allocate separater pointers for each group. 
+   */
+  int n_io_group_refs;
 
   /* Default groups */
   int n_group;
@@ -688,6 +702,9 @@ struct polysa_hw_module {
   /* Data pack factor */
   int data_pack_inter;
   int data_pack_intra;
+
+  /* For I/O module, local array ref index */
+  int n_array_ref;
 
   struct polysa_kernel *kernel;
 };
@@ -936,6 +953,7 @@ int *read_simd_tile_sizes(struct polysa_kernel *sa, int tile_len);
 int *read_default_simd_tile_sizes(struct polysa_kernel *sa, int tile_len);
 int read_space_time_kernel_id(__isl_keep isl_union_map *sizes);
 int *read_array_part_L2_tile_sizes(struct polysa_kernel *sa, int tile_len);
+int *read_default_array_part_L2_tile_sizes(struct polysa_kernel *sa, int tile_len);
 
 /* PolySA latency and resource estimation */
 isl_stat sa_extract_loop_info(struct polysa_gen *gen, struct polysa_hw_module *module); 

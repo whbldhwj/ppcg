@@ -1480,16 +1480,32 @@ static __isl_give isl_ast_node *create_fifo_decl_leaf(struct polysa_kernel *kern
   if (!stmt)
     return isl_ast_node_free(node);
 
+//  // debug
+//  isl_printer *p = isl_printer_to_file(ctx, stdout);
+//  // debug
+
   /* Generate the ast expr of io_trans */ 
   if (module->type == PE_MODULE && !group->io_L1_pe_expr) {
     isl_union_map *umap = isl_ast_build_get_schedule(build);
+//    // debug
+//    p = isl_printer_print_union_map(p, umap);
+//    printf("\n");
+//    // debug
     isl_union_set *uset = isl_union_map_range(umap);
     isl_set *set = isl_set_from_union_set(uset);
     isl_map *map = isl_set_identity(set);
     map = isl_map_flatten_range(map);
+//    // debug
+//    p = isl_printer_print_map(p, map);
+//    printf("\n");
+//    // debug
     trans = group->io_L1_trans;
     isl_map *map2 = isl_map_from_multi_aff(isl_multi_aff_copy(trans));
     map2 = isl_map_reverse(map2);
+//    // debug
+//    p = isl_printer_print_map(p, map2);
+//    printf("\n");
+//    // debug
     map = isl_map_apply_range(map, map2);
     isl_pw_multi_aff *pma = isl_pw_multi_aff_from_map(map);
     expr = isl_ast_build_access_from_pw_multi_aff(build, pma);
@@ -2689,7 +2705,6 @@ __isl_give isl_ast_node *sa_fifo_decl_generate_code(struct polysa_gen *gen,
 //  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
 //  p = isl_printer_print_schedule(p, schedule);
 //  printf("\n");
-////  p = isl_printer_free(p);
 //  // debug
 
   depth = 0;

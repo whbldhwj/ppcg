@@ -130,7 +130,7 @@ ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
   "Generate systolic arrays using PolySA")
 ISL_ARG_BOOL(struct ppcg_options, data_pack, 0, "data-pack", 1,
   "Enable data packing for data transfer")
-ISL_ARG_BOOL(struct ppcg_options, hbm, 0, "hbm", 1,
+ISL_ARG_BOOL(struct ppcg_options, hbm, 0, "hbm", 0,
   "Use multi-port DRAM/HBM")
 ISL_ARG_INT(struct ppcg_options, n_hbm_port, 0, "hbm-port-num", "num", 2, 
   "Default HBM port number")
@@ -157,6 +157,8 @@ ISL_ARG_BOOL(struct ppcg_options, use_local_memory, 0, "local-memory", 1,
   "use local memory in kernel code")
 ISL_ARG_INT(struct ppcg_options, max_local_memory, 0,
   "max-local-memory", "size", 8192, "maximal amount of local memory")
+ISL_ARG_BOOL(struct ppcg_options, hls, 0, "hls", 0,
+  "Generate Xilinx HLS host")
 /* PolySA Extended */
 ISL_ARG_BOOL(struct ppcg_options, linearize_device_arrays, 0,
 	"linearize-device-arrays", 1,
