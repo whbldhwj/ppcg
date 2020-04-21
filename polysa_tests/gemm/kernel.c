@@ -4,6 +4,16 @@ int main(int argc, char **argv) {
 //  data_t A[I][K], B[K][J], C[I][J], C_golden[I][J]; 
   data_t A[I][K], B[J][K], C[I][J], C_golden[I][J];
 
+  for (int i = 0; i < I; i++) 
+    for (int k = 0; k < K; k++) {
+      A[i][k] = k;
+    }
+
+  for (int j = 0; j < J; j++)
+    for (int k = 0; k < K; k++) {
+      B[j][k] = k;
+    }
+
 #pragma scop
   for (int i = 0; i < I; i++)
     for (int j = 0; j < J; j++) {
@@ -25,7 +35,7 @@ int main(int argc, char **argv) {
   int err = 0;
   for (int i = 0; i < I; i++)
     for (int j = 0; j < J; j++) {
-      if (abs(C_golden[i][j] - C[i][j]) > 0.001)
+      if (fabs((float)C_golden[i][j] - (float)C[i][j]) > 0.001)
         err++;
     }
 

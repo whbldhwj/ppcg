@@ -2,6 +2,7 @@ import sympy
 import sys
 import argparse
 import re
+import numpy as np
 
 def print_module_def(f, arg_map, module_def, def_args, call_args_type):
   """Print out module definitions
@@ -131,6 +132,30 @@ def generate_intel_kernel(kernel, headers, module_defs, module_calls, fifo_decls
       print_module_def(f, arg_map, module_def, def_args, call_args_type)
       f.write('/* Module Definition */\n\n')
 
+def contains_pipeline_for(pos, lines):
+  """ Examine if there is any for loop with hls_pipeline annotation inside the current for loop
+
+  """
+  n_l_bracket = 0
+  n_r_bracket = 0
+  code_len = len(lines)
+  init_state = 1
+  while pos < code_len and n_r_bracket <= n_l_bracket:
+    if lines[pos].find('{') != -1:
+      n_l_bracket += 1
+    if lines[pos].find('}') != -1:
+      n_r_bracket += 1
+    if lines[pos].find('for') != -1:
+      if init_state:
+        init_state = 0
+      else:
+        if lines[pos + 1].find('hls_pipeline') != -1:
+          return 1
+    if n_l_bracket == n_r_bracket and not init_state:
+      break
+    pos += 1
+  return 0
+
 def insert_xlnx_pragmas(lines):
   """ Insert HLS pragmas for Xilinx program
 
@@ -158,7 +183,7 @@ def insert_xlnx_pragmas(lines):
         is_pipeline = 1
       else:
         is_dep = 1
-      # Find if there is any other hls_pipeline annotation below
+      # Find if there is any other hls_pipeline/hls_dependence annotation below
       n_l_bracket = 0
       n_r_bracket = 0
       next_pos = pos + 1
@@ -183,11 +208,15 @@ def insert_xlnx_pragmas(lines):
         pos += 1
         continue
 
+      if is_dep == 1:
+        print(pos)
+
       # Find the for loop above before hitting any "}"
       prev_pos = pos - 1
       find_for = 0
       n_l_bracket = 0
       n_r_bracket = 0
+#      print("pos: ", pos)
       while prev_pos >= 0:
         if lines[prev_pos].find('{') != -1:
           n_l_bracket += 1
@@ -196,11 +225,18 @@ def insert_xlnx_pragmas(lines):
         if lines[prev_pos].find('for') != -1:
           if n_l_bracket > n_r_bracket:
             # check if the pragma is already inserted
-            if lines[prev_pos + 1].find('#pragma HLS PIPELINE II=1\n') == -1:
+            if is_pipeline and lines[prev_pos + 1].find('#pragma HLS PIPELINE II=1\n') == -1:
               find_for = 1
+            if is_dep and lines[prev_pos + 2].find('#pragma HLS DEPENDENCE') == -1:
+              find_for = 1
+#              print('here1')
+            # check if there is any other for loop with hls_pipeline annotation inside
+            if contains_pipeline_for(prev_pos, lines):
+              find_for = 0
+#              print('here2')
             break
-
         prev_pos -= 1
+#      print("find_for: ", find_for)
       if find_for == 1:
         # insert the pragma right after the for loop
         indent = lines[prev_pos].find('for')
@@ -273,6 +309,39 @@ def simplify_expressions(lines):
 
   return lines
 
+def shrink_bit_width(lines):
+  """ Calculate the bitwidth of the iterator and shrink it to the proper size
+
+  Args:
+    lines: contains the codelines of the program
+  """
+
+  code_len = len(lines)
+  for pos in range(code_len):
+    line = lines[pos]
+    if line.find('for') != -1:
+      # Parse the loop upper bound
+      m = re.search('<=(.+?);', line)
+      if m:
+        ub = m.group(1).strip()
+        if ub.isnumeric():
+          # Replace it with shallow bit width
+          bitwidth = int(np.ceil(np.log2(float(ub) + 1))) + 1
+          new_iter_t = 'ap_uint<' + str(bitwidth) + '>'
+          line = re.sub('int', new_iter_t, line)
+          lines[pos] = line
+      m = re.search('<(.+?);', line)
+      if m:
+        ub = m.group(1).strip()
+        if ub.isnumeric():
+          # Replace it with shallow bit width
+          bitwidth = int(np.ceil(np.log2(float(ub)))) + 1
+          new_iter_t = 'ap_uint<' + str(bitwidth) + '>'
+          line = re.sub('int', new_iter_t, line)
+          lines[pos] = line
+
+  return lines
+
 def reorder_module_calls(lines):
   """ Reorder the module calls in the program
 
@@ -313,9 +382,10 @@ def reorder_module_calls(lines):
           if nxt_line.find("boundary") != -1:
             boundary = 1
         # Extract the module name
-        module_name = nxt_line.strip()[:-1]
+        module_name = nxt_line.strip()[:-9]
         if boundary:
           module_name = module_name[:-9]
+#          module_name = module_name[:-9]
         if prev_module_name == "":
           prev_module_name = module_name
           first_line = pos
@@ -364,7 +434,7 @@ def reorder_module_calls(lines):
 
   return lines
 
-def xilinx_run(kernel_call, kernel_def, kernel='kernel'):
+def xilinx_run(kernel_call, kernel_def, kernel='polysa.tmp/src/kernel_xilinx.cpp'):
   """ Generate kernel file for Xilinx platform
 
   We will copy the content of kernel definitions before the kernel calls.
@@ -384,14 +454,16 @@ def xilinx_run(kernel_call, kernel_def, kernel='kernel'):
   # Simplify the expressions
   lines = simplify_expressions(lines)
 
+  # Change the loop iterator type
+  lines = shrink_bit_width(lines)
+
   # Insert the HLS pragmas
   lines = insert_xlnx_pragmas(lines)
 
   kernel = str(kernel)
-  kernel += '_xilinx.cpp'
   print("Please find the generated file: " + kernel)
 
-  with open('./polysa.tmp/src/' + kernel, 'w') as f:
+  with open(kernel, 'w') as f:
     f.writelines(lines)
     # Load kernel call file
     with open(kernel_call, 'r') as f2:
@@ -400,7 +472,7 @@ def xilinx_run(kernel_call, kernel_def, kernel='kernel'):
       lines = reorder_module_calls(lines)
       f.writelines(lines)
 
-def intel_run(kernel_call, kernel_def, kernel='kernel'):
+def intel_run(kernel_call, kernel_def, kernel='polysa.tmp/kernel_intel.c'):
   """ Generate kernel file for Intel platform
 
   We will exrtract all teh fifo declarations and module calls.
@@ -483,7 +555,6 @@ def intel_run(kernel_call, kernel_def, kernel='kernel'):
 
   # compose the kernel file
   kernel = str(kernel)
-  kernel += '_intel.c'
   generate_intel_kernel(kernel, headers, module_defs, module_calls, fifo_decls)
 
 if __name__ == "__main__":
@@ -491,12 +562,12 @@ if __name__ == "__main__":
   parser.add_argument('-c', '--kernel-call', metavar='KERNEL_CALL', required=True, help='kernel function call')
   parser.add_argument('-d', '--kernel-def', metavar='KERNEL_DEF', required=True, help='kernel function definition')
   parser.add_argument('-p', '--platform', metavar='PLATFORM', required=True, help='hardware platform: intel/xilinx')
-  parser.add_argument('-k', '--kernel', metavar='KERNEL', required=False, default='kernel', help='output kernel file')
+  parser.add_argument('-o', '--output', metavar='OUTPUT', required=False, help='output kernel file')
 
   args = parser.parse_args()
 
   if args.platform == 'intel':
-    intel_run(args.kernel_call, args.kernel_def, args.kernel)
+    intel_run(args.kernel_call, args.kernel_def, args.output)
   elif args.platform == 'xilinx':
-    xilinx_run(args.kernel_call, args.kernel_def, args.kernel)
+    xilinx_run(args.kernel_call, args.kernel_def, args.output)
 

@@ -96,6 +96,7 @@ enum platform {
 
 struct hls_info {
   FILE *host_c;          /* OpenCL host. */
+  FILE *host_h;          /* OpenCL host header. */
   FILE *kernel_c;        /* Definition of hardware modules. */
   FILE *kernel_h;        /* Declaration of hardware modules. */
 
@@ -104,6 +105,8 @@ struct hls_info {
   FILE *top_gen_h;      
   enum platform target;
   int hls;               /* Generate HLS host instead of OpenCL host */
+  char *output_dir;      /* Output directory */
+  isl_ctx *ctx;
 };
 
 struct polysa_dep {
@@ -160,6 +163,7 @@ struct polysa_kernel {
   int space_w;
   int time_w;
   int simd_w;
+  int lat_hide_len;
 
   int type; // POLYSA_SA_TYPE_ASYNC | POLYSA_SA_TYPE_SYNC
 
@@ -635,6 +639,8 @@ struct polysa_pe_dummy_module {
 };
 
 struct polysa_hw_module {
+  struct ppcg_options *options;
+
   enum polysa_module_type type;
   /* Module name */
   char *name;
@@ -959,5 +965,5 @@ int *read_default_array_part_L2_tile_sizes(struct polysa_kernel *sa, int tile_le
 isl_stat sa_extract_loop_info(struct polysa_gen *gen, struct polysa_hw_module *module); 
 isl_stat sa_extract_array_info(struct polysa_kernel *kernel);
 isl_stat sa_extract_design_info(struct polysa_gen *gen) ;
-
+int extract_memory_type(struct polysa_hw_module *module, struct polysa_kernel_var *var, int uram);
 #endif

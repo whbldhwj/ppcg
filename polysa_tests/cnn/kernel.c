@@ -1,78 +1,69 @@
 #include "kernel.h"
 
-void kernel(data_t X[I][R + 2][C + 2], data_t W[O][I][3][3], data_t Z[O][R][C]) {
-  // computation
+int main(){
+  // declarations
+//  data_t cin[I][R + K - 1][C + K - 1];
+//  data_t w[O][I][K][K];
+//  data_t cout[O][R][C];
+//  data_t cout_golden[O][R][C];
+  data_t cin[R + K - 1][C + K - 1][I];
+  data_t w[O][K][K][I];
+  data_t cout[R][C][O];
+  data_t cout_golden[R][C][O];
+
+  // data initialization
+  for (int i = 0 ; i < I; i++)
+    for (int r = 0; r < R + K - 1; r++)
+      for (int c = 0; c < C + K - 1; c++) {
+        cin[r][c][i] = i;
+      }
+
+  for (int o = 0; o < O; o++)
+    for (int i = 0; i < I; i++) 
+      for (int p = 0; p < K; p++)
+        for (int q = 0; q < K; q++) {
+          w[o][p][q][i] = o;
+        }
+ 
 #pragma scop
   for (int o = 0; o < O; o++)
     for (int r = 0; r < R; r++)
       for (int c = 0; c < C; c++) {
-        Z[o][r][c] = 0;
+        cout[r][c][o] = 0;
         for (int i = 0; i < I; i++)
           for (int p = 0; p < 3; p++)
             for (int q = 0; q < 3; q++) {
-              Z[o][r][c] = Z[o][r][c] + X[i][r + p][c + q] * W[o][i][p][q];
+              cout[r][c][o] = cout[r][c][o] + cin[r + p][c + q][i] * w[o][p][q][i];
             }
       }
 #pragma endscop  
-}
-
-void hw_kernel(data_t X[I][R + 2][C + 2], data_t W[O][I][3][3], data_t Z[O][R][C]) {
-//  // computation
-//  for (int o = 0; o < O; o++)
-//    for (int r = 0; r < R; r++)
-//      for (int c = 0; c < C; c++) {
-//        Z[o][r][c] = 0;
-//        for (int i = 0; i < I; i++)
-//          for (int p = 0; p < 3; p++)
-//            for (int q = 0; q < 3; q++) {
-//              Z[o][r][c] += X[i][r + p][c + q] * W[o][i][p][q];
-//            }
-//      }
-
-  static data_t X_ext[16][16][16][16][3][3];
-  static data_t W_ext[16][16][16][16][3][3];
-  static data_t Z_ext[16][16][16][16][3][3];
-  static data_t Z_drain[16][16][16][16][3][3];
-
-  for (int c0 = 0; c0 <= 15; c0++)
-    for (int c1 = 0; c1 <= 15; c1++)
-      for (int c2 = 0; c2 <= 15; c2++)
-        for (int c3 = 0; c3 <= 15; c3++)
-          for (int c4 = 0; c4 <= 2; c4++)
-            for (int c5 = 0; c5 <= 2; c5++) {
-              X_ext[c0][c1][c2][c3][c4][c5] = 0; 
-              if (c0 == 0)
-                X_ext[c0][c1][c2][c3][c4][c5] = X[c3][c1 + c4][c2 + c5]; 
-              else if (c0 >= 1)
-                X_ext[c0][c1][c2][c3][c4][c5] = X_ext[c0 - 1][c1][c2][c3][c4][c5];
-
-              W_ext[c0][c1][c2][c3][c4][c5] = 0; 
-              if (c2 == 0)
-                W_ext[c0][c1][c2][c3][c4][c5] = W[c0][c3][c4][c5]; 
-              else if (c2 >= 1)
-                W_ext[c0][c1][c2][c3][c4][c5] = W_ext[c0][c1][c2 - 1][c3][c4][c5];
-
-              Z_ext[c0][c1][c2][c3][c4][c5] = 0; 
-              if (c5 == 0 && c4 == 0 && c3 == 0)
-                Z_ext[c0][c1][c2][c3][c4][c5] = 0;               
-              if (c5 >= 1)
-                Z_ext[c0][c1][c2][c3][c4][c5] = Z_ext[c0][c1][c2][c3][c4][c5 - 1] + 
-                  X_ext[c0][c1][c2][c3][c4][c5] * W_ext[c0][c1][c2][c3][c4][c5];
-
-              if (c5 == 0 && c4 >= 1)
-                Z_ext[c0][c1][c2][c3][c4][c5] = Z_ext[c0][c1][c2][c3][c4 - 1][c5 + 2] + 
-                  X_ext[c0][c1][c2][c3][c4][c5] * W_ext[c0][c1][c2][c3][c4][c5];
-
-              if (c5 == 0 && c4 == 0 && c3 >= 1)
-                Z_ext[c0][c1][c2][c3][c4][c5] = Z_ext[c0][c1][c2][c3 - 1][c4 + 2][c5 + 2] + 
-                  X_ext[c0][c1][c2][c3][c4][c5] * W_ext[c0][c1][c2][c3][c4][c5];
-
-              if (c5 == 0 && c4 == 0 && c3 == 0)
-                Z_ext[c0][c1][c2][c3][c4][c5] = Z_ext[c0][c1][c2][c3][c4][c5] + 
-                  X_ext[c0][c1][c2][c3][c4][c5] * W_ext[c0][c1][c2][c3][c4][c5];
-
-              if (c5 == 2 && c4 == 2 && c3 == 15)
-                Z[c0][c1][c2] = Z_ext[c0][c1][c2][c3][c4][c5];
+ 
+  for (int o = 0; o < O; o++)
+    for (int r = 0; r < R; r++)
+      for (int c = 0; c < C; c++) {
+        cout_golden[r][c][o] = 0;
+        for (int i = 0; i < I; i++)
+          for (int p = 0; p < 3; p++)
+            for (int q = 0; q < 3; q++) {
+              cout_golden[r][c][o] = cout_golden[r][c][o] + cin[r + p][c + q][i] * w[o][p][q][i];
             }
+      }
 
+  int err = 0;
+  float thres = 0.001;
+  for (int o = 0; o < O; o++)
+    for (int r = 0; r < R; r++)
+      for (int c = 0; c < C; c++) {
+        if (fabs((float)cout_golden[r][c][o] - (float)cout[r][c][o]) > thres) {
+          err++;
+        }
+      }
+
+  if (err) {
+    printf("Test failed with %d errors!\n", err);
+    return -1;
+  } else {
+    printf("Test passed!\n");
+    return 0;
+  }
 }

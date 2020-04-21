@@ -3,6 +3,8 @@
 #include "polysa_array_tile.h"
 #include "polysa_tree.h"
 
+#define max(a,b) ((a)>(b)? (a):(b))
+
 /* Internal data structure for polysa_group_references.
  */
 struct polysa_group_data {
@@ -2319,7 +2321,9 @@ static isl_stat compute_io_group_schedule(
 
     /* If the multi-port DRAM/HBM is to be used, we will need to tile the loop again */
     if (i == 0 && gen->options->hbm) {
-      printf("[PolySA] Apply HBM optimization.\n");
+      if (gen->options->debug->polysa_verbose) {
+        printf("[PolySA] Apply HBM optimization.\n");
+      }
       if (group->io_type == POLYSA_EXT_IO && i == space_dim - 1) { 
         printf("[PolySA] HBM optimization failed! Not enough I/O modules.\n");
         goto next; 
@@ -2755,12 +2759,23 @@ static isl_stat compute_io_group_data_pack(struct polysa_kernel *kernel,
 
   int cur_n_lane = group->n_lane;
   int status = false;
+  /* For L1 bufers, we restrain the fifo widths to be no more than 256 bits given hardware consideration. 
+   * For FIFOs with depth*width > 512bits, HLS will use BRAM/SRL to implement, which could
+   * potentially increase BRAM/LUT usage in a great scale and cause routing failure.
+   */
+  int cur_max_n_lane; 
   for (int i = 0; i < group->io_level; i++) {
     struct polysa_io_buffer *buf = group->io_buffers[i];
+    if (i == 0)
+      cur_max_n_lane = max(group->n_lane, 8 / ele_size);
+    else if (i > 0 && i < group->io_level - 1) 
+      cur_max_n_lane = max(group->n_lane, 32 / ele_size);
+    else
+      cur_max_n_lane = max(group->n_lane, 64 / ele_size);
     if (buf->tile) {
       int n_lane = cur_n_lane;
       isl_val *size = isl_val_copy(buf->tile->bound[group->array->n_index - 1].size);
-      while (n_lane <= max_n_lane) {
+      while (n_lane <= cur_max_n_lane) {
         /* The lane should be multiples of SIMD lane */
         if (n_lane % group->n_lane == 0) {
           isl_val *val = isl_val_int_from_si(gen->ctx, n_lane);      

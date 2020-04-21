@@ -36,6 +36,89 @@ struct print_hw_module_data {
   struct polysa_hw_module *module;
 };
 
+static void print_xilinx_host_header(FILE *fp)
+{
+  fprintf(fp, "#include <iostream>\n");
+  fprintf(fp, "#include <vector>\n");
+  fprintf(fp, "#include <fstream>\n\n");
+
+  fprintf(fp, "#define CL_HPP_CL_1_2_DEFAULT_BUILD\n");
+  fprintf(fp, "#define CL_HPP_TARGET_OPENCL_VERSION 120\n");
+  fprintf(fp, "#define CL_HPP_MINIMUM_OPENCL_VERSION 120\n");
+  fprintf(fp, "#define CL_HPP_ENABLE_PROGRAM_CONSTRUCTION_FROM_ARRAY_COMPATIBILITY 1\n");
+  fprintf(fp, "#define CL_USE_DEPRECATED_OPENCL_1_2_APIS\n\n");
+
+  fprintf(fp, "#include <CL/cl2.hpp>\n");
+  fprintf(fp, "#include <CL/cl_ext_xilinx.h>\n\n");
+  
+  fprintf(fp, "#define OCL_CHECK(error,call)                                       \\\n");
+  fprintf(fp, "    call;                                                           \\\n");
+  fprintf(fp, "    if (error != CL_SUCCESS) {                                      \\\n");
+  fprintf(fp, "      printf(\"%%s:%%d Error calling \" #call \", error code is: %%d\\n\",  \\\n");
+  fprintf(fp, "              __FILE__,__LINE__, error);                            \\\n");
+  fprintf(fp, "      exit(EXIT_FAILURE);                                           \\\n");
+  fprintf(fp, "    }\n\n");
+
+  fprintf(fp, "std::string xclbin_file_name;\n\n");
+
+  fprintf(fp, "template <typename T>\n");
+  fprintf(fp, "struct aligned_allocator\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "  using value_type = T;\n");
+  fprintf(fp, "  T* allocate(std::size_t num)\n");
+  fprintf(fp, "  {\n");
+  fprintf(fp, "    void* ptr = nullptr;\n");
+  fprintf(fp, "    if (posix_memalign(&ptr,4096,num*sizeof(T)))\n");
+  fprintf(fp, "      throw std::bad_alloc();\n");
+  fprintf(fp, "    return reinterpret_cast<T*>(ptr);\n");
+  fprintf(fp, "  }\n");
+  fprintf(fp, "  void deallocate(T* p, std::size_t num)\n");
+  fprintf(fp, "  {\n");
+  fprintf(fp, "    free(p);\n");
+  fprintf(fp, "  }\n");
+  fprintf(fp, "};\n\n");
+
+  fprintf(fp, "cl::Program::Binaries import_binary_file()\n");
+  fprintf(fp, "{\n");
+  fprintf(fp, "    std::cout << \"\\n Loading: \"<< xclbin_file_name.c_str() << \"\\n\";\n");
+  fprintf(fp, "    std::ifstream bin_file(xclbin_file_name.c_str(), std::ifstream::binary);\n");
+  fprintf(fp, "    bin_file.seekg (0, bin_file.end);\n");
+  fprintf(fp, "    unsigned nb = bin_file.tellg();\n");
+  fprintf(fp, "    bin_file.seekg (0, bin_file.beg);\n");
+  fprintf(fp, "    char *buf = new char [nb];\n");
+  fprintf(fp, "    bin_file.read(buf, nb);\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "    cl::Program::Binaries bins;\n");
+  fprintf(fp, "    bins.push_back({buf,nb});\n");
+  fprintf(fp, "    return bins;\n");
+  fprintf(fp, "}\n\n");
+
+  fprintf(fp, "std::vector<cl::Device> get_devices() {\n");
+  fprintf(fp, "    size_t i;\n");
+  fprintf(fp, "    cl_int err;\n");
+  fprintf(fp, "    std::vector<cl::Platform> platforms;\n");
+  fprintf(fp, "    OCL_CHECK(err, err = cl::Platform::get(&platforms));\n");
+  fprintf(fp, "    cl::Platform platform;\n");
+  fprintf(fp, "    for (i  = 0 ; i < platforms.size(); i++){\n");
+  fprintf(fp, "        platform = platforms[i];\n");
+  fprintf(fp, "        OCL_CHECK(err, std::string platformName = platform.getInfo<CL_PLATFORM_NAME>(&err));\n");
+  fprintf(fp, "        if (platformName == \"Xilinx\"){\n");
+  fprintf(fp, "            std::cout << \"\\nFound Platform\" << std::endl;\n");
+  fprintf(fp, "            std::cout << \"\\nPlatform Name: \" << platformName.c_str() << std::endl;\n");
+  fprintf(fp, "            break;\n");
+  fprintf(fp, "        }\n");
+  fprintf(fp, "    }\n");
+  fprintf(fp, "    if (i == platforms.size()) {\n");
+  fprintf(fp, "        std::cout << \"Error: Failed to find Xilinx platform\" << std::endl;\n");
+  fprintf(fp, "        exit(EXIT_FAILURE);\n");
+  fprintf(fp, "    }\n");
+  fprintf(fp, "    //Getting ACCELERATOR Devices and selecting 1st such device\n");
+  fprintf(fp, "    std::vector<cl::Device> devices;\n");
+  fprintf(fp, "    OCL_CHECK(err, err = platform.getDevices(CL_DEVICE_TYPE_ACCELERATOR, &devices));\n");
+  fprintf(fp, "    return devices;\n");
+  fprintf(fp, "}\n");
+}
+
 /* Open the host .c file and the kernel .h and .c files for writing.
  * Add the necessary includes.
  */
@@ -44,15 +127,30 @@ static void hls_open_files(struct hls_info *info, const char *input)
   char name[PATH_MAX];
   char dir[PATH_MAX];
   int len, len_dir;
+  isl_printer *p_str;
+  char *file_path;
 
+  p_str = isl_printer_to_str(info->ctx);
+  p_str = isl_printer_print_str(p_str, info->output_dir);
+  p_str = isl_printer_print_str(p_str, "/src/");
+  file_path = isl_printer_get_str(p_str);
+  isl_printer_free(p_str);
   len = ppcg_extract_base_name(name, input);
   /* Add the prefix */
-  sprintf(dir, "%s", "polysa.tmp/src/");
-  len_dir = strlen("polysa.tmp/src/");
+  sprintf(dir, "%s", file_path);
+  len_dir = strlen(file_path);
 
   strcpy(name + len, "_host.cpp");
   strcpy(dir + len_dir, name);
   info->host_c = fopen(dir, "w");
+
+  if (!info->hls) {
+    strcpy(name + len, "_host.hpp");
+    strcpy(dir + len_dir, name);
+    info->host_h = fopen(dir, "w");
+    print_xilinx_host_header(info->host_h);
+    fprintf(info->host_c, "#include \"%s\"\n", name);
+  }
 
   strcpy(name + len, "_kernel.cpp");
   strcpy(dir + len_dir, name);
@@ -64,12 +162,14 @@ static void hls_open_files(struct hls_info *info, const char *input)
 
   fprintf(info->host_c, "#include <assert.h>\n");
   fprintf(info->host_c, "#include <stdio.h>\n");
-  fprintf(info->host_c, "#include \"%s\"\n\n", name); 
-  if (!info->hls) {
-    fprintf(info->host_c, "#include \"xcl2.hpp\"\n");
-    fprintf(info->host_c, "#include <algorithm>\n");
-    fprintf(info->host_c, "#include <vector>\n");
+  if (info->hls) {
+    fprintf(info->host_c, "#include \"%s\"\n\n", name); 
   }
+//  if (!info->hls) {
+//    fprintf(info->host_c, "#include \"xcl2.hpp\"\n");
+//    fprintf(info->host_c, "#include <algorithm>\n");
+//    fprintf(info->host_c, "#include <vector>\n");
+//  }
 
   fprintf(info->kernel_c, "#include \"%s\"\n", name);  
 
@@ -80,8 +180,8 @@ static void hls_open_files(struct hls_info *info, const char *input)
   strcpy(name + len, "_top_gen.h");
   strcpy(dir + len_dir, name);
   info->top_gen_h = fopen(dir, "w");
-
-  fprintf(info->host_c, "#include \"%s\"\n", name);  
+  
+//  fprintf(info->host_c, "#include \"%s\"\n", name);  
   fprintf(info->top_gen_c, "#include <isl/printer.h>\n");
   fprintf(info->top_gen_c, "#include \"%s\"\n", name);  
 
@@ -89,11 +189,13 @@ static void hls_open_files(struct hls_info *info, const char *input)
   fprintf(info->kernel_h, "#include <hls_stream.h>\n");
   fprintf(info->kernel_h, "\n");
 
-  fprintf(info->kernel_h, "template<typename To, typename From>\n");
-  fprintf(info->kernel_h, "inline To Reinterpret(const From &val) {\n");
-  fprintf(info->kernel_h, "  return reinterpret_cast<const To &>(val);\n");
-  fprintf(info->kernel_h, "}\n");
-  fprintf(info->kernel_h, "\n");
+//  fprintf(info->kernel_h, "template<typename To, typename From>\n");
+//  fprintf(info->kernel_h, "inline To Reinterpret(const From &val) {\n");
+//  fprintf(info->kernel_h, "  return reinterpret_cast<const To &>(val);\n");
+//  fprintf(info->kernel_h, "}\n");
+//  fprintf(info->kernel_h, "\n");
+
+  free(file_path);
 }
 
 static void opencl_open_files(struct hls_info *info, const char *input)
@@ -177,6 +279,9 @@ static void hls_close_files(struct hls_info *info)
   fclose(info->kernel_c);
   fclose(info->kernel_h);
   fclose(info->host_c);
+  if (!info->hls) {
+    fclose(info->host_h);
+  }
   fclose(info->top_gen_c);
   fclose(info->top_gen_h);
 //  fclose(info->top_gen_host_c);
@@ -191,6 +296,20 @@ static __isl_give isl_printer *polysa_array_info_print_call_argument(
 		return isl_printer_print_str(p, array->name);
 
 	p = isl_printer_print_str(p, "dev_");
+	p = isl_printer_print_str(p, array->name);
+
+	return p;
+}
+
+/* Print the call of an array argument.
+ */
+static __isl_give isl_printer *polysa_module_array_info_print_call_argument(
+	__isl_take isl_printer *p, struct polysa_array_info *array)
+{
+	if (polysa_array_is_read_only_scalar(array))
+		return isl_printer_print_str(p, array->name);
+
+//	p = isl_printer_print_str(p, "dev_");
 	p = isl_printer_print_str(p, array->name);
 
 	return p;
@@ -690,6 +809,31 @@ static __isl_give isl_printer *declare_and_allocate_device_arrays_xilinx(__isl_t
   }
   p = isl_printer_end_line(p);
 
+  /* Initialize buffer */
+  p = print_str_new_line(p, "// Initialize Host Buffers");
+  for (int i = 0; i < prog->n_array; i++) {
+    struct polysa_array_info *array = &prog->array[i];
+    if (!polysa_array_requires_device_allocation(array))
+      continue;
+
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "std::copy(reinterpret_cast<");
+    p = isl_printer_print_str(p, array->type);
+    p = isl_printer_print_str(p, " *>(");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, "), reinterpret_cast<");
+    p = isl_printer_print_str(p, array->type);
+    p = isl_printer_print_str(p, " *>(");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, ") + ");
+    p = polysa_array_info_print_data_size(p, array);
+    p = isl_printer_print_str(p, ", dev_");
+    p = isl_printer_print_str(p, array->name);
+    p = isl_printer_print_str(p, ".begin());");
+    p = isl_printer_end_line(p);
+  }
+  p = isl_printer_end_line(p);
+
   p = print_str_new_line(p, "// Allocate Buffer in Global Memory");
   p = print_str_new_line(p, "// Buffers are allocated using CL_MEM_USE_HOST_PTR for efficient memory and");
   p = print_str_new_line(p, "// Device-to-host communication");
@@ -722,9 +866,10 @@ static __isl_give isl_printer *declare_and_allocate_device_arrays_xilinx(__isl_t
     p = isl_printer_indent(p, -(strlen("cl::Buffer buffer_") + strlen(array->name) + 1));
     p = isl_printer_indent(p, -indent1);
   }
-  p = isl_printer_start_line(p);
   p = isl_printer_end_line(p);
-    
+  p = print_str_new_line(p, "auto fpga_begin = std::chrono::high_resolution_clock::now();");
+  p = isl_printer_end_line(p);
+
   return p;
 }
 
@@ -737,50 +882,67 @@ static __isl_give isl_printer *find_device_xilinx(__isl_take isl_printer *p)
   p = isl_printer_indent(p, -4);
   p = print_str_new_line(p, "}");
   p = isl_printer_end_line(p);
-  p = print_str_new_line(p, "std::string binaryFile = argv[1];");
+
   p = print_str_new_line(p, "cl_int err;");
-  p = print_str_new_line(p, "cl::Context context;");
-  p = print_str_new_line(p, "cl::Kernel krnl;");
-  p = print_str_new_line(p, "cl::CommandQueue q;");
-  p = print_str_new_line(p, "// get_xil_devices() is a utility API which will find the xilinx");
-  p = print_str_new_line(p, "// platforms and will return list of devices connected to Xilinx platform");
-  p = print_str_new_line(p, "auto devices = xcl::get_xil_devices();");
-  p = print_str_new_line(p, "// read_binary_file() is a utility API which will load the binaryFile");
-  p = print_str_new_line(p, "// and will return the pointer to file buffer");
-  p = print_str_new_line(p, "auto fileBuf = xcl::read_binary_file(binaryFile);");
-  p = print_str_new_line(p, "cl::Program::Binaries bins{{fileBuf.data(), fileBuf.size()}};");
-  p = print_str_new_line(p, "int valid_device = 0;");
-  p = print_str_new_line(p, "for (unsigned int i = 0; i < devices.size(); i++) {");
-  p = isl_printer_indent(p, 4);
-  p = print_str_new_line(p, "auto device = devices[i];");
-  p = print_str_new_line(p, "// Creating Context and Command Queue for selected Device");
-  p = print_str_new_line(p, "OCL_CHECK(err, context = cl::Context({device}, NULL, NULL, NULL, &err));");
-  p = print_str_new_line(p, "OCL_CHECK(err, q = cl::CommandQueue(context, {device}, CL_QUEUE_PROFILING_ENABLE, &err));");
-  p = print_str_new_line(p, "std::cout << \"Trying to program device[\" << i");
-  p = isl_printer_indent(p, 4);
-  p = print_str_new_line(p, "<< \"]: \" << device.getInfo<CL_DEVICE_NAME>() << std::endl;");
-  p = isl_printer_indent(p, -4);
-  p = print_str_new_line(p, "OCL_CHECK(err, cl::Program program(context, {device}, bins, NULL, \%err));");
-  p = print_str_new_line(p, "if (err != CL_SUCCESS) {");
-  p = isl_printer_indent(p, 4);
-  p = print_str_new_line(p, "std::cout << \"Failed to program device[\" << i << \"] with xclbin file!\\n\";");
-  p = isl_printer_indent(p, -4);
-  p = print_str_new_line(p, "} else {");
-  p = isl_printer_indent(p, 4);  
-  p = print_str_new_line(p, "std::cout << \"Device[\" << i << \"]: program successful!\\n\";");  
-  p = print_str_new_line(p, "OCL_CHECK(err, krnl = cl::Kernel(program, \"kernel0\", &err));");
-  p = print_str_new_line(p, "valid_device++");
-  p = print_str_new_line(p, "break; // we break because we found a valid device");
-  p = isl_printer_indent(p, -4);
-  p = print_str_new_line(p, "}");
-  p = isl_printer_indent(p, -4);
-  p = print_str_new_line(p, "}");
-  p = print_str_new_line(p, "if (valid_device == 0) {");
-  p = isl_printer_indent(p, 4);
-  p = print_str_new_line(p, "std::cout << \"Failed to program any device found, exit!\\n\";");
-  p = print_str_new_line(p, "exit(EXIT_FAILURE);");
-  p = isl_printer_indent(p, -4);
-  p = print_str_new_line(p, "}");
+  p = print_str_new_line(p, "std::vector<cl::Device> devices = get_devices();");
+  p = print_str_new_line(p, "cl::Device device = devices[0];");
+  p = print_str_new_line(p, "std::string device_name = device.getInfo<CL_DEVICE_NAME>();");
+  p = print_str_new_line(p, "std::cout << \"Found Device=\" << device_name.c_str() << std::endl;");
+  p = print_str_new_line(p, "// Creating Context and Command Queue for selected device");
+  p = print_str_new_line(p, "cl::Context context(device);");
+  p = print_str_new_line(p, "cl::CommandQueue q(context, device);");
+  p = print_str_new_line(p, "// Import XCLBIN");
+  p = print_str_new_line(p, "xclbin_file_name = argv[1];");
+  p = print_str_new_line(p, "cl::Program::Binaries kernel_bins = import_binary_file();");
+  p = print_str_new_line(p, "// Program and Kernel");
+  p = print_str_new_line(p, "devices.resize(1);");
+  p = print_str_new_line(p, "cl::Program program(context, devices, kernel_bins);");
+  p = print_str_new_line(p, "cl::Kernel krnl(program, \"kernel0\");");
+
+//  p = print_str_new_line(p, "std::string binaryFile = argv[1];");
+//  p = print_str_new_line(p, "cl_int err;");
+//  p = print_str_new_line(p, "cl::Context context;");
+//  p = print_str_new_line(p, "cl::Kernel krnl;");
+//  p = print_str_new_line(p, "cl::CommandQueue q;");
+//  p = print_str_new_line(p, "// get_xil_devices() is a utility API which will find the xilinx");
+//  p = print_str_new_line(p, "// platforms and will return list of devices connected to Xilinx platform");
+//  p = print_str_new_line(p, "auto devices = xcl::get_xil_devices();");
+//  p = print_str_new_line(p, "// read_binary_file() is a utility API which will load the binaryFile");
+//  p = print_str_new_line(p, "// and will return the pointer to file buffer");
+//  p = print_str_new_line(p, "auto fileBuf = xcl::read_binary_file(binaryFile);");
+//  p = print_str_new_line(p, "cl::Program::Binaries bins{{fileBuf.data(), fileBuf.size()}};");
+//  p = print_str_new_line(p, "int valid_device = 0;");
+//  p = print_str_new_line(p, "for (unsigned int i = 0; i < devices.size(); i++) {");
+//  p = isl_printer_indent(p, 4);
+//  p = print_str_new_line(p, "auto device = devices[i];");
+//  p = print_str_new_line(p, "// Creating Context and Command Queue for selected Device");
+//  p = print_str_new_line(p, "OCL_CHECK(err, context = cl::Context({device}, NULL, NULL, NULL, &err));");
+//  p = print_str_new_line(p, "OCL_CHECK(err, q = cl::CommandQueue(context, {device}, CL_QUEUE_PROFILING_ENABLE, &err));");
+//  p = print_str_new_line(p, "std::cout << \"Trying to program device[\" << i");
+//  p = isl_printer_indent(p, 4);
+//  p = print_str_new_line(p, "<< \"]: \" << device.getInfo<CL_DEVICE_NAME>() << std::endl;");
+//  p = isl_printer_indent(p, -4);
+//  p = print_str_new_line(p, "OCL_CHECK(err, cl::Program program(context, {device}, bins, NULL, \%err));");
+//  p = print_str_new_line(p, "if (err != CL_SUCCESS) {");
+//  p = isl_printer_indent(p, 4);
+//  p = print_str_new_line(p, "std::cout << \"Failed to program device[\" << i << \"] with xclbin file!\\n\";");
+//  p = isl_printer_indent(p, -4);
+//  p = print_str_new_line(p, "} else {");
+//  p = isl_printer_indent(p, 4);  
+//  p = print_str_new_line(p, "std::cout << \"Device[\" << i << \"]: program successful!\\n\";");  
+//  p = print_str_new_line(p, "OCL_CHECK(err, krnl = cl::Kernel(program, \"kernel0\", &err));");
+//  p = print_str_new_line(p, "valid_device++");
+//  p = print_str_new_line(p, "break; // we break because we found a valid device");
+//  p = isl_printer_indent(p, -4);
+//  p = print_str_new_line(p, "}");
+//  p = isl_printer_indent(p, -4);
+//  p = print_str_new_line(p, "}");
+//  p = print_str_new_line(p, "if (valid_device == 0) {");
+//  p = isl_printer_indent(p, 4);
+//  p = print_str_new_line(p, "std::cout << \"Failed to program any device found, exit!\\n\";");
+//  p = print_str_new_line(p, "exit(EXIT_FAILURE);");
+//  p = isl_printer_indent(p, -4);
+//  p = print_str_new_line(p, "}");
   p = isl_printer_end_line(p);
 }
 
@@ -1230,8 +1392,35 @@ static __isl_give isl_printer *clear_device_xilinx(__isl_take isl_printer *p,
 {
   if (hls) 
 	  p = polysa_free_cpu_arrays_xilinx(p, prog);
-  else
+  else {
     p = print_str_new_line(p, "q.finish();");
+    p = isl_printer_end_line(p);
+    p = print_str_new_line(p, "auto fpga_end = std::chrono::high_resolution_clock::now();");
+    p = isl_printer_end_line(p);
+    p = print_str_new_line(p, "// Calculate Time");
+    p = print_str_new_line(p, "std::chrono::duration<double> fpga_duration = fpga_end - fpga_begin;");
+    p = print_str_new_line(p, "std::cout << \"FPGA Time: \" << fpga_duration.count() << \" s\" << std::endl;");
+    p = isl_printer_end_line(p);
+    /* Restore buffer */
+    p = print_str_new_line(p, "// Restore Data from Host Buffers");
+    for (int i = 0; i < prog->n_array; i++) {
+      struct polysa_array_info *array = &prog->array[i];
+      if (!polysa_array_requires_device_allocation(array))
+        continue;
+  
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "std::copy(dev_");
+      p = isl_printer_print_str(p, array->name);
+      p = isl_printer_print_str(p, ".begin(), dev_");
+      p = isl_printer_print_str(p, array->name);
+      p = isl_printer_print_str(p, ".end(), reinterpret_cast<");
+      p = isl_printer_print_str(p, array->type);
+      p = isl_printer_print_str(p, " *>(");
+      p = isl_printer_print_str(p, array->name);
+      p = isl_printer_print_str(p, "));");
+      p = isl_printer_end_line(p);
+    }
+  }
 
 	return p;
 }
@@ -1576,10 +1765,25 @@ static void print_iterators(FILE *out, const char *type,
 	fprintf(out, "; // module id\n");
 }
 
-static __isl_give isl_printer *print_kernel_var_xilinx(__isl_take isl_printer *p,
-	struct polysa_kernel_var *var, int double_buffer)
+/* Prints out variable declarations on Xilinx platforms.
+ * The local variable can be mapped to different memory resources. Here, 
+ * we follow the following strategy:
+ * If the variable is inside PEs or at L1 IO module:
+ *   - If the array is primitive data type and the data size is less than 32, 
+ *     we use registers
+ *   - else, we use BRAM
+ * Else:
+ *   - If the module is is connected to DRAM, we use URAM
+ *   - else:
+ *     - If the BRAM utilization is lower than 20%, we use LUTRAM
+ *     - else we use BRAM
+ */
+static __isl_give isl_printer *print_module_var_xilinx(__isl_take isl_printer *p,
+	struct polysa_kernel_var *var, int double_buffer, struct polysa_hw_module *module)
 {
 	int j;
+  int use_memory = 0; // 0: FF 1: LUTRAM 2: BRAM 3: URAM
+  use_memory = extract_memory_type(module, var, module->options->uram);
 
 	p = isl_printer_start_line(p);
   if (var->n_lane == 1)
@@ -1604,10 +1808,15 @@ static __isl_give isl_printer *print_kernel_var_xilinx(__isl_take isl_printer *p
 	}
 	p = isl_printer_print_str(p, ";");
 	p = isl_printer_end_line(p);
-  if (var->n_part != 1) {
+  /* Only add cyclic partition when array size is large enough to use BRAM.
+   * Here we set the threshold as 32.
+   */
+  if (use_memory && var->n_part != 1) {
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "#pragma HLS ARRAY_PARTITION variable=");
     p = isl_printer_print_str(p, var->name);
+    if (double_buffer)
+      p = isl_printer_print_str(p, "_ping");
     p = isl_printer_print_str(p, " dim=");
     p = isl_printer_print_int(p, isl_vec_size(var->size));
     p = isl_printer_print_str(p, " factor=");
@@ -1615,13 +1824,19 @@ static __isl_give isl_printer *print_kernel_var_xilinx(__isl_take isl_printer *p
     p = isl_printer_print_str(p, " cyclic");
     p = isl_printer_end_line(p);
   }
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "#pragma HLS RESOURCE variable=");
-  p = isl_printer_print_str(p, var->name);
-  if (double_buffer)
-    p = isl_printer_print_str(p, "_ping");
-  p = isl_printer_print_str(p, " core=RAM_2P_BRAM");
-  p = isl_printer_end_line(p);
+  /* For primitive types with size less than 32, we expect HLS to implement them
+   * as registers. 
+   */
+  if (use_memory) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "#pragma HLS RESOURCE variable=");
+    p = isl_printer_print_str(p, var->name);
+    if (double_buffer)
+      p = isl_printer_print_str(p, "_ping");
+    p = isl_printer_print_str(p, use_memory == 1? " core=RAM_2P_LUTRAM" : 
+              (use_memory == 2? " core=RAM_2P_BRAM" : " core=RAM_2P_URAM"));
+    p = isl_printer_end_line(p);
+  }
 
   /* Print pong buffer */
   if (double_buffer) {
@@ -1649,12 +1864,35 @@ static __isl_give isl_printer *print_kernel_var_xilinx(__isl_take isl_printer *p
   	p = isl_printer_print_str(p, ";");
   	p = isl_printer_end_line(p);
     
-    p = isl_printer_start_line(p);
-    p = isl_printer_print_str(p, "#pragma HLS RESOURCE variable=");
-    p = isl_printer_print_str(p, var->name);
-    p = isl_printer_print_str(p, "_pong");
-    p = isl_printer_print_str(p, " core=RAM_2P_BRAM");
-    p = isl_printer_end_line(p);
+    /* Only add cyclic partition when array size is large enough to use BRAM.
+    * Here we set the threshold as 32.
+    */
+    if (use_memory && var->n_part != 1) {
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "#pragma HLS ARRAY_PARTITION variable=");
+      p = isl_printer_print_str(p, var->name);
+      if (double_buffer)
+        p = isl_printer_print_str(p, "_pong");
+      p = isl_printer_print_str(p, " dim=");
+      p = isl_printer_print_int(p, isl_vec_size(var->size));
+      p = isl_printer_print_str(p, " factor=");
+      p = isl_printer_print_int(p, var->n_part);
+      p = isl_printer_print_str(p, " cyclic");
+      p = isl_printer_end_line(p);
+    }
+    /* For primitive types with size less than 32, we expect HLS to implement them
+     * as registers. 
+     */
+    if (use_memory) {
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "#pragma HLS RESOURCE variable=");
+      p = isl_printer_print_str(p, var->name);
+      if (double_buffer)
+        p = isl_printer_print_str(p, "_pong");
+      p = isl_printer_print_str(p, use_memory == 1? " core=RAM_2P_LUTRAM" : 
+                (use_memory == 2? " core=RAM_2P_BRAM" : " core=RAM_2P_URAM"));
+      p = isl_printer_end_line(p);
+    }
   }
 
 	return p;
@@ -1990,7 +2228,7 @@ static __isl_give isl_printer *print_pe_dummy_module_arguments(
         p = polysa_array_info_print_declaration_argument(p,
               &prog->array[i], 1, NULL, - 1);
       else
-        p = polysa_array_info_print_call_argument(p,
+        p = polysa_module_array_info_print_call_argument(p,
               &prog->array[i]); 
       first = 0;
     }
@@ -2121,7 +2359,7 @@ static __isl_give isl_printer *print_module_arguments(__isl_take isl_printer *p,
       p = polysa_array_info_print_declaration_argument(p,
             module->io_groups[0]->array, n_lane, target == INTEL_HW? "global" : NULL, -1);
     } else {
-      p = polysa_array_info_print_call_argument(p, 
+      p = polysa_module_array_info_print_call_argument(p, 
             module->io_groups[0]->array); 
     }
     first = 0;
@@ -3025,6 +3263,48 @@ static __isl_give isl_printer *print_fifo_decl_single(
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
     p = isl_printer_end_line(p);   
+
+    /* If depth * width > 512bits, HLS will use BRAM to implement FIFOs.
+     * Instead, we will insert pragmas to use SRL instead.
+     */
+    /* Print fifo resource pragma */
+    if (n_lane * group->array->size > 32) {
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_start_line(p);");
+      p = isl_printer_end_line(p);
+      
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \"#pragma HLS RESOURCE variable=");
+      p = polysa_array_ref_group_print_fifo_name(group, p);
+      p = isl_printer_print_str(p, "_");
+      p = isl_printer_print_str(p, module->name);
+      if (pe_inout) {
+        p = isl_printer_print_str(p, suffix);
+      }
+      p = isl_printer_print_str(p, "\");");
+      p = isl_printer_end_line(p);
+  
+      if (module->type == IO_MODULE || module->type == DRAIN_MODULE) {
+        if (boundary) {
+          p = print_inst_ids_inc_suffix(p, n, n - 1, 1);
+        } else {
+          p = print_inst_ids_suffix(p, n, NULL);
+        }
+      } else if (module->type == PE_MODULE) {
+        if (boundary) {
+          p = print_pretrans_inst_ids_suffix(p, n, group->io_L1_pe_expr, group->dir);
+        } else {
+          p = print_pretrans_inst_ids_suffix(p, n, group->io_L1_pe_expr, NULL);
+        }
+      }
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_print_str(p, \" core=FIFO_SRL\");");
+      p = isl_printer_end_line(p);
+   
+      p = isl_printer_start_line(p);
+      p = isl_printer_print_str(p, "p = isl_printer_end_line(p);");
+      p = isl_printer_end_line(p);   
+    }
   }
 
   return p;
@@ -3096,6 +3376,7 @@ __isl_give isl_printer *print_module_call_upper(__isl_take isl_printer *p,
   if (boundary) {
     p = isl_printer_print_str(p, "_boundary");
   }
+  p = isl_printer_print_str(p, "_wrapper");
   p = isl_printer_print_str(p, "(\");");
   p = isl_printer_end_line(p);
 
@@ -3643,6 +3924,21 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
 //        printf("\n");
 //        // debug
 
+        /* Union */
+        if (nxt_data_pack == 1) {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "union {unsigned int ui; ");
+          p = isl_printer_print_str(p, group->array->type);
+          p = isl_printer_print_str(p, " ut;} u;");
+          p = isl_printer_end_line(p);
+
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "u.ui = (unsigned int)fifo_data(");
+          p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack - 1);
+          p = isl_printer_print_str(p, ", 0);");
+          p = isl_printer_end_line(p);
+        }
+
         p = isl_printer_start_line(p);
         op = isl_ast_expr_op_get_arg(expr, 0);
         p = isl_printer_print_ast_expr(p, op); // array_name
@@ -3661,21 +3957,29 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
 
         p = isl_printer_print_str(p, " = ");
         if (nxt_data_pack == 1) {
-          p = isl_printer_print_str(p, "Reinterpret<");
-          p = isl_printer_print_str(p, group->array->type);
-          p = isl_printer_print_str(p, ">(");
-          p = isl_printer_print_str(p, "(ap_uint<");
-          p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
-          p = isl_printer_print_str(p, ">)");
+//          p = isl_printer_print_str(p, "Reinterpret<");
+//          p = isl_printer_print_str(p, group->array->type);
+//          p = isl_printer_print_str(p, ">(");
+//          p = isl_printer_print_str(p, "(ap_uint<");
+//          p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
+//          p = isl_printer_print_str(p, ">)");
+
+//          p = isl_printer_print_str(p, "(");
+//          p = isl_printer_print_str(p, group->array->type);
+//          p = isl_printer_print_str(p, ")");
+//          p = isl_printer_print_str(p, "(ap_uint<");
+//          p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
+//          p = isl_printer_print_str(p, ">(");
+          
+          p = isl_printer_print_str(p, "u.ut;");
+          p = isl_printer_end_line(p);
+        } else {
+          p = isl_printer_print_str(p, "fifo_data(");
+          p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack - 1);
+          p = isl_printer_print_str(p, ", 0)");
+          p = isl_printer_print_str(p, ";");
+          p = isl_printer_end_line(p);
         }
-        p = isl_printer_print_str(p, "fifo_data(");
-        p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack - 1);
-        p = isl_printer_print_str(p, ", 0)");
-        if (nxt_data_pack == 1) {
-          p = isl_printer_print_str(p, ")");
-        }
-        p = isl_printer_print_str(p, ";");
-        p = isl_printer_end_line(p);
   
         p = isl_printer_start_line(p);
         p = isl_printer_print_str(p, "fifo_data = fifo_data >> ");
@@ -3691,7 +3995,52 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
       p = isl_printer_print_str(p, "}");
       p = isl_printer_end_line(p);
     } else {
-      if (hls->target == XILINX_HW) {
+      if (hls->target == XILINX_HW) {      
+        if (nxt_data_pack == 1) {
+          p = isl_printer_start_line(p);
+          p = isl_printer_print_str(p, "union {unsigned int ui; ");
+          p = isl_printer_print_str(p, group->array->type);
+          p = isl_printer_print_str(p, " ut;} ");
+          int first = 1;
+          for (int i = data_pack / nxt_data_pack - 1; i >= 0; i--) {
+            if (!first)
+              p = isl_printer_print_str(p, ", ");
+            p = isl_printer_print_str(p, "u");
+            p = isl_printer_print_int(p, i);
+            first = 0;
+          }
+          p = isl_printer_print_str(p, ";");
+          p = isl_printer_end_line(p);
+
+          for (int i = data_pack / nxt_data_pack - 1; i >= 0; i--) {
+            isl_ast_expr *expr = stmt->u.i.local_index;
+            isl_ast_expr *op;
+            int n_arg = isl_ast_expr_op_get_n_arg(expr);
+
+            p = isl_printer_start_line(p);
+            p = isl_printer_print_str(p, "u");
+            p = isl_printer_print_int(p, i);
+            p = isl_printer_print_str(p, ".ut = ");
+          
+            op = isl_ast_expr_op_get_arg(expr, 0);
+            p = isl_printer_print_ast_expr(p, op);
+            isl_ast_expr_free(op);
+            for (int j = 0; j < n_arg - 1; j++) {
+              op = isl_ast_expr_op_get_arg(expr, 1 + j);
+              p = isl_printer_print_str(p, "[");
+              if (j == n_arg - 2) {
+                p = isl_printer_print_int(p, i);
+              } else {
+                p = isl_printer_print_ast_expr(p, op);
+              }
+              p = isl_printer_print_str(p, "]");
+              isl_ast_expr_free(op);
+            }
+            p = isl_printer_print_str(p, ";");
+            p = isl_printer_end_line(p);
+          }
+        }
+
         int first = 1;
         p = isl_printer_start_line(p);
         p = isl_printer_print_str(p, "fifo_data = (");
@@ -3705,29 +4054,38 @@ static __isl_give isl_printer *polysa_kernel_print_io(__isl_take isl_printer *p,
           // print localA[][ * data_pack + i]
           
           if (nxt_data_pack == 1) {
-            p = isl_printer_print_str(p, "Reinterpret<ap_uint<");
+//            p = isl_printer_print_str(p, "Reinterpret<ap_uint<");
+//            p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
+//            p = isl_printer_print_str(p, "> >(");
+
+//            p = isl_printer_print_str(p, "ap_uint<");
+//            p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
+//            p = isl_printer_print_str(p, ">(");
+
+            p = isl_printer_print_str(p, "ap_uint<");
             p = isl_printer_print_int(p, group->array->size * 8 * nxt_data_pack);
-            p = isl_printer_print_str(p, "> >(");
-          }          
-
-          op = isl_ast_expr_op_get_arg(expr, 0);
-          p = isl_printer_print_ast_expr(p, op);
-          isl_ast_expr_free(op);
-          for (int j = 0; j < n_arg - 1; j++) {
-            op = isl_ast_expr_op_get_arg(expr, 1 + j);
-            p = isl_printer_print_str(p, "[");
-            if (j == n_arg - 2) {
-              p = isl_printer_print_int(p, i);
-            } else {
-              p = isl_printer_print_ast_expr(p, op);
-            }
-            p = isl_printer_print_str(p, "]");
+            p = isl_printer_print_str(p, ">(u");
+            p = isl_printer_print_int(p, i);
+            p = isl_printer_print_str(p, ".ui)");
+          } else {
+            op = isl_ast_expr_op_get_arg(expr, 0);
+            p = isl_printer_print_ast_expr(p, op);
             isl_ast_expr_free(op);
+            for (int j = 0; j < n_arg - 1; j++) {
+              op = isl_ast_expr_op_get_arg(expr, 1 + j);
+              p = isl_printer_print_str(p, "[");
+              if (j == n_arg - 2) {
+                p = isl_printer_print_int(p, i);
+              } else {
+                p = isl_printer_print_ast_expr(p, op);
+              }
+              p = isl_printer_print_str(p, "]");
+              isl_ast_expr_free(op);
+            }
           }
-
-          if (nxt_data_pack == 1) {
-            p = isl_printer_print_str(p, ")");
-          }
+//          if (nxt_data_pack == 1) {
+//            p = isl_printer_print_str(p, ")");
+//          }
 
           first = 0;
         }
@@ -4133,14 +4491,38 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_data_pack(
     p = isl_printer_print_str(p, ";");
     p = isl_printer_end_line(p);
 
+    if (hls->target == XILINX_HW) {
+      if (nxt_n_lane == 1) {
+        p = isl_printer_start_line(p);
+        p = isl_printer_print_str(p, "union {unsigned int ui; ");
+        p = isl_printer_print_str(p, group->array->type);
+        p = isl_printer_print_str(p, " ut;} u;");
+        p = isl_printer_end_line(p);
+  
+        p = isl_printer_start_line(p);
+        p = isl_printer_print_str(p, "u.ut = fifo_data;");
+        p = isl_printer_end_line(p);
+      }
+    } else if (hls->target == INTEL_HW) {
+      // TODO
+      printf("[PolySA] Codegen for Intel devices is not supported yet!\n");
+    }
+
     /* buf_data_split[...] = Reinterpret<>(fifo_data); */   
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "buf_data_split[split_i] = ");
     if (hls->target == XILINX_HW) {
       if (nxt_n_lane == 1) {
-        p = isl_printer_print_str(p, "Reinterpret<ap_uint<");
+//        p = isl_printer_print_str(p, "Reinterpret<ap_uint<");
+//        p = isl_printer_print_int(p, group->array->size * 8);
+//        p = isl_printer_print_str(p, "> >(fifo_data);");
+
+//        p = isl_printer_print_str(p, "ap_uint<");
+//        p = isl_printer_print_int(p, group->array->size * 8);
+//        p = isl_printer_print_str(p, ">(fifo_data);");      
+        p = isl_printer_print_str(p, "ap_uint<");
         p = isl_printer_print_int(p, group->array->size * 8);
-        p = isl_printer_print_str(p, "> >(fifo_data);");
+        p = isl_printer_print_str(p, ">(u.ui);");
       } else {
         p = isl_printer_print_str(p, "fifo_data;");
       }
@@ -4181,18 +4563,38 @@ static __isl_give isl_printer *polysa_kernel_print_io_transfer_data_pack(
   } else {
     fifo_name = concat(ctx, stmt->u.i.fifo_name, "out");
 
+    if (hls->target == XILINX_HW) {
+      if (nxt_n_lane == 1) {
+        p = isl_printer_start_line(p);
+        p = isl_printer_print_str(p, "union {unsigned int ui; ");
+        p = isl_printer_print_str(p, group->array->type);
+        p = isl_printer_print_str(p, " ut;} u;");
+        p = isl_printer_end_line(p);
+
+        p = isl_printer_start_line(p);
+        p = isl_printer_print_str(p, "u.ui = (unsigned int)buf_data_split[split_i];");
+        p = isl_printer_end_line(p);
+      }
+    }
+
     /* fifo_data = Reinterpret<>(buf_data_split[...]); */
     p = isl_printer_start_line(p);
     p = isl_printer_print_str(p, "fifo_data = ");
     if (hls->target == XILINX_HW) {
       if (nxt_n_lane == 1) {
-        p = isl_printer_print_str(p, "Reinterpret<");
-        p = isl_printer_print_str(p, group->array->type);
-        p = isl_printer_print_str(p, ">(");
-      } 
-      p = isl_printer_print_str(p, "buf_data_split[split_i]");
+//        p = isl_printer_print_str(p, "Reinterpret<");
+//        p = isl_printer_print_str(p, group->array->type);
+//        p = isl_printer_print_str(p, ">(");
+
+//        p = isl_printer_print_str(p, "(");
+//        p = isl_printer_print_str(p, group->array->type);
+//        p = isl_printer_print_str(p, ")");
+        p = isl_printer_print_str(p, "u.ut");
+      } else {
+        p = isl_printer_print_str(p, "buf_data_split[split_i]");
+      }
       if (nxt_n_lane == 1) {
-        p = isl_printer_print_str(p, ")");
+//        p = isl_printer_print_str(p, ")");
       }
     } else if (hls->target == INTEL_HW) {
       // TODO
@@ -4411,6 +4813,49 @@ static __isl_give isl_printer *print_module_header_xilinx(__isl_take isl_printer
   return p;
 }
 
+/* Print the header of the given module.
+ */
+static __isl_give isl_printer *print_module_wrapper_header_xilinx(__isl_take isl_printer *p,
+  struct polysa_prog *prog, struct polysa_hw_module *module, int inter, int boundary)
+{
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "void ");
+  p = isl_printer_print_str(p, module->name);
+  if (inter == 0)
+    p = isl_printer_print_str(p, "_intra_trans");
+  else if (inter == 1)
+    p = isl_printer_print_str(p, "_inter_trans");
+  if (boundary)
+    p = isl_printer_print_str(p, "_boundary");
+  p = isl_printer_print_str(p, "_wrapper");
+  p = isl_printer_print_str(p, "(");
+  p = print_module_arguments(p, prog, module->kernel, module, 1, XILINX_HW, inter, -1, boundary);
+  p = isl_printer_print_str(p, ")");
+
+  return p;
+}
+
+static __isl_give isl_printer *print_module_core_header_xilinx(__isl_take isl_printer *p,
+  struct polysa_prog *prog, struct polysa_hw_module *module, int inter, int boundary, int types)
+{
+  p = isl_printer_start_line(p);
+  if (types)
+    p = isl_printer_print_str(p, "void ");
+  p = isl_printer_print_str(p, module->name);
+  if (inter == 0)
+    p = isl_printer_print_str(p, "_intra_trans");
+  else if (inter == 1)
+    p = isl_printer_print_str(p, "_inter_trans");
+  if (boundary)
+    p = isl_printer_print_str(p, "_boundary");
+//  p = isl_printer_print_str(p, "_core");
+  p = isl_printer_print_str(p, "(");
+  p = print_module_arguments(p, prog, module->kernel, module, types, XILINX_HW, inter, -1, boundary);
+  p = isl_printer_print_str(p, ")");
+
+  return p;
+}
+
 static __isl_give isl_printer *print_pe_dummy_module_header_xilinx(__isl_take isl_printer *p,
   struct polysa_prog *prog, struct polysa_pe_dummy_module *module)
 {
@@ -4435,6 +4880,61 @@ static __isl_give isl_printer *print_pe_dummy_module_header_xilinx(__isl_take is
   p = isl_printer_print_str(p, ")");
 
   return p;
+}
+
+static __isl_give isl_printer *print_pe_dummy_module_wrapper_header_xilinx(__isl_take isl_printer *p,
+  struct polysa_prog *prog, struct polysa_pe_dummy_module *module)
+{
+  struct polysa_array_ref_group *group = module->io_group;
+
+  p = isl_printer_start_line(p);
+  p = isl_printer_print_str(p, "void ");
+  // group_name
+  p = isl_printer_print_str(p, group->array->name);
+  if (group->group_type == POLYSA_IO_GROUP) {
+    if (group->local_array->n_io_group > 1) {
+      p = isl_printer_print_str(p, "_");
+      p = isl_printer_print_int(p, group->nr);
+    } 
+  } else if (group->group_type == POLYSA_DRAIN_GROUP) {
+    p = isl_printer_print_str(p, "_");
+    p = isl_printer_print_str(p, "drain");
+  }
+  p = isl_printer_print_str(p, "_PE_dummy_wrapper");
+  p = isl_printer_print_str(p, "(");
+  p = print_pe_dummy_module_arguments(p, prog, module->module->kernel, module, 1, XILINX_HW);
+  p = isl_printer_print_str(p, ")");
+
+  return p;
+}
+
+static __isl_give isl_printer *print_pe_dummy_module_core_header_xilinx(__isl_take isl_printer *p,
+  struct polysa_prog *prog, struct polysa_pe_dummy_module *module, int types)
+{
+  struct polysa_array_ref_group *group = module->io_group;
+
+  p = isl_printer_start_line(p);
+  if (types)
+    p = isl_printer_print_str(p, "void ");
+  // group_name
+  p = isl_printer_print_str(p, group->array->name);
+  if (group->group_type == POLYSA_IO_GROUP) {
+    if (group->local_array->n_io_group > 1) {
+      p = isl_printer_print_str(p, "_");
+      p = isl_printer_print_int(p, group->nr);
+    } 
+  } else if (group->group_type == POLYSA_DRAIN_GROUP) {
+    p = isl_printer_print_str(p, "_");
+    p = isl_printer_print_str(p, "drain");
+  }
+  p = isl_printer_print_str(p, "_PE_dummy");
+//  p = isl_printer_print_str(p, "_core");
+  p = isl_printer_print_str(p, "(");
+  p = print_pe_dummy_module_arguments(p, prog, module->module->kernel, module, types, XILINX_HW);
+  p = isl_printer_print_str(p, ")");
+
+  return p;
+
 }
 
 /* Print the header of the given module.
@@ -4617,6 +5117,36 @@ static isl_stat print_pe_dummy_module_headers_xilinx(
   return isl_stat_ok;
 }
 
+static isl_stat print_pe_dummy_module_wrapper_headers_xilinx(
+  struct polysa_prog *prog, struct polysa_pe_dummy_module *module, struct hls_info *hls)
+{
+  isl_printer *p;
+
+  p = isl_printer_to_file(prog->ctx, hls->kernel_h);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = print_pe_dummy_module_wrapper_header_xilinx(p, prog, module);
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
+  isl_printer_free(p);
+
+  p = isl_printer_to_file(prog->ctx, hls->kernel_c);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = print_pe_dummy_module_wrapper_header_xilinx(p, prog, module);
+  p = isl_printer_end_line(p);
+  isl_printer_free(p);
+
+  return isl_stat_ok;
+}
+
+static __isl_give isl_printer *print_pe_dummy_module_core_headers_xilinx(
+  __isl_take isl_printer *p, struct polysa_prog *prog,
+  struct polysa_pe_dummy_module *module, struct hls_info *hls, int types)
+{
+  p = print_pe_dummy_module_core_header_xilinx(p, prog, module, types);
+  
+  return p;
+}
+
 /* Print the header of the given module to both gen->hls.kernel_h
  * and gen->hls.kernel_c
  * If "inter" is -1, this is a normal module call.
@@ -4642,6 +5172,36 @@ static isl_stat print_module_headers_xilinx(
   isl_printer_free(p);
 
   return isl_stat_ok;
+}
+
+static isl_stat print_module_wrapper_headers_xilinx(
+  struct polysa_prog *prog, struct polysa_hw_module *module, struct hls_info *hls, int inter, int boundary)
+{
+  isl_printer *p;
+
+  p = isl_printer_to_file(prog->ctx, hls->kernel_h);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = print_module_wrapper_header_xilinx(p, prog, module, inter, boundary);  
+  p = isl_printer_print_str(p, ";");
+  p = isl_printer_end_line(p);
+  isl_printer_free(p);
+
+  p = isl_printer_to_file(prog->ctx, hls->kernel_c);
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = print_module_wrapper_header_xilinx(p, prog, module, inter, boundary); 
+  p = isl_printer_end_line(p);
+  isl_printer_free(p);
+
+  return isl_stat_ok;
+}
+
+static __isl_give isl_printer *print_module_core_headers_xilinx(
+  __isl_take isl_printer *p, struct polysa_prog *prog, 
+  struct polysa_hw_module *module, struct hls_info *hls, int inter, int boundary, int types)
+{
+  p = print_module_core_header_xilinx(p, prog, module, inter, boundary, types);
+
+  return p; 
 }
 
 /* Print the header of the given module to both gen->hls.kernel_h
@@ -4710,7 +5270,7 @@ static __isl_give isl_printer *print_module_vars_xilinx(__isl_take isl_printer *
 
   if (inter == -1) {
     for (i = 0; i < module->n_var; ++i)
-      p = print_kernel_var_xilinx(p, &module->var[i], module->double_buffer);
+      p = print_module_var_xilinx(p, &module->var[i], module->double_buffer, module);
   }
 
   if (module->double_buffer && inter == -1) {
@@ -5003,6 +5563,7 @@ static __isl_give isl_printer *print_top_module_headers_xilinx(__isl_take isl_pr
   /* Print out the dataflow pragma */
   p = print_str_new_line(p, "p = isl_printer_end_line(p);");
   p = print_str_new_line(p, "p = isl_printer_start_line(p);");
+//  p = print_str_new_line(p, "p = isl_printer_print_str(p, \"#pragma HLS DATAFLOW disable_start_propagation\");");
   p = print_str_new_line(p, "p = isl_printer_print_str(p, \"#pragma HLS DATAFLOW\");");
   p = print_str_new_line(p, "p = isl_printer_end_line(p);");
 
@@ -5079,7 +5640,10 @@ static void print_top_gen_host_code(
   p = isl_printer_indent(p, 4);
 
   p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "FILE *fd = fopen(\"./polysa.tmp/resource_est/design_info.dat\", \"w\");");
+//  p = isl_printer_print_str(p, "FILE *fd = fopen(\"./polysa.tmp/resource_est/design_info.dat\", \"w\");");
+  p = isl_printer_print_str(p, "FILE *fd = fopen(\"");
+  p = isl_printer_print_str(p, hls->output_dir);
+  p = isl_printer_print_str(p, "/resource_est/design_info.dat\", \"w\");");
   p = isl_printer_end_line(p);
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "int fifo_cnt;");
@@ -5241,7 +5805,6 @@ static void print_top_gen_host_code(
           p, print_options);    
   }
 
-  // TODO: fix inter/intra trans
   /* module:module_name:module_cnt */
   for (int i = 0; i < n_module_names; i++) {
     p = isl_printer_start_line(p);
@@ -5299,7 +5862,10 @@ static void print_top_gen_host_code(
   p = ppcg_start_block(p);
   
   p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "FILE *f = fopen(\"./polysa.tmp/src/top.cpp\", \"w\");");
+//  p = isl_printer_print_str(p, "FILE *f = fopen(\"./polysa.tmp/src/top.cpp\", \"w\");");
+  p = isl_printer_print_str(p, "FILE *f = fopen(\"");
+  p = isl_printer_print_str(p, hls->output_dir);
+  p = isl_printer_print_str(p, "/src/top.cpp\", \"w\");");
   p = isl_printer_end_line(p);
 
   p = isl_printer_start_line(p);
@@ -5561,17 +6127,19 @@ static __isl_give isl_printer *polysa_print_default_pe_dummy_module(__isl_take i
   isl_ast_print_options *print_options;
   isl_ctx *ctx = isl_printer_get_ctx(p);
 
+  /* Print core */
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "/* Module Definition */");
   p = isl_printer_end_line(p);
 
   if (hls->target == XILINX_HW)
-    print_pe_dummy_module_headers_xilinx(prog, pe_dummy_module, hls);
+    p = print_pe_dummy_module_core_headers_xilinx(p, prog, pe_dummy_module, hls, 1);
   else {
     // TODO
   }
   
   fprintf(hls->kernel_c, "{\n");
+  fprintf(hls->kernel_c, "#pragma HLS INLINE OFF\n");
   print_module_iterators(hls->kernel_c, module);
   
   p = isl_printer_indent(p, 4);
@@ -5600,8 +6168,29 @@ static __isl_give isl_printer *polysa_print_default_pe_dummy_module(__isl_take i
   
   p = isl_printer_end_line(p);
 
-  return p;
+  /* Print wrapper */
+  if (hls->target == XILINX_HW) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "/* Module Definition */");
+    p = isl_printer_end_line(p);
+  
+    print_pe_dummy_module_wrapper_headers_xilinx(prog, pe_dummy_module, hls);
+    
+    fprintf(hls->kernel_c, "{\n");
+    p = isl_printer_indent(p, 4);
+    p = print_pe_dummy_module_core_headers_xilinx(p, prog, pe_dummy_module, hls, 0);
+    p = isl_printer_print_str(p, ";");
+    p = isl_printer_end_line(p);
+    p = isl_printer_indent(p, -4);
+    fprintf(hls->kernel_c, "}\n");
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "/* Module Definition */");
+    p = isl_printer_end_line(p);
+    
+    p = isl_printer_end_line(p);
+  }
 
+  return p;
 }
 
 static __isl_give isl_printer *polysa_print_default_module(__isl_take isl_printer *p,
@@ -5612,16 +6201,18 @@ static __isl_give isl_printer *polysa_print_default_module(__isl_take isl_printe
   isl_ast_print_options *print_options;
   isl_ctx *ctx = isl_printer_get_ctx(p);
 
+  /* Print core */
   p = isl_printer_start_line(p);
   p = isl_printer_print_str(p, "/* Module Definition */");
   p = isl_printer_end_line(p);
 
   if (hls->target == XILINX_HW)
-    print_module_headers_xilinx(prog, module, hls, -1, boundary);
+    p = print_module_core_headers_xilinx(p, prog, module, hls, -1, boundary, 1);
   else
     print_module_headers_intel(prog, module, hls, -1, boundary);
   
   fprintf(hls->kernel_c, "{\n");
+  fprintf(hls->kernel_c, "#pragma HLS INLINE OFF\n");
   print_module_iterators(hls->kernel_c, module);
   
   p = isl_printer_indent(p, 4);
@@ -5673,6 +6264,30 @@ static __isl_give isl_printer *polysa_print_default_module(__isl_take isl_printe
   
   p = isl_printer_end_line(p);
 
+  /* Print wrapper */
+  if (hls->target == XILINX_HW) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "/* Module Definition */");
+    p = isl_printer_end_line(p);
+  
+    print_module_wrapper_headers_xilinx(prog, module, hls, -1, boundary); 
+  
+    fprintf(hls->kernel_c, "{\n");
+    p = isl_printer_indent(p, 4);
+   
+    p = print_module_core_headers_xilinx(p, prog, module, hls, -1, boundary, 0);
+    p = isl_printer_print_str(p, ";");
+    p = isl_printer_end_line(p);
+
+    p = isl_printer_indent(p, -4);
+    fprintf(hls->kernel_c, "}\n");
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "/* Module Definition */");
+    p = isl_printer_end_line(p);
+    
+    p = isl_printer_end_line(p);
+  }
+
   return p;
 }
 
@@ -5704,10 +6319,12 @@ __isl_give isl_printer *polysa_print_intra_trans_module(__isl_take isl_printer *
     p = print_module_vars_intel(p, module, 0);
   p = isl_printer_end_line(p);
 
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "if (!intra_trans_en) return;");
-  p = isl_printer_end_line(p);
-  p = isl_printer_end_line(p);
+  if (module->double_buffer) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "if (!intra_trans_en) return;");
+    p = isl_printer_end_line(p);
+    p = isl_printer_end_line(p);
+  }
 
   print_options = isl_ast_print_options_alloc(ctx);
   print_options = isl_ast_print_options_set_print_user(print_options,
@@ -5757,10 +6374,12 @@ static __isl_give isl_printer *polysa_print_inter_trans_module(__isl_take isl_pr
     p = print_module_vars_intel(p, module, 1);
   p = isl_printer_end_line(p);
 
-  p = isl_printer_start_line(p);
-  p = isl_printer_print_str(p, "if (!inter_trans_en) return;");
-  p = isl_printer_end_line(p);
-  p = isl_printer_end_line(p);
+  if (module->double_buffer) {
+    p = isl_printer_start_line(p);
+    p = isl_printer_print_str(p, "if (!inter_trans_en) return;");
+    p = isl_printer_end_line(p);
+    p = isl_printer_end_line(p);
+  }
 
   print_options = isl_ast_print_options_alloc(ctx);
   print_options = isl_ast_print_options_set_print_user(print_options,
@@ -5913,6 +6532,8 @@ int generate_polysa_xilinx_hls(isl_ctx *ctx, struct ppcg_options *options,
 
   hls.target = XILINX_HW;
   hls.hls = options->hls;
+  hls.ctx = ctx;
+  hls.output_dir = options->output_dir;
   hls_open_files(&hls, input);
 
   r = generate_sa(ctx, input, hls.host_c, options, &print_hw, &hls);

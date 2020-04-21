@@ -13,6 +13,7 @@ FIFO_predict_xilinx	resource_est.py	/^def FIFO_predict_xilinx(dw, depth):$/;"	f
 LinearRegression	latency_est.py	/^from sklearn.linear_model import LinearRegression$/;"	i
 LinearRegression	optimizer.py	/^from sklearn.linear_model import LinearRegression$/;"	i
 LinearRegression	resource_est.py	/^from sklearn.linear_model import LinearRegression$/;"	i
+add_cycle_dse_info	optimizer.py	/^def add_cycle_dse_info(prj_dir, design_infos):$/;"	f
 argparse	codegen.py	/^import argparse$/;"	i
 argparse	latency_est.py	/^import argparse$/;"	i
 argparse	optimizer.py	/^import argparse$/;"	i
@@ -21,22 +22,25 @@ args	codegen.py	/^  args = parser.parse_args()$/;"	v
 args	latency_est.py	/^  args = parser.parse_args()$/;"	v
 args	optimizer.py	/^  args = parser.parse_args()$/;"	v
 args	resource_est.py	/^  args = parser.parse_args()$/;"	v
-call_explore_array_part_L2	optimizer.py	/^def call_explore_array_part_L2(kernel_id, sa_sizes, cmd_prefix, config):$/;"	f
-call_explore_kernel	optimizer.py	/^def call_explore_kernel(kernel_id, sa_sizes, cmd_prefix, simd_info, config):$/;"	f
-call_explore_latency	optimizer.py	/^def call_explore_latency(kernel_id, sa_sizes, cmd_prefix, config):$/;"	f
-call_explore_simd	optimizer.py	/^def call_explore_simd(kernel_id, sa_sizes, cmd_prefix, simd_info, config):$/;"	f
+call_explore_array_part_L2	optimizer.py	/^def call_explore_array_part_L2(kernel_id, sa_sizes, cmds, config):$/;"	f
+call_explore_kernel	optimizer.py	/^def call_explore_kernel(kernel_id, sa_sizes, cmds, simd_info, config):$/;"	f
+call_explore_latency	optimizer.py	/^def call_explore_latency(kernel_id, sa_sizes, cmds, config):$/;"	f
+call_explore_simd	optimizer.py	/^def call_explore_simd(kernel_id, sa_sizes, cmds, simd_info, config):$/;"	f
+clear_design_files	optimizer.py	/^def clear_design_files(config):$/;"	f
 convert_design_infos_to_df	optimizer.py	/^def convert_design_infos_to_df(design_infos):$/;"	f
 convert_latency_infos_to_df	optimizer.py	/^def convert_latency_infos_to_df(latency_infos, design_infos):$/;"	f
 est_module_latency_xilinx	latency_est.py	/^def est_module_latency_xilinx(loop_struct, config):$/;"	f
 etree	latency_est.py	/^import xml.etree.ElementTree as ET$/;"	i
 etree	optimizer.py	/^import xml.etree.ElementTree as ET$/;"	i
 etree	resource_est.py	/^import xml.etree.ElementTree as ET$/;"	i
-explore_array_part	optimizer.py	/^def explore_array_part(kernel_id, cmd_prefix, config):$/;"	f
-explore_array_part_L2	optimizer.py	/^def explore_array_part_L2(kernel_id, loops, cmd_prefix, sa_sizes, config):$/;"	f
+explore_array_part	optimizer.py	/^def explore_array_part(kernel_id, cmds, config):$/;"	f
+explore_array_part_L2	optimizer.py	/^def explore_array_part_L2(kernel_id, loops, cmds, sa_sizes, config):$/;"	f
+explore_array_part_single_job	optimizer.py	/^def explore_array_part_single_job(loops, kernel_id, sa_sizes, cmds, config, work_dir):$/;"	f
 explore_kernel	optimizer.py	/^def explore_kernel(kernel_id, sa_sizes, config):$/;"	f
-explore_latency_hiding	optimizer.py	/^def explore_latency_hiding(kernel_id, loops, cmd_prefix, sa_sizes, config):$/;"	f
-explore_simd	optimizer.py	/^def explore_simd(kernel_id, loops, cmd_prefix, sa_sizes, config):$/;"	f
+explore_latency_hiding	optimizer.py	/^def explore_latency_hiding(kernel_id, loops, cmds, sa_sizes, config):$/;"	f
+explore_simd	optimizer.py	/^def explore_simd(kernel_id, loops, cmds, sa_sizes, config):$/;"	f
 explore_space_time	optimizer.py	/^def explore_space_time(cmd, config):$/;"	f
+extract_cycle_dse_results	optimizer.py	/^def extract_cycle_dse_results(config):$/;"	f
 extract_design_info	resource_est.py	/^def extract_design_info(info_json, info_dat, hls_prj):$/;"	f
 extract_latency_info	latency_est.py	/^def extract_latency_info(loop_info, hls_prj):$/;"	f
 extract_module_stmt_latency	latency_est.py	/^def extract_module_stmt_latency(loop_struct, config):$/;"	f
@@ -46,14 +50,14 @@ extract_module_stmts_xilinx	latency_est.py	/^def extract_module_stmts_xilinx(loo
 extract_resource_info	resource_est.py	/^def extract_resource_info(hls_rpt):$/;"	f
 extract_stmt_info	latency_est.py	/^def extract_stmt_info(hls_rpt):$/;"	f
 generate_intel_kernel	codegen.py	/^def generate_intel_kernel(kernel, headers, module_defs, module_calls, fifo_decls):$/;"	f
-generate_loop_candidates	optimizer.py	/^def generate_loop_candidates(loops, config, left, right):$/;"	f
+generate_loop_candidates	optimizer.py	/^def generate_loop_candidates(loops, config, left, right, loop_limit=-1):$/;"	f
 generate_sa_sizes_cmd	optimizer.py	/^def generate_sa_sizes_cmd(sa_sizes):$/;"	f
 generate_simd_loop_candidates	optimizer.py	/^def generate_simd_loop_candidates(loops, config):$/;"	f
 gmean	latency_est.py	/^from scipy.stats.mstats import gmean$/;"	i
 gmean	resource_est.py	/^from scipy.stats.mstats import gmean$/;"	i
 index_simplify	codegen.py	/^def index_simplify(matchobj):$/;"	f
 insert_xlnx_pragmas	codegen.py	/^def insert_xlnx_pragmas(lines):$/;"	f
-intel_run	codegen.py	/^def intel_run(kernel_call, kernel_def, kernel='kernel'):$/;"	f
+intel_run	codegen.py	/^def intel_run(kernel_call, kernel_def, kernel='polysa.tmp\/kernel_intel.c'):$/;"	f
 is_loop_struct_leaf_empty	latency_est.py	/^def is_loop_struct_leaf_empty(loop_struct):$/;"	f
 itertools	optimizer.py	/^import itertools$/;"	i
 joblib	latency_est.py	/^import joblib$/;"	i
@@ -76,6 +80,7 @@ metrics	latency_est.py	/^from sklearn import metrics$/;"	i
 metrics	optimizer.py	/^from sklearn import metrics$/;"	i
 metrics	resource_est.py	/^from sklearn import metrics$/;"	i
 mod_simplify	codegen.py	/^def mod_simplify(matchobj):$/;"	f
+multiprocessing	optimizer.py	/^import multiprocessing$/;"	i
 np	latency_est.py	/^import numpy as np$/;"	i
 np	optimizer.py	/^import numpy as np$/;"	i
 np	resource_est.py	/^import numpy as np$/;"	i
@@ -95,6 +100,7 @@ predict_kernel_latency	latency_est.py	/^def predict_kernel_latency(kernel, df, m
 predict_kernel_resource_usage	resource_est.py	/^def predict_kernel_resource_usage(kernel, df, module_list, fifo_list, design_info, verbose=0):$/;"	f
 predict_module_latency_xilinx	latency_est.py	/^def predict_module_latency_xilinx(loop_struct, config):$/;"	f
 print_module_def	codegen.py	/^def print_module_def(f, arg_map, module_def, def_args, call_args_type):$/;"	f
+random	optimizer.py	/^import random$/;"	i
 re	codegen.py	/^import re$/;"	i
 re	latency_est.py	/^import re$/;"	i
 re	optimizer.py	/^import re$/;"	i
@@ -104,7 +110,6 @@ res_model	latency_est.py	/^import resource_est as res_model$/;"	i
 res_model	optimizer.py	/^import resource_est as res_model$/;"	i
 resource	resource_est.py	/^    resource = xilinx_run(args.design_info_json, args.design_info_dat, args.hls_project)$/;"	v
 save_design_files	optimizer.py	/^def save_design_files(kernel_id, sa_sizes, config):$/;"	f
-search_kernel	optimizer.py	/^def search_kernel(kernel_id, sa_sizes, config):$/;"	f
 search_xilinx	optimizer.py	/^def search_xilinx(cmd, config):$/;"	f
 setting	optimizer.py	/^    setting = json.load(f)$/;"	v
 simplify_expressions	codegen.py	/^def simplify_expressions(lines):$/;"	f
@@ -113,10 +118,12 @@ subprocess	optimizer.py	/^import subprocess$/;"	i
 subprocess	resource_est.py	/^import subprocess$/;"	i
 sympy	codegen.py	/^import sympy$/;"	i
 synth_train_samples	optimizer.py	/^def synth_train_samples(config):$/;"	f
+synth_train_samples_single_job	optimizer.py	/^def synth_train_samples_single_job(designs, kernel, config):$/;"	f
 sys	codegen.py	/^import sys$/;"	i
 sys	latency_est.py	/^import sys$/;"	i
 sys	optimizer.py	/^import sys$/;"	i
 sys	resource_est.py	/^import sys$/;"	i
+time	optimizer.py	/^import time$/;"	i
 train_latency_models_xilinx	optimizer.py	/^def train_latency_models_xilinx(config):$/;"	f
 train_module_resource_models	resource_est.py	/^def train_module_resource_models(kernel, df, module_list, fifo_list, design_infos, verbose=0):$/;"	f
 train_resource_models_xilinx	optimizer.py	/^def train_resource_models_xilinx(config):$/;"	f
@@ -125,7 +132,7 @@ train_test_split	latency_est.py	/^from sklearn.model_selection import train_test
 train_test_split	optimizer.py	/^from sklearn.model_selection import train_test_split$/;"	i
 train_test_split	resource_est.py	/^from sklearn.model_selection import train_test_split$/;"	i
 train_xilinx	optimizer.py	/^def train_xilinx(cmd, config):$/;"	f
-xilinx_run	codegen.py	/^def xilinx_run(kernel_call, kernel_def, kernel='kernel'):$/;"	f
+xilinx_run	codegen.py	/^def xilinx_run(kernel_call, kernel_def, kernel='polysa.tmp\/src\/kernel_xilinx.cpp'):$/;"	f
 xilinx_run	latency_est.py	/^def xilinx_run(design_dir, kernel, train, predict, cycle, verbose):$/;"	f
 xilinx_run	latency_est.py	/^def xilinx_run(loop_info, hls_prj, cycle, verbose):$/;"	f
 xilinx_run	optimizer.py	/^def xilinx_run(cmd, info, setting, training, search, verbose):$/;"	f

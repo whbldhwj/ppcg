@@ -125,6 +125,8 @@ ISL_ARG_BOOL(struct ppcg_options, unroll_copy_local, 0, "unroll-copy-local",
 	0, "unroll code for copying to/from local memory")
 ISL_ARG_STR(struct ppcg_options, config, 0, "config", "config", NULL, 
   "PolySA Configuration file")
+ISL_ARG_STR(struct ppcg_options, output_dir, 0, "output-dir", "dir", NULL, 
+  "PolySA Output directory")
 /* PolySA Extended */
 ISL_ARG_BOOL(struct ppcg_options, polysa, 0, "polysa", 1,
   "Generate systolic arrays using PolySA")
@@ -159,6 +161,8 @@ ISL_ARG_INT(struct ppcg_options, max_local_memory, 0,
   "max-local-memory", "size", 8192, "maximal amount of local memory")
 ISL_ARG_BOOL(struct ppcg_options, hls, 0, "hls", 0,
   "Generate Xilinx HLS host")
+ISL_ARG_BOOL(struct ppcg_options, uram, 0, "uram", 0,
+  "Use Xilinx FPGA URAM")
 /* PolySA Extended */
 ISL_ARG_BOOL(struct ppcg_options, linearize_device_arrays, 0,
 	"linearize-device-arrays", 1,

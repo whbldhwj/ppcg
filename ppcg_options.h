@@ -98,8 +98,14 @@ struct ppcg_options {
   /* Configuration file */
   char *config;
 
+  /* Output directory */
+  char *output_dir;
+
   /* Generate HLS host instead of OpenCL host */
   int hls;
+
+  /* Use URAM */
+  int uram;
   /* PolySA Extended */
 
   /* Unroll the code for copying to/from local memory */

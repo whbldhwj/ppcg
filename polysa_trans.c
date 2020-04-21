@@ -103,7 +103,9 @@ isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa,
       int *ubs = extract_band_upper_bounds(sa, node);
       FILE *fp;
       char *content;
-      cJSON *tuning, *array_part_json, *loops_json;
+      cJSON *tuning, *array_part_json, *loops_json, *n_sa_dim_json;
+      isl_printer *p_str;
+      char *tuning_path;
 
       tuning = cJSON_CreateObject();
       array_part_json = cJSON_CreateObject();      
@@ -114,10 +116,19 @@ isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa,
         cJSON *loop = cJSON_CreateNumber(ubs[i]);
         cJSON_AddItemToArray(loops_json, loop);
       }
-      fp = fopen("polysa.tmp/tuning.json", "w");
+      /* Add the sa_dim */
+      n_sa_dim_json = cJSON_CreateNumber(sa->n_sa_dim);
+      cJSON_AddItemToObject(array_part_json, "n_sa_dim", n_sa_dim_json);
+      p_str = isl_printer_to_str(sa->ctx);
+      p_str = isl_printer_print_str(p_str, sa->options->output_dir);
+      p_str = isl_printer_print_str(p_str, "/tuning.json");
+      tuning_path = isl_printer_get_str(p_str);
+      fp = fopen(tuning_path, "w");
       content = cJSON_Print(tuning);
       fprintf(fp, "%s", content);
       cJSON_Delete(tuning);
+      isl_printer_free(p_str);
+      free(tuning_path);
       exit(0);
     }   
   } else {
@@ -178,7 +189,7 @@ isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa,
   /* Examine if there is any flow dep carried in the array_part band */
   if (!sa->options->credit_control) {
     for (int i = 0; i < isl_schedule_node_band_n_member(node); i++) {
-      if (!isl_schedule_node_band_member_get_coincident(node, i)) {
+      if (!isl_schedule_node_band_member_get_coincident(node, i)) {        
         printf("[PolySA] WARNING: Flow deps carried in the array partition band.\n");
         printf("[PolySA] WARNING: Using simple task pipelining could lead to potential data hazards.\n");
         printf("[PolySA] WARNING: The program will proceed as usual. You could consider enabling credit control.\n");
@@ -205,10 +216,17 @@ isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa,
         if (!tile_size) {
           /* Dump out the number of and upper bounds of array_part loops and exit the program */
           int *ubs = extract_band_upper_bounds(sa, node);
+          int *loop_coincident = (int *)malloc(sizeof(int) * tile_len);
           FILE *fp;
           char *content;
           cJSON *tuning, *array_part_json, *loops_json;
+          isl_printer *p_str;
+          char *tuning_path;
   
+          for (int i = 0; i < tile_len; i++) {
+            loop_coincident[i] = isl_schedule_node_band_member_get_coincident(node, i);
+          }
+
           tuning = cJSON_CreateObject();
           array_part_json = cJSON_CreateObject();
           cJSON_AddItemToObject(tuning, "array_part_L2", array_part_json);
@@ -218,10 +236,23 @@ isl_stat sa_array_partitioning_optimize(struct polysa_kernel *sa,
             cJSON *loop = cJSON_CreateNumber(ubs[i]);
             cJSON_AddItemToArray(loops_json, loop);
           }
-          fp = fopen("polysa.tmp/tuning.json", "w");
-          content = cJSON_Print(tuning);
+          loops_json = cJSON_CreateArray();
+          cJSON_AddItemToObject(array_part_json, "coincident", loops_json);
+          for (int i = 0; i < tile_len; i++) {
+            cJSON *loop = cJSON_CreateNumber(loop_coincident[i]);
+            cJSON_AddItemToArray(loops_json, loop);
+          }
+          p_str = isl_printer_to_str(sa->ctx);
+          p_str = isl_printer_print_str(p_str, sa->options->output_dir);
+          p_str = isl_printer_print_str(p_str, "/tuning.json");
+          tuning_path = isl_printer_get_str(p_str);
+          fp = fopen(tuning_path, "w");
+          content = cJSON_Print(tuning);          
           fprintf(fp, "%s", content);
           cJSON_Delete(tuning);
+          free(tuning_path);
+          free(loop_coincident);
+          isl_printer_free(p_str);
           exit(0);
         }
       } else {
@@ -308,7 +339,7 @@ static isl_bool count_latency_hiding_loop(__isl_keep isl_schedule_node *node, vo
           node_copy = isl_schedule_node_band_split(node_copy, 1);
         }
         int *ubs = extract_band_upper_bounds(data->kernel, node_copy);
-        data->ubs = (int *)realloc(data->ubs, sizeof(int) * data->tile_len);
+        data->ubs = (int *)realloc(data->ubs, sizeof(int) * data->tile_len);      
         data->ubs[data->tile_len - 1] = ubs[0];
         isl_schedule_node_free(node_copy);
         free(ubs);
@@ -626,14 +657,16 @@ static int is_stride_coalesced(__isl_keep isl_schedule_node *node, struct polysa
       for (int j = 0; j < local_array->array->n_ref; j++) {
         struct polysa_stmt_access *acc = local_array->array->refs[j];
         
-        if (acc->layout_trans != -1)  {
-          printf("[PolySA] Array reference ");
-          if (acc->read)
-            printf("(R): ");
-          else
-            printf("(W): ");
-          p = isl_printer_print_map(p, acc->access);
-          printf("\n");
+        if (acc->layout_trans != -1)  {          
+          if (kernel->scop->options->debug->polysa_verbose) {
+            printf("[PolySA] Array reference ");
+            if (acc->read)
+              printf("(R): ");
+            else
+              printf("(W): ");
+            p = isl_printer_print_map(p, acc->access);
+            printf("\n");
+          }
           if (acc->layout_trans == 1){
             printf("[PolySA] Layout transform at dim: %d\n", acc->simd_dim);
             *layout_transform = 1;
@@ -1132,10 +1165,20 @@ static __isl_give isl_schedule_node *polysa_latency_tile_band_loop(
   isl_id *id;
   n = isl_schedule_node_band_n_member(node);
 
-  for (int i = n - 1; i >= 0; i--) {
+  for (int i = n - 1; i >= 0; i--) {    
     if (isl_schedule_node_band_member_get_pe_opt(node, i) == polysa_loop_latency) {      
       int loop_tile_size = data->tile_size[data->tile_len - data->n_touched_loop - 1];
       (data->n_touched_loop)++;
+      /* Update SA dimensions if needed. */
+      if (isl_schedule_node_band_member_get_space_time(node, i) == polysa_loop_space) {
+        /* Figure out the dim position */
+        int touched_space_loop = 0;
+        for (int j = 0; j < i; j++) {
+          if (isl_schedule_node_band_member_get_space_time(node, j) == polysa_loop_space)
+            touched_space_loop++;
+        }        
+        data->sa->sa_dim[touched_space_loop] /= loop_tile_size;      
+      }
       /* Skip loop tile size as 1 */
       if (loop_tile_size > 1) {
         /* Tile the current loop and permute it to be the innermost time loop. */
@@ -1262,6 +1305,8 @@ static __isl_give isl_schedule_node *polysa_latency_tile_loop(__isl_take isl_sch
       FILE *fp;
       char *content;
       cJSON *tuning, *latency_json, *loops_json;
+      char *tuning_path;
+      isl_printer *p_str;
 
       tuning = cJSON_CreateObject();
       latency_json = cJSON_CreateObject();
@@ -1272,10 +1317,16 @@ static __isl_give isl_schedule_node *polysa_latency_tile_loop(__isl_take isl_sch
         cJSON *loop = cJSON_CreateNumber(ubs[i]);
         cJSON_AddItemToArray(loops_json, loop);
       }
-      fp = fopen("polysa.tmp/tuning.json", "w");
+      p_str = isl_printer_to_str(sa->ctx);
+      p_str = isl_printer_print_str(p_str, sa->options->output_dir);
+      p_str = isl_printer_print_str(p_str, "/tuning.json");
+      tuning_path = isl_printer_get_str(p_str);
+      fp = fopen(tuning_path, "w");
       content = cJSON_Print(tuning);
       fprintf(fp, "%s", content);
       cJSON_Delete(tuning);
+      isl_printer_free(p_str);
+      free(tuning_path);
       exit(0);
     }
   } else {
@@ -1293,7 +1344,11 @@ static __isl_give isl_schedule_node *polysa_latency_tile_loop(__isl_take isl_sch
    * skip the tiling and split off the last time dimension to add a 
    * hls_pipeline mark. */
   for (i = 0; i < tile_len; i++) {
-    if (tile_size[i] != 1)
+    if (tile_size[i] != -1)
+      sa->lat_hide_len *= tile_size[i];
+  }
+  for (i = 0; i < tile_len; i++) {    
+    if (tile_size[i] > 1)
       break;
   }
   if (i == tile_len) {
@@ -1526,7 +1581,8 @@ isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa, bool en, char *mod
   }
 
   printf("[PolySA] Apply latency hiding.\n");
-  
+  sa->lat_hide_len = 1;
+
   /* Move down to the array marker. */
   node = polysa_tree_move_down_to_array(node, sa->core);
  
@@ -1573,6 +1629,7 @@ isl_stat sa_latency_hiding_optimize(struct polysa_kernel *sa, bool en, char *mod
 //  p = isl_printer_print_schedule_node(p, node);
 //  p = isl_printer_flush(p);
 //  // debug
+
 
   /* Clean up the band pe_opt properties. */
   schedule = isl_schedule_node_get_schedule(node);
@@ -2064,7 +2121,9 @@ isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa, char *mode)
         FILE *fp;
         char *content;
         cJSON *tuning, *simd_json, *loops_json, *scores_json;
-        
+        isl_printer *p_str;
+        char *tuning_path;
+
         tuning = cJSON_CreateObject();
         simd_json = cJSON_CreateObject();
         cJSON_AddItemToObject(tuning, "simd", simd_json);
@@ -2080,10 +2139,22 @@ isl_stat sa_simd_vectorization_optimize(struct polysa_kernel *sa, char *mode)
           cJSON *loop = cJSON_CreateNumber(data.scores[i]);
           cJSON_AddItemToArray(scores_json, loop);
         }
-        fp = fopen("polysa.tmp/tuning.json", "w");
+        loops_json = cJSON_CreateArray();
+        cJSON_AddItemToObject(simd_json, "sa_dims", loops_json);
+        for (int i = 0; i < sa->n_sa_dim; i++) {
+          cJSON *loop = cJSON_CreateNumber(sa->sa_dim[i]);
+          cJSON_AddItemToArray(loops_json, loop);
+        }        
+        p_str = isl_printer_to_str(sa->ctx);
+        p_str = isl_printer_print_str(p_str, sa->options->output_dir);
+        p_str = isl_printer_print_str(p_str, "/tuning.json");
+        tuning_path = isl_printer_get_str(p_str);
+        fp = fopen(tuning_path, "w");
         content = cJSON_Print(tuning);
         fprintf(fp, "%s", content);
         cJSON_Delete(tuning);
+        free(tuning_path);
+        isl_printer_free(p_str);
         exit(0);
       }  
     }
@@ -2187,10 +2258,14 @@ struct polysa_kernel **sa_space_time_transform(__isl_take isl_schedule *schedule
   isl_size band_w = isl_schedule_node_band_n_member(band); 
   /* Explore 1D systolic array */
   if (scop->options->max_sa_dim >= 1 && band_w >= 1) {
-    printf("[PolySA] Explore 1D systolic array.\n");
+    if (scop->options->debug->polysa_verbose) {
+      printf("[PolySA] Explore 1D systolic array.\n");
+    }
     isl_size n_sa_dim = 0;
-    struct polysa_kernel **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 1, &n_sa_dim);
-    printf("[PolySA] %d candidates generated.\n", n_sa_dim);
+    struct polysa_kernel **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 1, &n_sa_dim);    
+    if (scop->options->debug->polysa_verbose) {
+      printf("[PolySA] %d candidates generated.\n", n_sa_dim);
+    }
     sa_list = (struct polysa_kernel **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_kernel *));
     for (int i = 0; i < n_sa_dim; i++) {
       sa_list[n_sa + i] = sa_dim_list[i];
@@ -2200,10 +2275,14 @@ struct polysa_kernel **sa_space_time_transform(__isl_take isl_schedule *schedule
   }
   /* Explore 2D systolic array */
   if (scop->options->max_sa_dim >= 2 && band_w >= 2) {
-    printf("[PolySA] Explore 2D systolic array.\n");
+    if (scop->options->debug->polysa_verbose) {
+      printf("[PolySA] Explore 2D systolic array.\n");
+    }
     isl_size n_sa_dim = 0;
     struct polysa_kernel **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 2, &n_sa_dim);
-    printf("[PolySA] %d candidates generated.\n", n_sa_dim);
+    if (scop->options->debug->polysa_verbose) {
+      printf("[PolySA] %d candidates generated.\n", n_sa_dim);
+    }
     sa_list = (struct polysa_kernel **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_kernel *));
     for (int i = 0; i < n_sa_dim; i++) {
       sa_list[n_sa + i] = sa_dim_list[i];
@@ -2213,10 +2292,14 @@ struct polysa_kernel **sa_space_time_transform(__isl_take isl_schedule *schedule
   }
   /* Explore 3D systolic array */
   if (scop->options->max_sa_dim >= 3 && band_w >= 3) {
-    printf("[PolySA] Explore 3D systolic array.\n");
+    if (scop->options->debug->polysa_verbose) {
+      printf("[PolySA] Explore 3D systolic array.\n");
+    }
     isl_size n_sa_dim = 0;
     struct polysa_kernel **sa_dim_list = sa_space_time_transform_at_dim(schedule, scop, 3, &n_sa_dim);
-    printf("[PolySA] %d candidates generated.\n", n_sa_dim);
+    if (scop->options->debug->polysa_verbose) {
+      printf("[PolySA] %d candidates generated.\n", n_sa_dim);
+    }
     sa_list = (struct polysa_kernel **)realloc(sa_list, (n_sa + n_sa_dim) * sizeof(struct polysa_kernel *));
     for (int i = 0; i < n_sa_dim; i++) {
       sa_list[n_sa + i] = sa_dim_list[i];
@@ -3793,12 +3876,21 @@ static __isl_give isl_schedule_node *mark_kernels(
       /* Dump out the number of systolic array designs and exit the program*/
       FILE *fp;
       char *content;
+      isl_printer *p_str;
+      char *tuning_path;
+
       tuning = cJSON_CreateObject();
       space_time_json = cJSON_CreateObject();
       n_sa_json = cJSON_CreateNumber(num_sa);
       cJSON_AddItemToObject(space_time_json, "n_kernel", n_sa_json);
       cJSON_AddItemToObject(tuning, "space_time", space_time_json);
-      fp = fopen("polysa.tmp/tuning.json", "w");
+      p_str = isl_printer_to_str(gen->ctx);
+      p_str = isl_printer_print_str(p_str, gen->options->output_dir);
+      p_str = isl_printer_print_str(p_str, "/tuning.json");
+      tuning_path = isl_printer_get_str(p_str);      
+      fp = fopen(tuning_path, "w");
+      free(tuning_path);
+      isl_printer_free(p_str);
       content = cJSON_Print(tuning);
       fprintf(fp, "%s", content);
       cJSON_Delete(tuning);
@@ -5407,6 +5499,7 @@ __isl_give isl_schedule_node *add_pe_int_io_copies(
   int n_lane = io_group->n_lane;
   isl_printer *p_str;
   char *stmt_name;
+  isl_id *id;
  
 //  // debug
 //  isl_printer *p = isl_printer_to_file(isl_schedule_node_get_ctx(node), stdout);
@@ -5544,7 +5637,15 @@ __isl_give isl_schedule_node *add_pe_int_io_copies(
     /* Create a filter */
     filter = schedule_eq_lb(graft);
     graft = isl_schedule_node_insert_filter(graft, filter);
+    /* Move to the tile loop */
+    graft = isl_schedule_node_parent(graft);
   }
+
+  /* Insert a "pipeline" mark inside the band node */
+  id = isl_id_alloc(kernel->ctx, "hls_pipeline", NULL);
+  graft = isl_schedule_node_child(graft, 0);
+  graft = isl_schedule_node_insert_mark(graft, id);
+  graft = isl_schedule_node_parent(graft);
 
   while (graft && isl_schedule_node_has_parent(graft))
     graft = isl_schedule_node_parent(graft);
@@ -5819,7 +5920,7 @@ __isl_give struct polysa_hw_module *sa_pe_module_gen(struct polysa_gen *gen)
 //  p = isl_printer_set_yaml_style(p, ISL_YAML_STYLE_BLOCK);
 //  // debug
 
-  module = polysa_hw_module_alloc();
+  module = polysa_hw_module_alloc(gen);
 
   /* Add the filters for PEs */
   schedule = gen->schedule;
@@ -6305,6 +6406,7 @@ static __isl_give isl_schedule_node *add_io_copies_stmt_tile(
   graft = isl_schedule_node_parent(graft);
 
   if (is_buffer && !read) {
+    // TODO: should not be inter_trans or intra_trans
     /* Insert a "dependence" mark */
     char *mark_name;
     isl_printer *p_str = isl_printer_to_str(ctx);
@@ -6313,6 +6415,8 @@ static __isl_give isl_schedule_node *add_io_copies_stmt_tile(
     mark_name = isl_printer_get_str(p_str);
     isl_printer_free(p_str);
     id = isl_id_alloc(ctx, mark_name, NULL);
+    graft = isl_schedule_node_child(graft, 0);
+    graft = isl_schedule_node_child(graft, 0);
     graft = isl_schedule_node_insert_mark(graft, id);
     free(mark_name);
   }
@@ -7540,7 +7644,7 @@ static __isl_give isl_schedule *generate_io_module_outer(
   } else {
     node = isl_schedule_node_graft_before(node, isl_schedule_node_copy(graft4));
   }  
-  if (gen->options->double_buffer) {
+  if (module->double_buffer) {
     /* Add misc statements for saving and switching states */
 //    space = isl_space_set_alloc(ctx, 0, 0);
 //    space = isl_space_set_tuple_name(space, isl_dim_set, stmt_name3);
@@ -7558,7 +7662,7 @@ static __isl_give isl_schedule *generate_io_module_outer(
 //  p = isl_printer_flush(p);
 //  // debug
 
-  if (gen->options->double_buffer) {
+  if (module->double_buffer) {
     /* Add the last function call */
     node = polysa_tree_move_up_to_kernel(node);
     node = isl_schedule_node_child(node, 0);
@@ -7792,7 +7896,7 @@ static __isl_give isl_schedule *generate_io_module_inter_trans(
     p = isl_printer_print_int(p, buf->n_lane);
     stmt_name = isl_printer_get_str(p);
     isl_printer_free(p);
-    node = add_io_copies_stmt_tile(kernel, group, node, buf->tile, buf->tile, buf->n_lane, read, stmt_name, read? 1: 0, is_buffer);
+    node = add_io_copies_stmt_tile(kernel, group, node, buf->tile, buf->tile, buf->n_lane, read, stmt_name, read? 1: 0, is_buffer & 0);
     node = isl_schedule_node_cut(node);
     /* Insert empty filter */
     empty_filter = isl_union_set_from_set(isl_set_empty(isl_set_get_space(kernel->context)));
@@ -8020,7 +8124,7 @@ static __isl_give isl_schedule *generate_io_module_intra_trans(
     stmt_name = isl_printer_get_str(p);
     isl_printer_free(p);
     module->data_pack_intra = buf->n_lane;
-    node = add_io_copies_stmt_tile(kernel, group, node, cur_buf->tile, buf->tile, buf->n_lane, read, stmt_name, read? 1: 0, is_buffer);
+    node = add_io_copies_stmt_tile(kernel, group, node, cur_buf->tile, buf->tile, buf->n_lane, read, stmt_name, read? 1: 0, is_buffer & 0);
     node = isl_schedule_node_cut(node);
     /* Insert empty filter */
     empty_filter = isl_union_set_from_set(isl_set_empty(isl_set_get_space(kernel->context)));
@@ -8092,6 +8196,16 @@ static __isl_give struct polysa_hw_module *generate_filter_buffer_io_module(
 
   sched = isl_schedule_node_get_schedule(node);
 
+  /* We only enable double buffer for external array */
+  if (gen->options->double_buffer) {
+    if (group->local_array->array_type == POLYSA_EXT_ARRAY) 
+      module->double_buffer = 1;
+    else
+      module->double_buffer = 0;
+  } else {
+    module->double_buffer = 0;
+  }
+
   /* Inter transfer function */
   sched2 = generate_io_module_inter_trans(sched, module, group, kernel, gen,
       io_level, space_dim, read, 0);
@@ -8125,10 +8239,10 @@ static __isl_give struct polysa_hw_module *generate_filter_buffer_io_module(
     module->boundary_inter_sched = boundary_sched2;
   }
 
-  if (gen->options->double_buffer)
-    module->double_buffer = 1;
-  else
-    module->double_buffer = 0;
+//  if (gen->options->double_buffer)
+//    module->double_buffer = 1;
+//  else
+//    module->double_buffer = 0;
 
   return module;
 }
@@ -8315,7 +8429,7 @@ __isl_give struct polysa_hw_module **sa_io_module_gen(
 
       /* Generate the I/O module */
       if (i >= innermost && i <= outermost) {
-        module = polysa_hw_module_alloc();
+        module = polysa_hw_module_alloc(gen);
         module_name = generate_io_module_name(ctx, group, i, 1);
         module->name = module_name;
         module->to_pe = (i == innermost)? 1 : 0;
@@ -8385,7 +8499,7 @@ __isl_give struct polysa_hw_module **sa_io_module_gen(
 
       /* Generate the I/O module */
       if (i >= innermost && i <= outermost) {
-        module = polysa_hw_module_alloc();
+        module = polysa_hw_module_alloc(gen);
         module_name = generate_io_module_name(ctx, group, i, 0);
         module->name = module_name;
         module->to_pe = (i == innermost)? 1 : 0;

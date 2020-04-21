@@ -2,7 +2,7 @@
 #include "stdlib.h"
 #include "math.h"
 
-typedef int data_t;
-#define I 16 
-#define J 16
-#define K 16
+typedef float data_t;
+#define I 64 
+#define J 64
+#define K 64

@@ -2437,9 +2437,10 @@ void *polysa_prog_free(struct polysa_prog *prog)
 /*****************************************************************
  * PolySA hw module related functions
  *****************************************************************/
-struct polysa_hw_module *polysa_hw_module_alloc()
+struct polysa_hw_module *polysa_hw_module_alloc(struct polysa_gen *gen)
 {
   struct polysa_hw_module *module = (struct polysa_hw_module *)malloc(sizeof(struct polysa_hw_module));
+  module->options = gen->options;
   module->name = NULL;
   module->tree = NULL;
   module->device_tree = NULL;
@@ -3229,7 +3230,8 @@ static char *extract_loop_info_from_module(
 
     module_name = cJSON_GetObjectItemCaseSensitive(loop_struct, "module_name");
     p_str = isl_printer_to_str(gen->ctx);
-    p_str = isl_printer_print_str(p_str, "polysa.tmp/latency_est/");
+    p_str = isl_printer_print_str(p_str, gen->options->output_dir);
+    p_str = isl_printer_print_str(p_str, "/latency_est/");
     p_str = isl_printer_print_str(p_str, module_name->valuestring);
     p_str = isl_printer_print_str(p_str, "_loop_info.json");
     file_name = isl_printer_get_str(p_str);
@@ -3251,7 +3253,48 @@ static char *extract_loop_info_from_module(
 
 }
 
-static cJSON *extract_buffer_info_from_module(struct polysa_gen *gen,
+int extract_memory_type(struct polysa_hw_module *module, struct polysa_kernel_var *var, int uram)
+{
+  /* 0: FF 1: LUTRAM 2: BRAM 3: URAM */
+  int use_memory = 0;
+  int var_size = 1;
+  float bram_util;
+
+  for (int i = 0; i < isl_vec_size(var->size); ++i) {
+    isl_val *v = isl_vec_get_element_val(var->size, i);
+    long v_i = isl_val_get_num_si(v);
+    var_size *= v_i;
+    isl_val_free(v);
+  }
+  if (var->array->size * var->n_lane < 5) 
+    bram_util = (float)var_size / 1024;
+  else
+    bram_util = (float)var_size / 512;
+
+  if (module->type == PE_MODULE || (module->type != PE_MODULE && module->level == 1)) {
+    if (var->n_lane == 1 && var_size <= 32)
+      use_memory = 0;
+    else
+      use_memory = 2;
+  } else {
+    if (module->to_mem == 1) {
+      if (uram)
+        use_memory = 3;
+      else
+        use_memory = 2;
+    } else {
+      if (bram_util > 0.2)
+        use_memory = 2;
+      else
+        use_memory = 1;
+    }
+  }
+
+  return use_memory;
+}
+
+static cJSON *extract_buffer_info_from_module(struct polysa_gen *gen, 
+  struct polysa_hw_module *module,
   struct polysa_kernel_var *var, char *suffix)
 {
   cJSON *buffer = cJSON_CreateObject();
@@ -3288,6 +3331,17 @@ static cJSON *extract_buffer_info_from_module(struct polysa_gen *gen,
   cJSON *n_part = cJSON_CreateNumber(var->n_part);
   cJSON_AddItemToObject(buffer, "partition_number", n_part);
 
+  /* Buffer memory type */
+  int mem_type = extract_memory_type(module, var, gen->options->uram);
+  if (mem_type == 0) 
+    cJSON_AddStringToObject(buffer, "mem_type", "FF");
+  else if (mem_type == 1)
+    cJSON_AddStringToObject(buffer, "mem_type", "LUTRAM");
+  else if (mem_type == 2)
+    cJSON_AddStringToObject(buffer, "mem_type", "BRAM");
+  else 
+    cJSON_AddStringToObject(buffer, "mem_type", "URAM");
+
   return buffer;
 }
 
@@ -3302,6 +3356,15 @@ static cJSON *extract_design_info_from_module(struct polysa_gen *gen,
     /* Extract the SIMD factor */
     cJSON *unroll = cJSON_CreateNumber(gen->kernel->simd_w);
     cJSON_AddItemToObject(info, "unroll", unroll);
+    cJSON *lat_hide_len = cJSON_CreateNumber(gen->kernel->lat_hide_len);
+    cJSON_AddItemToObject(info, "latency_hide_len", lat_hide_len);
+
+    int *fifo_lanes_num = (int *)malloc(module->n_io_group * sizeof(int));
+    for (int i = 0; i< module->n_io_group; i++)
+      fifo_lanes_num[i] = module->io_groups[i]->n_lane;
+    cJSON *fifo_lanes = cJSON_CreateIntArray(fifo_lanes_num, module->n_io_group);
+    cJSON_AddItemToObject(info, "fifo_lanes", fifo_lanes);
+    free(fifo_lanes_num);
   } else {
     /* Extract the input and output data lanes and width */
     cJSON *data_pack_inter = cJSON_CreateNumber(module->data_pack_inter);
@@ -3322,12 +3385,12 @@ static cJSON *extract_design_info_from_module(struct polysa_gen *gen,
       cJSON *buffer = NULL;
       struct polysa_kernel_var *var = &module->var[i];
       if (double_buffer) {
-        buffer = extract_buffer_info_from_module(gen, var, "ping");
+        buffer = extract_buffer_info_from_module(gen, module, var, "ping");
         cJSON_AddItemToArray(buffers, buffer);
-        buffer = extract_buffer_info_from_module(gen, var, "pong");
+        buffer = extract_buffer_info_from_module(gen, module, var, "pong");
         cJSON_AddItemToArray(buffers, buffer);
       } else {
-        buffer = extract_buffer_info_from_module(gen, var, NULL);
+        buffer = extract_buffer_info_from_module(gen, module, var, NULL);
         cJSON_AddItemToArray(buffers, buffer);
       }
     }
@@ -3365,6 +3428,8 @@ isl_stat sa_extract_design_info(struct polysa_gen *gen)
   FILE *fp;
   struct polysa_hw_top_module *top = gen->hw_top_module;
   isl_ctx *ctx = gen->ctx;
+  isl_printer *p_str;
+  char *file_path;
 
 //  /* fifo */
 //  cJSON *fifos = cJSON_CreateObject();
@@ -3442,12 +3507,18 @@ isl_stat sa_extract_design_info(struct polysa_gen *gen)
   }
 
   json_str = cJSON_Print(design_info);
-  fp = fopen("polysa.tmp/resource_est/design_info.json", "w");
+  p_str = isl_printer_to_str(gen->ctx);
+  p_str = isl_printer_print_str(p_str, gen->options->output_dir);
+  p_str = isl_printer_print_str(p_str, "/resource_est/design_info.json");
+  file_path = isl_printer_get_str(p_str);
+  fp = fopen(file_path, "w");
   if (!fp) {
-    printf("[PolySA] Error! Cannot open file: polysa.tmp/resource_est/design_info.json\n");
+    printf("[PolySA] Error! Cannot open file: %s\n", file_path);
   }
   fprintf(fp, "%s", json_str);
   fclose(fp);
+  free(file_path);
+  isl_printer_free(p_str);
   cJSON_Delete(design_info);
   free(json_str);
 
@@ -3517,6 +3588,8 @@ isl_stat sa_extract_array_info(struct polysa_kernel *kernel)
   cJSON *array_info = cJSON_CreateObject();
   char *json_str = NULL;
   FILE *fp;
+  isl_printer *p_str;
+  char *file_path;
 
   for (int i = 0; i < kernel->n_array; i++) {
     cJSON *array = cJSON_CreateObject();
@@ -3535,10 +3608,16 @@ isl_stat sa_extract_array_info(struct polysa_kernel *kernel)
   
   /* Print out the JSON */
   json_str = cJSON_Print(array_info);
-  fp = fopen("polysa.tmp/latency_est/array_info.json", "w");
+  p_str = isl_printer_to_str(kernel->ctx);
+  p_str = isl_printer_print_str(p_str, kernel->options->output_dir);
+  p_str = isl_printer_print_str(p_str, "/latency_est/array_info.json");
+  file_path = isl_printer_get_str(p_str);  
+  fp = fopen(file_path, "w");
   if (!fp) {
-    printf("[PolySA] Error! Cannot open file: polysa.tmp/latency_est/array_info.json\n");
+    printf("[PolySA] Error! Cannot open file: %s\n", file_path);
   }
+  isl_printer_free(p_str);
+  free(file_path);
   fprintf(fp, "%s", json_str);
   fclose(fp);
   free(json_str);

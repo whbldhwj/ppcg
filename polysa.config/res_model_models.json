@@ -1,0 +1,30 @@
+{
+  "IO_module": {
+    "FF": {
+      "features": ["data_pack_inter", "data_pack_intra"]
+    },
+    "LUT": {
+      "features": ["data_pack_inter", "data_pack_intra"]
+    },
+    "DSP": {
+      "features": ["data_pack_inter", "data_pack_intra"]
+    },
+    "BRAM": {
+      "features": ["data_pack_inter", "data_pack_intra"]
+    }
+  },
+  "PE_module": {
+    "FF": {
+      "features": ["unroll", "latency_hiding_length"]
+    },
+    "LUT": {
+      "features": ["unroll", "latency_hiding_length"]
+    },
+    "DSP": {
+      "features": ["unroll", "latency_hiding_length"]
+    },
+    "BRAM": {
+      "features": ["unroll", "latency_hiding_length"]
+    }
+  }
+}

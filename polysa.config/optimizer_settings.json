@@ -1,9 +1,31 @@
 {
   "training": {
-    "n_sample": 2
+    "n_sample": 3,
+    "sample_mode": "log",
+    "n_job": 32,
+    "SIMD": [1, 4],
+    "PE": [1, 32]
   },
   "search": {
     "n_sample": -1,
-    "cycle": 5
+    "sample_mode": "linear",
+    "cycle": 5,
+    "pruning": 1,
+    "n_job": 32,
+    "random_init": 1,
+    "random_n_sample": 2,
+    "random_time_out": 5,
+    "fre_n_sample": 5,
+    "latency_hiding": [128, 1024],
+    "SIMD": [4, 8],
+    "PE": [32, 128],
+    "PE_ratio": 3,
+    "res_thres": {
+      "LUT": [0.3, 0.5],
+      "FF":  [0.1, 0.5],
+      "BRAM":[0.1, 0.5],
+      "DSP": [0.4, 0.6],
+      "URAM":[0, 0.5]
+    }
   }
 }
